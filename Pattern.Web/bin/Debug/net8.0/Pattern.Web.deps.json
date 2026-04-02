@@ -1,0 +1,74 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "Pattern.Web/1.0.0": {
+        "dependencies": {
+          "Pattern.Core.Model": "1.0.0",
+          "Pattern.PublicServices": "1.0.0",
+          "Pattern.Web.Model": "1.0.0"
+        },
+        "runtime": {
+          "Pattern.Web.dll": {}
+        }
+      },
+      "Pattern.Core.Model/1.0.0": {
+        "runtime": {
+          "Pattern.Core.Model.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Pattern.PublicServices/1.0.0": {
+        "dependencies": {
+          "Pattern.Core.Model": "1.0.0"
+        },
+        "runtime": {
+          "Pattern.PublicServices.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Pattern.Web.Model/1.0.0": {
+        "dependencies": {
+          "Pattern.Core.Model": "1.0.0",
+          "Pattern.PublicServices": "1.0.0"
+        },
+        "runtime": {
+          "Pattern.Web.Model.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Pattern.Web/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Pattern.Core.Model/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Pattern.PublicServices/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Pattern.Web.Model/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "version": 3,
+  "targets": {
+    "net8.0": {
+      "Pattern.Core.Model/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/Pattern.Core.Model.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Pattern.Core.Model.dll": {}
+        }
+      },
+      "Pattern.PublicServices/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "Pattern.Core.Model": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Pattern.PublicServices.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Pattern.PublicServices.dll": {}
+        }
+      },
+      "Pattern.Web.Model/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "Pattern.Core.Model": "1.0.0",
+          "Pattern.PublicServices": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Pattern.Web.Model.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Pattern.Web.Model.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Pattern.Core.Model/1.0.0": {
+      "type": "project",
+      "path": "../Pattern.Core.Model/Pattern.Core.Model.csproj",
+      "msbuildProject": "../Pattern.Core.Model/Pattern.Core.Model.csproj"
+    },
+    "Pattern.PublicServices/1.0.0": {
+      "type": "project",
+      "path": "../Pattern.PublicServices/Pattern.PublicServices.csproj",
+      "msbuildProject": "../Pattern.PublicServices/Pattern.PublicServices.csproj"
+    },
+    "Pattern.Web.Model/1.0.0": {
+      "type": "project",
+      "path": "../Pattern.Web.Model/Pattern.Web.Model.csproj",
+      "msbuildProject": "../Pattern.Web.Model/Pattern.Web.Model.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net8.0": [
+      "Pattern.Core.Model >= 1.0.0",
+      "Pattern.PublicServices >= 1.0.0",
+      "Pattern.Web.Model >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\user\\.nuget\\packages\\": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "E:\\Code\\PatternMaking\\Pattern.Web\\Pattern.Web.csproj",
+      "projectName": "Pattern.Web",
+      "projectPath": "E:\\Code\\PatternMaking\\Pattern.Web\\Pattern.Web.csproj",
+      "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
+      "outputPath": "E:\\Code\\PatternMaking\\Pattern.Web\\obj\\",
+      "projectStyle": "PackageReference",
+      "configFilePaths": [
+        "C:\\Users\\user\\AppData\\Roaming\\NuGet\\NuGet.Config"
+      ],
+      "originalTargetFrameworks": [
+        "net8.0"
+      ],
+      "sources": {
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "projectReferences": {
+            "E:\\Code\\PatternMaking\\Pattern.Core.Model\\Pattern.Core.Model.csproj": {
+              "projectPath": "E:\\Code\\PatternMaking\\Pattern.Core.Model\\Pattern.Core.Model.csproj"
+            },
+            "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Pattern.PublicServices.csproj": {
+              "projectPath": "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Pattern.PublicServices.csproj"
+            },
+            "E:\\Code\\PatternMaking\\Pattern.Web.Model\\Pattern.Web.Model.csproj": {
+              "projectPath": "E:\\Code\\PatternMaking\\Pattern.Web.Model\\Pattern.Web.Model.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      }
+    },
+    "frameworks": {
+      "net8.0": {
+        "targetAlias": "net8.0",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.AspNetCore.App": {
+            "privateAssets": "none"
+          },
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.419/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

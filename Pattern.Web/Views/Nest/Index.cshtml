@@ -1,0 +1,46 @@
+@model NestViewModel
+@{ ViewData["Title"] = "Graded Nest"; }
+
+<div class="page-hdr">
+  <div>
+    <div class="page-title">Graded Nest</div>
+    <div class="page-sub">All sizes overlaid — XS through XXL on single canvas</div>
+  </div>
+  <div class="row">
+    <button class="btn btn-outline btn-sm" id="btn-toggle-sizes">Toggle Sizes</button>
+    <a class="btn btn-gold btn-sm" asp-controller="Export" asp-action="Index">↓ Export Nest DXF</a>
+  </div>
+</div>
+
+<div class="nest-legend">
+  @foreach (var sz in Model.Sizes)
+  {
+    <div class="nl-item">
+      <div class="nl-dot" style="background:@sz.Color@(sz.IsBase ? ";height:5px" : "")"></div>
+      @sz.Label
+    </div>
+  }
+</div>
+
+<div class="nest-canvas">
+  <div class="nest-toolbar">
+    <button class="ctb-btn active" data-piece="0">Front Leg</button>
+    <button class="ctb-btn" data-piece="1">Back Leg</button>
+    <button class="ctb-btn" data-piece="2">Waistband</button>
+    <button class="ctb-btn" data-piece="all">All Pieces</button>
+    <div class="ctb-sep"></div>
+    <button class="ctb-btn" id="btn-nest-zoom-out">−</button>
+    <span class="ctb-label" id="nest-zoom-lbl" style="min-width:38px;text-align:center">100%</span>
+    <button class="ctb-btn" id="btn-nest-zoom-in">+</button>
+  </div>
+  <canvas id="nest-cv" style="display:block;width:100%"></canvas>
+</div>
+
+@section Scripts {
+  <script>
+    window.NEST_BASE_URL = '@Url.Action("BasePiece", "Nest")';
+    window.NEST_COLORS = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Sizes.Select(s => s.Color)));
+    window.NEST_LABELS = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Sizes.Select(s => s.Label)));
+  </script>
+  <script src="~/js/nest.js" asp-append-version="true"></script>
+}

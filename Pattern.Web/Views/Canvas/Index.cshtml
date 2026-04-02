@@ -1,0 +1,89 @@
+@model CanvasViewModel
+@{ ViewData["Title"] = "Canvas Editor"; }
+
+<div class="page-hdr">
+  <div>
+    <div class="page-title">Canvas Editor</div>
+    <div class="page-sub">All @Model.PieceNames.Count pattern pieces — drag handles to reshape</div>
+  </div>
+  <div class="row">
+    <button class="btn btn-outline btn-sm" id="btn-undo">↺ Undo</button>
+    <button class="btn btn-outline btn-sm" id="btn-fit-all">⊞ Fit All</button>
+    <a class="btn btn-outline btn-sm" asp-controller="Nest" asp-action="Index">Graded Nest ↗</a>
+    <a class="btn btn-gold btn-sm" asp-controller="Export" asp-action="Index">↓ Export DXF</a>
+  </div>
+</div>
+
+<div class="canvas-shell">
+  <!-- Piece list panel -->
+  <div class="canvas-pieces-list">
+    <div class="cpl-header">Pieces</div>
+    <div id="cpl-list">
+      @for (int i = 0; i < Model.PieceNames.Count; i++)
+      {
+        <div class="cpl-item @(i == Model.SelectedPieceIndex ? "active" : "")"
+             data-index="@i" id="cpl-item-@i">
+          <div class="cpl-dot" id="cpl-dot-@i"></div>
+          <div>
+            <div class="cpl-name">@Model.PieceNames[i]</div>
+            <div class="cpl-cut">cut @(i == 2 ? "1" : i == 8 ? "8" : "2")</div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Canvas drawing area -->
+  <div class="canvas-main">
+    <div class="canvas-toolbar">
+      <button class="ctb-btn active" id="ctb-select">↖ Select</button>
+      <button class="ctb-btn" id="ctb-move">✥ Pan</button>
+      <button class="ctb-btn" id="ctb-point">⊕ Point</button>
+      <div class="ctb-sep"></div>
+      <button class="ctb-btn" id="tog-sa-btn">SA Layer</button>
+      <button class="ctb-btn" id="tog-grain-btn">Grain</button>
+      <button class="ctb-btn" id="tog-labels-btn">Labels</button>
+      <div class="ctb-sep"></div>
+      <span class="ctb-label" id="cv-zoom-label">100%</span>
+      <button class="ctb-btn" id="btn-zoom-out">−</button>
+      <button class="ctb-btn" id="btn-zoom-in">+</button>
+    </div>
+    <div class="canvas-draw">
+      <div class="canvas-grid-bg"></div>
+      <canvas id="cv"></canvas>
+    </div>
+  </div>
+
+  <!-- Properties panel -->
+  <div class="canvas-props">
+    <div class="cp-section">
+      <div class="cp-label">Selection</div>
+      <div class="cp-row"><span class="cp-key">Piece</span><span class="cp-val" id="cp-piece">—</span></div>
+      <div class="cp-row"><span class="cp-key">Points</span><span class="cp-val" id="cp-pts">—</span></div>
+      <div class="cp-row"><span class="cp-key">Width</span><span class="cp-val" id="cp-w">—</span></div>
+      <div class="cp-row"><span class="cp-key">Height</span><span class="cp-val" id="cp-h">—</span></div>
+    </div>
+    <div class="cp-section">
+      <div class="cp-label">Layers</div>
+      <div class="tog-row"><span class="tog-lbl">Seam allowance</span><button class="tog on" id="tog-sa"></button></div>
+      <div class="tog-row"><span class="tog-lbl">Grain line</span><button class="tog on" id="tog-grain"></button></div>
+      <div class="tog-row"><span class="tog-lbl">Labels</span><button class="tog on" id="tog-labels"></button></div>
+      <div class="tog-row"><span class="tog-lbl">Notches</span><button class="tog on" id="tog-notch"></button></div>
+    </div>
+    <div class="cp-section">
+      <div class="cp-label">SA Values</div>
+      <div class="cp-row"><span class="cp-key">Side seam</span><span class="cp-val">1.0 cm</span></div>
+      <div class="cp-row"><span class="cp-key">Waist</span><span class="cp-val">1.5 cm</span></div>
+      <div class="cp-row"><span class="cp-key">Crotch</span><span class="cp-val">1.5 cm</span></div>
+      <div class="cp-row"><span class="cp-key">Hem</span><span class="cp-val">3.0 cm</span></div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+  <script>
+    window.CANVAS_INIT_PIECE = @Model.SelectedPieceIndex;
+    window.PIECE_DATA_URL = '@Url.Action("PieceData", "Canvas")';
+  </script>
+  <script src="~/js/canvas.js" asp-append-version="true"></script>
+}

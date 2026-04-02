@@ -1,0 +1,48 @@
+@model SizeChartViewModel
+@{ ViewData["Title"] = "Size Chart"; }
+
+<div class="page-hdr">
+  <div>
+    <div class="page-title">Size Chart</div>
+    <div class="page-sub">Body measurements in cm — M is the base size</div>
+  </div>
+  <div class="row">
+    <a class="btn btn-outline btn-sm" asp-controller="SizeChart" asp-action="ExportCsv">↓ Export CSV</a>
+    <button class="btn btn-primary btn-sm" id="btn-add-size">＋ Add Size</button>
+  </div>
+</div>
+
+<div class="tbl-wrap">
+  <div class="tbl-header">
+    <span class="tbl-title">Denim Body Measurements — All Sizes</span>
+    <span class="spacer"></span>
+    <span style="font-size:10.5px;color:var(--ink4);font-family:'DM Mono',monospace;font-weight:600">UNIT: CM</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Measurement Point</th>
+        <th style="text-align:center">XS</th>
+        <th style="text-align:center">S</th>
+        <th class="sch-m" style="text-align:center">M — Base</th>
+        <th style="text-align:center">L</th>
+        <th style="text-align:center">XL</th>
+        <th style="text-align:center">XXL</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var row in Model.Rows)
+      {
+        <tr>
+          <td class="td-label">@row.MeasurementPoint</td>
+          <td class="td-mono">@row.XS</td>
+          <td class="td-mono">@row.S</td>
+          <td class="td-mono td-base">@row.M</td>
+          <td class="td-mono">@row.L</td>
+          <td class="td-mono">@row.XL</td>
+          <td class="td-mono">@row.XXL</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

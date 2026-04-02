@@ -1,0 +1,45 @@
+@using Pattern.Web.Model
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">New Pattern</div>
+    <div class="modal-sub">Create a new denim pattern draft — it will appear in the table</div>
+    <div class="modal-error" id="modal-error">Please enter a pattern name.</div>
+
+    <div class="form-row">
+      <label class="form-label">Pattern Name</label>
+      <input class="form-input" id="m-name" type="text" placeholder="e.g. Skinny Relaxed" />
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">Style</label>
+        <select class="form-input" id="m-style">
+          @foreach (var (value, label) in PatternCreateViewModel.StyleOptions)
+          {
+            <option value="@value">@label</option>
+          }
+        </select>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">Base Size</label>
+        <select class="form-input" id="m-base">
+          @foreach (var sz in PatternCreateViewModel.SizeOptions)
+          {
+            <option selected="@(sz == "M")">@sz</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:16px">
+      <label class="form-label">Designer</label>
+      <input class="form-input" id="m-designer" type="text"
+             placeholder="e.g. Pattern Designer" value="Pattern Designer" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btn-modal-cancel">Cancel</button>
+      <button class="btn btn-gold"    id="btn-modal-create">＋ Create Pattern</button>
+    </div>
+  </div>
+</div>

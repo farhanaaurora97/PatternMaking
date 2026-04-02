@@ -1,0 +1,50 @@
+@model GradingViewModel
+@{ ViewData["Title"] = "Grading"; }
+
+<div class="page-hdr">
+  <div>
+    <div class="page-title">Grading Table</div>
+    <div class="page-sub">Size increments from M base — all values in cm</div>
+  </div>
+  <div class="row">
+    <span class="tag tag-teal">Industry Standard Grading</span>
+    <a class="btn btn-outline btn-sm"
+       asp-controller="Grading" asp-action="ExportCsv"
+       asp-route-style="@Model.StyleKey">↓ Export</a>
+  </div>
+</div>
+
+<div class="tbl-wrap">
+  <div class="tbl-header">
+    <span class="tbl-title">Grade Rules — @Model.StyleLabel</span>
+    <span class="spacer"></span>
+    <span style="font-size:10.5px;color:var(--ink4);font-family:'DM Mono',monospace;font-weight:600">DELTA FROM M BASE</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Measurement Point</th>
+        <th style="text-align:right">XS</th>
+        <th style="text-align:right">S</th>
+        <th class="sch-m" style="text-align:center">M</th>
+        <th style="text-align:right">L</th>
+        <th style="text-align:right">XL</th>
+        <th style="text-align:right">XXL</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var row in Model.Rows)
+      {
+        <tr>
+          <td class="td-label">@row.MeasurementPoint</td>
+          <td class="td-dn">@row.FormatDelta(row.XS)</td>
+          <td class="td-dn">@row.FormatDelta(row.S)</td>
+          <td class="td-base">0</td>
+          <td class="td-up">+@row.L</td>
+          <td class="td-up">+@row.XL</td>
+          <td class="td-up">+@row.XXL</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
