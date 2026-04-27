@@ -8,3 +8,4 @@ public class LayoutViewModel
     public string CurrentStyle { get; set; } = "skinny";
     public int PendingBadgeCount { get; set; } = 0;
 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         

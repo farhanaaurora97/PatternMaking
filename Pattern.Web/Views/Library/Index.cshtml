@@ -1,0 +1,109 @@
+@model List<LibraryEntryViewModel>
+@using Pattern.Web.Model
+
+@{
+    ViewData["Title"] = "Pattern Library";
+    var saved   = Model.Where(e => e.HasCanvas).ToList();
+    var unsaved = Model.Where(e => !e.HasCanvas).ToList();
+}
+
+<div class="lib-page">
+
+  <div class="page-hdr">
+    <div>
+      <div class="page-title">Pattern Library</div>
+      <div class="page-sub">All patterns with saved canvas data — open any to continue editing</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span style="font-size:12px;color:var(--ink3);font-family:var(--font-mono)">
+        <strong style="color:var(--ink)">@saved.Count</strong> saved &nbsp;·&nbsp;
+        <strong style="color:var(--ink3)">@unsaved.Count</strong> not yet opened in canvas
+      </span>
+      <a class="btn btn-gold btn-sm" asp-controller="Canvas" asp-action="Index">＋ New Canvas</a>
+    </div>
+  </div>
+
+  @if (saved.Any())
+  {
+    <div class="lib-section-title">
+      <span class="lib-section-dot lib-dot-saved"></span>
+      Saved Canvas Patterns
+    </div>
+    <div class="lib-grid">
+      @foreach (var e in saved)
+      {
+        <div class="lib-card lib-card--saved">
+          <div class="lib-card-top">
+            <div class="lib-card-code">@e.Code</div>
+            <span class="lib-status-dot lib-dot-saved" title="Canvas data saved"></span>
+          </div>
+          <div class="lib-card-name">@e.Name</div>
+          <div class="lib-card-meta">
+            <span class="lib-meta-tag">@e.Style</span>
+            <span class="lib-meta-tag">@e.BaseSize</span>
+            <span class="lib-meta-tag">@e.Category</span>
+          </div>
+          <div class="lib-card-pieces">
+            <svg width="12" height="12" viewBox="0 0 15 15" fill="none" style="opacity:.5">
+              <rect x="1" y="1" width="5" height="8" rx="1.2" fill="currentColor"/>
+              <rect x="8" y="1" width="6" height="8" rx="1.2" fill="currentColor" opacity=".5"/>
+              <rect x="1" y="11" width="13" height="3" rx="1.2" fill="currentColor" opacity=".4"/>
+            </svg>
+            @e.PieceCount piece@(e.PieceCount == 1 ? "" : "s") saved
+          </div>
+          <div class="lib-card-footer">
+            <span class="lib-date">@e.Date</span>
+            <a class="btn btn-gold btn-sm lib-open-btn"
+               asp-controller="Canvas" asp-action="Index"
+               asp-route-patternId="@e.Id"
+               asp-route-style="@e.StyleKey">
+              ✏ Open in Canvas
+            </a>
+          </div>
+        </div>
+      }
+    </div>
+  }
+  else
+  {
+    <div class="lib-empty-saved">
+      <div class="lib-empty-icon">📂</div>
+      <div class="lib-empty-title">No canvas data saved yet</div>
+      <div class="lib-empty-sub">Open any pattern in the canvas editor and hit <strong>Save All</strong> — it will appear here.</div>
+      <a class="btn btn-gold btn-sm" asp-controller="Canvas" asp-action="Index" style="margin-top:16px">Open Canvas Editor</a>
+    </div>
+  }
+
+  @if (unsaved.Any())
+  {
+    <div class="lib-section-title" style="margin-top:36px">
+      <span class="lib-section-dot lib-dot-unsaved"></span>
+      Not Yet in Canvas
+    </div>
+    <div class="lib-grid lib-grid--muted">
+      @foreach (var e in unsaved)
+      {
+        <div class="lib-card lib-card--unsaved">
+          <div class="lib-card-top">
+            <div class="lib-card-code">@e.Code</div>
+          </div>
+          <div class="lib-card-name">@e.Name</div>
+          <div class="lib-card-meta">
+            <span class="lib-meta-tag">@e.Style</span>
+            <span class="lib-meta-tag">@e.BaseSize</span>
+          </div>
+          <div class="lib-card-footer">
+            <span class="lib-date">@e.Date</span>
+            <a class="btn btn-outline btn-sm lib-open-btn"
+               asp-controller="Canvas" asp-action="Index"
+               asp-route-patternId="@e.Id"
+               asp-route-style="@e.StyleKey">
+              ✏ Start in Canvas
+            </a>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>

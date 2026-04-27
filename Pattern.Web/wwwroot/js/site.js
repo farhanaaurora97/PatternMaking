@@ -65,26 +65,41 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
   btnCancel?.addEventListener('click', close);
 
   btnCreate?.addEventListener('click', async () => {
-    const name     = document.getElementById('m-name')?.value.trim();
-    const styleKey = document.getElementById('m-style')?.value;
-    const base     = document.getElementById('m-base')?.value;
-    const designer = document.getElementById('m-designer')?.value.trim();
+    const name       = document.getElementById('m-name')?.value.trim();
+    const categoryKey = document.getElementById('m-category')?.value ?? 'denim';
+    const styleKey   = document.getElementById('m-style')?.value;
+    const base       = document.getElementById('m-base')?.value;
+    const designer   = document.getElementById('m-designer')?.value.trim();
     if (!name) { errEl?.classList.add('show'); return; }
     errEl?.classList.remove('show');
 
     const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
     const res = await fetch('/Home/Create', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token ?? '' },
-      body: JSON.stringify({ name, styleKey, baseSize: base, designer }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token ? { 'RequestVerificationToken': token } : {}),
+      },
+      body: JSON.stringify({ name, categoryKey, styleKey, baseSize: base, designer }),
     });
-    if (res.ok) {
-      const pattern = await res.json();
-      close();
-      document.getElementById('m-name').value = '';
-      window.dispatchEvent(new CustomEvent('pattern:created', { detail: pattern }));
-      toast('Pattern Created', `${pattern.code} ${pattern.name} added to your workspace`, 'success', '✨');
+    if (!res.ok) {
+      let msg = 'Check your connection and try again.';
+      try {
+        const err = await res.json();
+        if (Array.isArray(err)) msg = err.join(' ');
+        else if (typeof err === 'string') msg = err;
+        else if (err?.title) msg = err.title;
+      } catch { /* ignore */ }
+      toast('Could not create pattern', msg, 'error', '⚠️');
+      return;
     }
+    const pattern = await res.json();
+    close();
+    const nameInput = document.getElementById('m-name');
+    if (nameInput) nameInput.value = '';
+    window.dispatchEvent(new CustomEvent('pattern:created', { detail: pattern }));
+    toast('Pattern Created', `${pattern.code} ${pattern.name} added to your workspace`, 'success', '✨');
   });
 
   // Keyboard: N = open, Esc = close

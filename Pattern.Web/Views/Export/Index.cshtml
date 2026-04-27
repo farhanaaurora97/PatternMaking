@@ -5,6 +5,10 @@
   <div>
     <div class="page-title">Export Pattern</div>
     <div class="page-sub">Choose format and destination for your pattern files</div>
+    @if (string.Equals((string?)ViewBag.ExportSource, "draft", StringComparison.OrdinalIgnoreCase))
+    {
+      <div class="tag tag-purple" style="margin-top:6px;display:inline-flex">Draft sizes from canvas loaded</div>
+    }
   </div>
 </div>
 
@@ -58,8 +62,12 @@
       <div class="cp-row" style="margin-bottom:9px">
         <span style="font-size:13px;color:var(--ink3)">Pieces</span>
         <span style="font-size:13px;font-weight:600;color:var(--ink)" id="exp-pieces">
-          @Model.PieceCount pieces × 6 sizes = @Model.TotalFiles files
+          @Model.PieceCount pieces × @Model.SizeCount sizes = @Model.TotalFiles files
         </span>
+      </div>
+      <div class="cp-row" style="margin-bottom:9px">
+        <span style="font-size:13px;color:var(--ink3)">Sizes</span>
+        <span style="font-size:13px;font-weight:600;color:var(--ink)">@Model.SizesCsv</span>
       </div>
       <div class="cp-row" style="margin-bottom:0">
         <span style="font-size:13px;color:var(--ink3)">Format</span>
@@ -84,10 +92,27 @@
   </div>
 </div>
 
+@* ── Export Preview Modal ─────────────────────────────────────────── *@
+<div class="modal-overlay" id="preview-modal-overlay">
+  <div class="modal modal-wide">
+    <div class="modal-title">Export Preview</div>
+    <div class="modal-sub" id="preview-modal-sub">Pattern pieces at base size — verify before export</div>
+    <div id="preview-canvas-grid" class="preview-grid"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btn-preview-close">Close</button>
+    </div>
+  </div>
+</div>
+
 @section Scripts {
   <script>
-    window.EXPORT_URL = '@Url.Action("StartExport", "Export")';
+    window.EXPORT_URL       = '@Url.Action("StartExport", "Export")';
     window.EXPORT_TOTAL_FILES = @Model.TotalFiles;
+    window.PREVIEW_URL      = '@Url.Action("PreviewPieces", "Export")';
+    window.EXPORT_STYLE     = '@ViewBag.CurrentStyle';
+    window.EXPORT_PATTERN_ID = @Model.PatternId;
+    window.EXPORT_SIZES_CSV = '@Model.SizesCsv';
+    window.DOWNLOAD_PACKAGE_URL = '@Url.Action("DownloadPackage", "Export")';
   </script>
   <script src="~/js/export.js" asp-append-version="true"></script>
 }

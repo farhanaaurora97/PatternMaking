@@ -1,68 +1,110 @@
 @model CanvasViewModel
 @{ ViewData["Title"] = "Canvas Editor"; }
 
-<div class="page-hdr">
-  <div>
-    <div class="page-title">Canvas Editor</div>
-    <div class="page-sub">All @Model.PieceNames.Count pattern pieces — drag handles to reshape</div>
+<!-- ── Slim canvas header ── -->
+<div class="cv-header">
+  <div class="cv-header-brand">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="opacity:.6">
+      <rect x="1" y="1" width="14" height="14" rx="2.5" stroke="var(--ink)" stroke-width="1.3" fill="none"/>
+      <path d="M4 9.5L6.5 12L12 5" stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="cv-title">Canvas</span>
+    <span class="cv-piece-badge" id="cv-piece-count">@(Model.PieceNames.Count == 0 ? "Empty" : $"{Model.PieceNames.Count} pieces")</span>
   </div>
-  <div class="row">
-    <button class="btn btn-outline btn-sm" id="btn-undo">↺ Undo</button>
-    <button class="btn btn-outline btn-sm" id="btn-fit-all">⊞ Fit All</button>
-    <a class="btn btn-outline btn-sm" asp-controller="Nest" asp-action="Index">Graded Nest ↗</a>
-    <a class="btn btn-gold btn-sm" asp-controller="Export" asp-action="Index">↓ Export DXF</a>
+
+  <div class="cv-sep"></div>
+  <span class="save-indicator" id="save-indicator"></span>
+
+  <div class="cv-header-actions">
+    <button class="btn btn-outline btn-sm" id="btn-undo" title="Undo (Ctrl+Z)">↺ Undo</button>
+    <button class="btn btn-outline btn-sm" id="btn-clear-canvas" title="Clear canvas">✕ Clear</button>
+    <button class="btn btn-outline btn-sm" id="btn-save-all" title="Save all (Ctrl+S)">⬆ Save All</button>
+    <button class="btn btn-outline btn-sm" id="btn-fit-all" title="Fit all (Space)">⊞ Fit All</button>
+    <div class="cv-sep"></div>
+    <a class="btn btn-outline btn-sm" asp-controller="Nest" asp-action="Index">Nest ↗</a>
+    <a class="btn btn-gold btn-sm" asp-controller="Export" asp-action="Index"
+       asp-route-patternId="@Model.PatternId" asp-route-style="@Model.StyleKey">↓ Export DXF</a>
   </div>
 </div>
 
+<!-- ── Canvas shell (full height) ── -->
 <div class="canvas-shell">
-  <!-- Piece list panel -->
+
+  <!-- Left: Piece list -->
   <div class="canvas-pieces-list">
-    <div class="cpl-header">Pieces</div>
+    <div class="cpl-header">
+      <span>Pieces</span>
+      <span class="cpl-count-badge" id="cpl-count-badge">@Model.PieceNames.Count</span>
+    </div>
     <div id="cpl-list">
       @for (int i = 0; i < Model.PieceNames.Count; i++)
       {
         <div class="cpl-item @(i == Model.SelectedPieceIndex ? "active" : "")"
              data-index="@i" id="cpl-item-@i">
+          <span class="cpl-num">@(i + 1)</span>
           <div class="cpl-dot" id="cpl-dot-@i"></div>
           <div>
             <div class="cpl-name">@Model.PieceNames[i]</div>
-            <div class="cpl-cut">cut @(i == 2 ? "1" : i == 8 ? "8" : "2")</div>
+            <div class="cpl-cut" id="cpl-cut-@i"></div>
           </div>
         </div>
       }
     </div>
+    @if (!Model.PieceNames.Any())
+    {
+      <div class="cpl-empty-msg" id="cpl-empty-msg">
+        <div class="cpl-empty-icon">◻</div>
+        <div class="cpl-empty-txt">No pieces yet.<br>Use ✏ Draw or ⚡ Generate to start.</div>
+      </div>
+    }
   </div>
 
-  <!-- Canvas drawing area -->
+  <!-- Center: Drawing area -->
   <div class="canvas-main">
     <div class="canvas-toolbar">
-      <button class="ctb-btn active" id="ctb-select">↖ Select</button>
-      <button class="ctb-btn" id="ctb-move">✥ Pan</button>
-      <button class="ctb-btn" id="ctb-point">⊕ Point</button>
+      <button class="ctb-btn active" id="ctb-select" title="Select & reshape (S)">↖ Select</button>
+      <button class="ctb-btn" id="ctb-move"   title="Pan viewport (P)">✥ Pan</button>
+      <button class="ctb-btn" id="ctb-point"  title="Add point on edge (A)">⊕ Point</button>
+      <button class="ctb-btn" id="ctb-notch"  title="Toggle notch (N)">✂ Notch</button>
+      <button class="ctb-btn" id="ctb-draw"   title="Draw new piece (D)">✏ Draw</button>
       <div class="ctb-sep"></div>
-      <button class="ctb-btn" id="tog-sa-btn">SA Layer</button>
-      <button class="ctb-btn" id="tog-grain-btn">Grain</button>
-      <button class="ctb-btn" id="tog-labels-btn">Labels</button>
+      <button class="ctb-btn" id="tog-sa-btn"     title="Toggle seam allowance">⬜ SA</button>
+      <button class="ctb-btn" id="tog-grain-btn"  title="Toggle grain line">⇅ Grain</button>
+      <button class="ctb-btn" id="tog-labels-btn" title="Toggle labels">T Labels</button>
       <div class="ctb-sep"></div>
+      <button class="ctb-btn" id="btn-zoom-out" title="Zoom out (-)">−</button>
       <span class="ctb-label" id="cv-zoom-label">100%</span>
-      <button class="ctb-btn" id="btn-zoom-out">−</button>
-      <button class="ctb-btn" id="btn-zoom-in">+</button>
+      <button class="ctb-btn" id="btn-zoom-in" title="Zoom in (+)">+</button>
     </div>
+
     <div class="canvas-draw">
       <div class="canvas-grid-bg"></div>
+
+      <!-- Empty state -->
+      <div class="cv-empty-state" id="cv-empty-state" style="@(Model.PieceNames.Any() ? "display:none" : "")">
+        <div class="cv-empty-icon">✏</div>
+        <div class="cv-empty-title">Empty Canvas</div>
+        <div class="cv-empty-sub">Press D to draw a new piece, or use ⚡ Generate in the panel to auto-draft from size chart.</div>
+      </div>
+
       <canvas id="cv"></canvas>
     </div>
   </div>
 
-  <!-- Properties panel -->
+  <!-- Right: Properties panel -->
   <div class="canvas-props">
+
+    <!-- Selection -->
     <div class="cp-section">
       <div class="cp-label">Selection</div>
       <div class="cp-row"><span class="cp-key">Piece</span><span class="cp-val" id="cp-piece">—</span></div>
       <div class="cp-row"><span class="cp-key">Points</span><span class="cp-val" id="cp-pts">—</span></div>
       <div class="cp-row"><span class="cp-key">Width</span><span class="cp-val" id="cp-w">—</span></div>
       <div class="cp-row"><span class="cp-key">Height</span><span class="cp-val" id="cp-h">—</span></div>
+      <div class="cp-row"><span class="cp-key">Perimeter</span><span class="cp-val" id="cp-perim">—</span></div>
     </div>
+
+    <!-- Layers -->
     <div class="cp-section">
       <div class="cp-label">Layers</div>
       <div class="tog-row"><span class="tog-lbl">Seam allowance</span><button class="tog on" id="tog-sa"></button></div>
@@ -70,20 +112,146 @@
       <div class="tog-row"><span class="tog-lbl">Labels</span><button class="tog on" id="tog-labels"></button></div>
       <div class="tog-row"><span class="tog-lbl">Notches</span><button class="tog on" id="tog-notch"></button></div>
     </div>
+
+    <!-- Edge lengths -->
     <div class="cp-section">
-      <div class="cp-label">SA Values</div>
-      <div class="cp-row"><span class="cp-key">Side seam</span><span class="cp-val">1.0 cm</span></div>
-      <div class="cp-row"><span class="cp-key">Waist</span><span class="cp-val">1.5 cm</span></div>
-      <div class="cp-row"><span class="cp-key">Crotch</span><span class="cp-val">1.5 cm</span></div>
-      <div class="cp-row"><span class="cp-key">Hem</span><span class="cp-val">3.0 cm</span></div>
+      <div class="cp-label">Edge Lengths <span style="font-weight:400;opacity:.5;font-size:9px">px</span></div>
+      <div id="cp-edges" style="font-size:10.5px;line-height:2;color:var(--ink3);font-family:var(--font-mono)">—</div>
     </div>
-  </div>
-</div>
+
+    <!-- Seam allowance values -->
+    <div class="cp-section">
+      <div class="cp-label">Seam Allowance</div>
+      <div class="sa-row"><span class="sa-label">Side seam</span><span class="sa-value">1.0 cm</span></div>
+      <div class="sa-row"><span class="sa-label">Waist</span><span class="sa-value">1.5 cm</span></div>
+      <div class="sa-row"><span class="sa-label">Crotch</span><span class="sa-value">1.5 cm</span></div>
+      <div class="sa-row"><span class="sa-label">Hem</span><span class="sa-value">3.0 cm</span></div>
+    </div>
+
+    <!-- New piece form (shown while drawing) -->
+    <div class="cp-section" id="create-piece-form" style="display:none">
+      <div class="cp-label">New Piece</div>
+      <input  type="text"   id="new-piece-name"     class="cp-input" placeholder="Piece name" autocomplete="off" />
+      <select id="new-piece-category" class="cp-input">
+        <option>Body Panels</option><option>Closures</option>
+        <option>Pockets</option><option>Hardware &amp; Details</option>
+      </select>
+      <select id="new-piece-cut" class="cp-input">
+        <option>Cut 2</option><option>Cut 1</option><option>Cut 4</option><option>Cut 8</option>
+      </select>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+        <label style="font-size:10.5px;color:var(--ink3)">Color</label>
+        <input type="color" id="new-piece-color" value="#a78bfa"
+               style="width:34px;height:22px;border:1px solid var(--bdr);border-radius:4px;cursor:pointer;padding:1px;">
+      </div>
+      <div style="display:flex;gap:5px">
+        <button class="btn btn-gold btn-sm" id="btn-confirm-piece" style="flex:1">✓ Add Piece</button>
+        <button class="btn btn-outline btn-sm" id="btn-cancel-piece">✕</button>
+      </div>
+      <div class="draw-hint" style="margin-top:8px">Click canvas to place points.<br>Double-click or click ① to close.</div>
+    </div>
+
+    <!-- Auto-Draft -->
+    <div class="cp-section" id="draft-sizes-panel">
+      <div class="cp-label">Auto-Draft Sizes</div>
+      <div style="font-size:10.5px;color:var(--ink4);margin-bottom:8px;line-height:1.55">Generate pieces from size chart.</div>
+
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:8px;cursor:pointer;color:var(--ink2)">
+        <input type="checkbox" id="use-custom-measurements"> My body measurements
+      </label>
+
+      <div id="custom-measurements" style="display:none;margin-bottom:8px">
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+          <span style="font-size:10px;color:var(--ink3);min-width:62px">Base size</span>
+          <select id="custom-base-size" class="cp-input" style="margin-bottom:0">
+            <option>XS</option><option>S</option><option selected>M</option>
+            <option>L</option><option>XL</option><option>XXL</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <input id="ms-waist"      class="cp-input" type="number" step="0.1" placeholder="Waist" style="margin-bottom:0"/>
+          <input id="ms-hip"        class="cp-input" type="number" step="0.1" placeholder="Hip" style="margin-bottom:0"/>
+          <input id="ms-front-rise" class="cp-input" type="number" step="0.1" placeholder="F.Rise" style="margin-bottom:0"/>
+          <input id="ms-back-rise"  class="cp-input" type="number" step="0.1" placeholder="B.Rise" style="margin-bottom:0"/>
+          <input id="ms-thigh"      class="cp-input" type="number" step="0.1" placeholder="Thigh" style="margin-bottom:0"/>
+          <input id="ms-knee"       class="cp-input" type="number" step="0.1" placeholder="Knee" style="margin-bottom:0"/>
+          <input id="ms-ankle"      class="cp-input" type="number" step="0.1" placeholder="Ankle" style="margin-bottom:0"/>
+          <input id="ms-inseam"     class="cp-input" type="number" step="0.1" placeholder="Inseam" style="margin-bottom:0"/>
+        </div>
+        <div style="display:flex;gap:5px;margin-top:6px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" id="btn-recommend-size" type="button"
+                  style="font-size:10px;padding:3px 8px">Suggest Size</button>
+          <span id="recommended-size" style="font-size:10.5px;color:var(--ink3)"></span>
+        </div>
+        <div style="display:flex;gap:5px;margin-top:7px">
+          <input id="profile-name" class="cp-input" type="text" placeholder="Profile name"
+                 style="margin-bottom:0;flex:1"/>
+          <button class="btn btn-outline btn-sm" id="btn-save-profile" type="button"
+                  style="font-size:10px;padding:3px 8px;flex-shrink:0">Save</button>
+        </div>
+        <div style="display:flex;gap:5px;margin-top:5px">
+          <select id="profile-list" class="cp-input" style="margin-bottom:0;flex:1">
+            <option value="">Load profile…</option>
+          </select>
+          <button class="btn btn-outline btn-sm" id="btn-load-profile" type="button"
+                  style="font-size:10px;padding:3px 8px;flex-shrink:0">Load</button>
+        </div>
+      </div>
+
+      <div id="draft-size-checks" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="XS"> XS</label>
+        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="S"> S</label>
+        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="M" checked> M</label>
+        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="L" checked> L</label>
+        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="XL" checked> XL</label>
+        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="XXL" checked> XXL</label>
+      </div>
+
+      <div id="auto-size-pill" style="display:none;margin-bottom:7px;font-size:10.5px;color:#075985;background:#e0f2fe;border:1px solid #bae6fd;border-radius:999px;padding:4px 10px">
+        Auto: <b id="auto-size-value">—</b>
+      </div>
+
+      <div style="display:flex;gap:5px;margin-bottom:5px">
+        <button class="btn btn-gold btn-sm" id="btn-generate-draft" style="flex:1">⚡ Generate</button>
+        <button class="btn btn-outline btn-sm" id="btn-clear-draft"  style="display:none" title="Clear draft">✕</button>
+        <button class="btn btn-outline btn-sm" id="btn-export-draft" style="display:none" title="Export draft">↓</button>
+      </div>
+      <div id="draft-msg" style="font-size:10.5px;color:var(--ink4);min-height:14px;line-height:1.4"></div>
+      <div id="draft-apply-list" style="display:none;margin-top:7px"></div>
+    </div>
+
+    <!-- Keyboard shortcuts -->
+    <div class="cp-section">
+      <div class="cp-label">Shortcuts</div>
+      <div style="font-size:9.5px;line-height:2.1;color:var(--ink4);font-family:var(--font-mono)">
+        <div><span style="color:var(--ink3);font-weight:600">S</span> Select &nbsp; <span style="color:var(--ink3);font-weight:600">P</span> Pan</div>
+        <div><span style="color:var(--ink3);font-weight:600">A</span> Add point &nbsp; <span style="color:var(--ink3);font-weight:600">N</span> Notch</div>
+        <div><span style="color:var(--ink3);font-weight:600">D</span> Draw &nbsp; <span style="color:var(--ink3);font-weight:600">Esc</span> Cancel</div>
+        <div><span style="color:var(--ink3);font-weight:600">Del</span> Delete vertex</div>
+        <div><span style="color:var(--ink3);font-weight:600">Ctrl+Z</span> Undo</div>
+        <div><span style="color:var(--ink3);font-weight:600">Ctrl+S</span> Save all</div>
+        <div><span style="color:var(--ink3);font-weight:600">Space</span> Fit all &nbsp; <span style="color:var(--ink3);font-weight:600">± </span>Zoom</div>
+      </div>
+    </div>
+
+  </div><!-- /canvas-props -->
+</div><!-- /canvas-shell -->
 
 @section Scripts {
   <script>
-    window.CANVAS_INIT_PIECE = @Model.SelectedPieceIndex;
-    window.PIECE_DATA_URL = '@Url.Action("PieceData", "Canvas")';
+    window.CANVAS_INIT_PIECE   = @Model.SelectedPieceIndex;
+    window.CANVAS_PATTERN_ID   = @Model.PatternId;
+    window.CANVAS_STYLE        = '@Model.StyleKey';
+    window.PIECE_DATA_URL      = '@Url.Action("PieceData",              "Canvas")?patternId=@Model.PatternId&style=@Model.StyleKey';
+    window.SAVE_URL            = '@Url.Action("SavePiece",              "Canvas")';
+    window.SAVE_ALL_URL        = '@Url.Action("SaveAllPieces",          "Canvas")';
+    window.MEASUREMENTS_URL    = '@Url.Action("Measurements",           "Canvas")';
+    window.CREATE_URL          = '@Url.Action("CreatePiece",            "Canvas")';
+    window.DRAFT_SIZES_URL     = '@Url.Action("DraftSizes",             "Canvas")';
+    window.DRAFT_FROM_BODY_URL = '@Url.Action("DraftFromMeasurements",  "Canvas")';
+    window.RECOMMEND_SIZE_URL  = '@Url.Action("RecommendSize",          "Canvas")';
+    window.SAVE_PROFILE_URL    = '@Url.Action("SaveMeasurementProfile", "Canvas")';
+    window.PROFILES_URL        = '@Url.Action("MeasurementProfiles",    "Canvas")';
   </script>
   <script src="~/js/canvas.js" asp-append-version="true"></script>
 }

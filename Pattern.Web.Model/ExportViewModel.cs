@@ -2,10 +2,13 @@ namespace Pattern.Web.Model;
 
 public class ExportViewModel
 {
+    public int PatternId { get; set; }
     public string PatternDisplayName { get; set; } = "DN-001 Skinny Classic";
     public string StyleLabel { get; set; } = "Skinny Fit";
     public int PieceCount { get; set; } = 9;
-    public int TotalFiles => PieceCount * 6;
+    public int SizeCount { get; set; } = 6;
+    public string SizesCsv { get; set; } = "XS,S,M,L,XL,XXL";
+    public int TotalFiles => PieceCount * SizeCount;
     public string SelectedFormat { get; set; } = "DXF";
 
     public static IReadOnlyList<ExportFormatViewModel> Formats =>

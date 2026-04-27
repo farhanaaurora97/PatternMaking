@@ -14,8 +14,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>@(ViewData["Title"] ?? layout.PageTitle) — PatternPro</title>
   <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/patternpro-shell.css" asp-append-version="true" />
 </head>
-<body>
+<body class="pp-theme">
 
 <!-- Editorial top bar (M.Mueller & Sohn–inspired publishing accent) -->
 <div class="brand-accent" aria-hidden="true"></div>
@@ -42,7 +43,7 @@
           <div class="sb-brand-name">PatternPro</div>
         </div>
       </div>
-      <div class="sb-brand-sub">Technical patterns · Denim</div>
+      <div class="sb-brand-sub">Technical patterns · Bottom wear</div>
     </div>
 
     <nav class="sb-nav">
@@ -77,6 +78,11 @@
         Pattern Pieces
       </a>
 
+      <a class="@Nav("Library")" asp-controller="Library" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="2" width="3" height="11" rx="1" fill="currentColor" opacity=".7"/><rect x="5" y="2" width="3" height="11" rx="1" fill="currentColor" opacity=".5"/><rect x="9" y="2" width="5" height="11" rx="1" fill="currentColor" opacity=".4"/></svg>
+        Library
+      </a>
+
       <div class="sb-divider"></div>
       <div class="sb-section">Tools</div>
 
@@ -100,7 +106,7 @@
       <div class="sb-avatar">PD</div>
       <div style="flex:1;min-width:0">
         <div class="sb-user-name">Pattern Designer</div>
-        <div class="sb-user-role">Denim · Senior</div>
+        <div class="sb-user-role">Bottom wear · Senior</div>
       </div>
       <div class="sb-status" title="Online"></div>
     </div>
@@ -150,7 +156,7 @@
     </div>
 
     <!-- Page content -->
-    <div class="content">
+    <div class="content @(active == "Canvas" ? "content--canvas" : "")">
       @RenderBody()
     </div>
 

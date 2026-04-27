@@ -2,12 +2,12 @@
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-title">New Pattern</div>
-    <div class="modal-sub">Create a new denim pattern draft — it will appear in the table</div>
+    <div class="modal-sub">Create a new bottom-wear pattern draft — it will appear in the table</div>
     <div class="modal-error" id="modal-error">Please enter a pattern name.</div>
 
     <div class="form-row">
       <label class="form-label">Pattern Name</label>
-      <input class="form-input" id="m-name" type="text" placeholder="e.g. Skinny Relaxed" />
+      <input class="form-input" id="m-name" type="text" placeholder="e.g. Skinny Relaxed" autocomplete="off" />
     </div>
 
     <div class="form-row-2">
@@ -25,10 +25,27 @@
         <select class="form-input" id="m-base">
           @foreach (var sz in PatternCreateViewModel.SizeOptions)
           {
-            <option selected="@(sz == "M")">@sz</option>
+            if (sz == "M")
+            {
+              <option value="@sz" selected="selected">@sz</option>
+            }
+            else
+            {
+              <option value="@sz">@sz</option>
+            }
           }
         </select>
       </div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Pant type</label>
+      <select class="form-input" id="m-category">
+        @foreach (var (value, label) in PatternCreateViewModel.CategoryOptions)
+        {
+          <option value="@value">@label</option>
+        }
+      </select>
     </div>
 
     <div class="form-row" style="margin-top:16px">

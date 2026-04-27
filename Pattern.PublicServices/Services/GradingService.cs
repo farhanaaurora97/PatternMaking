@@ -5,78 +5,179 @@ namespace Pattern.PublicServices.Services;
 
 public class GradingService : IGradingService
 {
-    private static readonly Dictionary<string, (string Label, List<GradingRow> Rows)> _data =
-        new(StringComparer.OrdinalIgnoreCase)
+    private readonly object _lock = new();
+
+    // Instance fields so AddColumn can mutate them at runtime.
+    private readonly List<string> _columns;
+    private readonly Dictionary<string, (string Label, List<GradingRow> Rows)> _data;
+
+    // Index of the M (base-size) column — never changes.
+    private int _baseIdx;
+
+    public GradingService()
     {
-        ["skinny"] = ("Skinny Fit",
-        [
-            new() { MeasurementPoint="Waist",       XS=-4,    S=-2,    L=2,    XL=4,    XXL=6    },
-            new() { MeasurementPoint="Hip",         XS=-5,    S=-2.5m, L=2.5m, XL=5,    XXL=8    },
-            new() { MeasurementPoint="Front Rise",  XS=-0.5m, S=-0.25m,L=0.25m,XL=0.5m, XXL=0.75m},
-            new() { MeasurementPoint="Back Rise",   XS=-0.75m,S=-0.4m, L=0.4m, XL=0.75m,XXL=1    },
-            new() { MeasurementPoint="Thigh",       XS=-4,    S=-2,    L=2,    XL=4,    XXL=6    },
-            new() { MeasurementPoint="Knee",        XS=-4,    S=-2,    L=2,    XL=4,    XXL=6    },
-            new() { MeasurementPoint="Ankle",       XS=-3,    S=-1.5m, L=1.5m, XL=3,    XXL=4.5m },
-            new() { MeasurementPoint="Inseam",      XS=-2,    S=-1,    L=1,    XL=2,    XXL=2    },
-        ]),
-        ["slim"] = ("Slim Fit",
-        [
-            new() { MeasurementPoint="Waist",       XS=-4,    S=-2,    L=2,    XL=4,    XXL=6    },
-            new() { MeasurementPoint="Hip",         XS=-5,    S=-2.5m, L=2.5m, XL=5,    XXL=8    },
-            new() { MeasurementPoint="Front Rise",  XS=-0.5m, S=-0.25m,L=0.25m,XL=0.5m, XXL=0.75m},
-            new() { MeasurementPoint="Back Rise",   XS=-0.75m,S=-0.4m, L=0.4m, XL=0.75m,XXL=1    },
-            new() { MeasurementPoint="Thigh",       XS=-3,    S=-1.5m, L=1.5m, XL=3,    XXL=5    },
-            new() { MeasurementPoint="Knee",        XS=-3,    S=-1.5m, L=1.5m, XL=3,    XXL=5    },
-            new() { MeasurementPoint="Ankle",       XS=-2.5m, S=-1.5m, L=1.5m, XL=2.5m, XXL=4    },
-            new() { MeasurementPoint="Inseam",      XS=-2,    S=-1,    L=1,    XL=2,    XXL=2    },
-        ]),
-        ["straight"] = ("Straight Fit",
-        [
-            new() { MeasurementPoint="Waist",       XS=-4,    S=-2,    L=2,    XL=4,    XXL=6    },
-            new() { MeasurementPoint="Hip",         XS=-5,    S=-2.5m, L=2.5m, XL=5,    XXL=8    },
-            new() { MeasurementPoint="Front Rise",  XS=-0.5m, S=-0.25m,L=0.25m,XL=0.5m, XXL=0.75m},
-            new() { MeasurementPoint="Back Rise",   XS=-0.75m,S=-0.4m, L=0.4m, XL=0.75m,XXL=1    },
-            new() { MeasurementPoint="Thigh",       XS=-3,    S=-1.5m, L=1.5m, XL=3,    XXL=5    },
-            new() { MeasurementPoint="Knee",        XS=-3,    S=-1.5m, L=1.5m, XL=3,    XXL=5    },
-            new() { MeasurementPoint="Ankle",       XS=-3,    S=-1.5m, L=1.5m, XL=3,    XXL=5    },
-            new() { MeasurementPoint="Inseam",      XS=-2,    S=-1,    L=1,    XL=2,    XXL=2    },
-        ]),
-        ["bootcut"] = ("Bootcut Fit",
-        [
-            new() { MeasurementPoint="Waist",       XS=-4,    S=-2,    L=2,    XL=4,    XXL=6    },
-            new() { MeasurementPoint="Hip",         XS=-5,    S=-2.5m, L=2.5m, XL=5,    XXL=8    },
-            new() { MeasurementPoint="Front Rise",  XS=-0.5m, S=-0.25m,L=0.25m,XL=0.5m, XXL=0.75m},
-            new() { MeasurementPoint="Back Rise",   XS=-1,    S=-0.5m, L=0.5m, XL=1,    XXL=1.5m },
-            new() { MeasurementPoint="Thigh",       XS=-3,    S=-1.5m, L=1.5m, XL=3,    XXL=5    },
-            new() { MeasurementPoint="Knee",        XS=-2.5m, S=-1.5m, L=1.5m, XL=2.5m, XXL=4    },
-            new() { MeasurementPoint="Ankle",       XS=-2,    S=-1,    L=1,    XL=2,    XXL=3    },
-            new() { MeasurementPoint="Inseam",      XS=-2,    S=-1,    L=1,    XL=2,    XXL=2    },
-        ]),
-        ["wideLeg"] = ("Wide Leg Fit",
-        [
-            new() { MeasurementPoint="Waist",       XS=-5,    S=-2.5m, L=2.5m, XL=5,    XXL=7    },
-            new() { MeasurementPoint="Hip",         XS=-5,    S=-2.5m, L=2.5m, XL=5,    XXL=8    },
-            new() { MeasurementPoint="Front Rise",  XS=-0.5m, S=-0.25m,L=0.25m,XL=0.5m, XXL=0.75m},
-            new() { MeasurementPoint="Back Rise",   XS=-0.75m,S=-0.4m, L=0.4m, XL=0.75m,XXL=1    },
-            new() { MeasurementPoint="Thigh",       XS=-4,    S=-2,    L=2,    XL=4,    XXL=6    },
-            new() { MeasurementPoint="Knee",        XS=-4,    S=-2,    L=2,    XL=4,    XXL=6    },
-            new() { MeasurementPoint="Ankle",       XS=-3,    S=-1.5m, L=1.5m, XL=3,    XXL=5    },
-            new() { MeasurementPoint="Inseam",      XS=-2,    S=-1,    L=1,    XL=2,    XXL=2    },
-        ]),
-    };
+        _columns = ["XS", "S", "M", "L", "XL", "XXL"];
+        _baseIdx = 2; // "M" is at index 2
 
-    public IReadOnlyList<GradingRow> GetGradingTable(string styleKey) =>
-        _data.TryGetValue(styleKey, out var d) ? d.Rows : _data["skinny"].Rows;
+        _data = new Dictionary<string, (string, List<GradingRow>)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["skinny"] = ("Skinny Fit", Rows(
+                R("Waist",      -4,    -2,     2,    4,    6    ),
+                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
+                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
+                R("Back Rise",  -0.75, -0.4,   0.4,  0.75, 1    ),
+                R("Thigh",      -4,    -2,     2,    4,    6    ),
+                R("Knee",       -4,    -2,     2,    4,    6    ),
+                R("Ankle",      -3,    -1.5,   1.5,  3,    4.5  ),
+                R("Inseam",     -2,    -1,     1,    2,    2    )
+            )),
+            ["slim"] = ("Slim Fit", Rows(
+                R("Waist",      -4,    -2,     2,    4,    6    ),
+                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
+                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
+                R("Back Rise",  -0.75, -0.4,   0.4,  0.75, 1    ),
+                R("Thigh",      -3,    -1.5,   1.5,  3,    5    ),
+                R("Knee",       -3,    -1.5,   1.5,  3,    5    ),
+                R("Ankle",      -2.5,  -1.5,   1.5,  2.5,  4    ),
+                R("Inseam",     -2,    -1,     1,    2,    2    )
+            )),
+            ["straight"] = ("Straight Fit", Rows(
+                R("Waist",      -4,    -2,     2,    4,    6    ),
+                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
+                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
+                R("Back Rise",  -0.75, -0.4,   0.4,  0.75, 1    ),
+                R("Thigh",      -3,    -1.5,   1.5,  3,    5    ),
+                R("Knee",       -3,    -1.5,   1.5,  3,    5    ),
+                R("Ankle",      -3,    -1.5,   1.5,  3,    5    ),
+                R("Inseam",     -2,    -1,     1,    2,    2    )
+            )),
+            ["bootcut"] = ("Bootcut Fit", Rows(
+                R("Waist",      -4,    -2,     2,    4,    6    ),
+                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
+                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
+                R("Back Rise",  -1,    -0.5,   0.5,  1,    1.5  ),
+                R("Thigh",      -3,    -1.5,   1.5,  3,    5    ),
+                R("Knee",       -2.5,  -1.5,   1.5,  2.5,  4    ),
+                R("Ankle",      -2,    -1,     1,    2,    3    ),
+                R("Inseam",     -2,    -1,     1,    2,    2    )
+            )),
+            ["wideLeg"] = ("Wide Leg Fit", Rows(
+                R("Waist",      -5,    -2.5,   2.5,  5,    7    ),
+                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
+                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
+                R("Back Rise",  -0.75, -0.4,   0.4,  0.75, 1    ),
+                R("Thigh",      -4,    -2,     2,    4,    6    ),
+                R("Knee",       -4,    -2,     2,    4,    6    ),
+                R("Ankle",      -3,    -1.5,   1.5,  3,    5    ),
+                R("Inseam",     -2,    -1,     1,    2,    2    )
+            )),
+        };
+    }
 
-    public string GetStyleLabel(string styleKey) =>
-        _data.TryGetValue(styleKey, out var d) ? d.Label : "Skinny Fit";
+    // ── Public API ──────────────────────────────────────────────────────
+
+    public IReadOnlyList<string> GetColumnLabels()
+    {
+        lock (_lock) return _columns.ToList();
+    }
+
+    public IReadOnlyList<GradingRow> GetGradingTable(string styleKey)
+    {
+        lock (_lock)
+            return _data.TryGetValue(styleKey, out var d) ? d.Rows : _data["skinny"].Rows;
+    }
+
+    public string GetStyleLabel(string styleKey)
+    {
+        lock (_lock)
+            return _data.TryGetValue(styleKey, out var d) ? d.Label : "Skinny Fit";
+    }
+
+    public void AddColumn(string label)
+    {
+        lock (_lock)
+        {
+            foreach (var (_, rows) in _data.Values)
+            {
+                foreach (var row in rows)
+                {
+                    var d = row.Deltas;
+                    double next = d.Count >= 2 ? 2 * d[^1] - d[^2]
+                                : d.Count == 1 ? d[0]
+                                : 0;
+                    d.Add(next);
+                }
+            }
+            _columns.Add(label);
+        }
+    }
 
     public string ExportCsv(string styleKey)
     {
-        var rows  = GetGradingTable(styleKey);
-        var lines = new List<string> { "Measurement,XS,S,M(Base),L,XL,XXL" };
-        foreach (var r in rows)
-            lines.Add($"{r.MeasurementPoint},{r.XS},{r.S},0,+{r.L},+{r.XL},+{r.XXL}");
-        return string.Join("\n", lines);
+        lock (_lock)
+        {
+            var rows = _data.TryGetValue(styleKey, out var d) ? d.Rows : _data["skinny"].Rows;
+            var header = "Measurement," + string.Join(",", _columns.Select((c, i) =>
+                i == _baseIdx ? $"{c}(Base)" : c));
+            var lines = new List<string> { header };
+            foreach (var r in rows)
+            {
+                var cells = r.Deltas.Select((v, i) =>
+                    i == r.BaseIndex ? "0" : v > 0 ? $"+{v:0.##}" : v.ToString("0.##"));
+                lines.Add($"{r.MeasurementPoint},{string.Join(",", cells)}");
+            }
+            return string.Join("\n", lines);
+        }
     }
+
+    public (bool Ok, string? Error) AddRow(string styleKey, string measurementPoint, string? copyFromPoint)
+    {
+        if (string.IsNullOrWhiteSpace(measurementPoint))
+            return (false, "Measurement point name is required.");
+
+        lock (_lock)
+        {
+            if (!_data.TryGetValue(styleKey, out var entry))
+                return (false, $"Style '{styleKey}' not found.");
+
+            var point = measurementPoint.Trim();
+
+            if (entry.Rows.Any(r => r.MeasurementPoint.Equals(point, StringComparison.OrdinalIgnoreCase)))
+                return (false, $"'{point}' already exists in this grading table.");
+
+            List<double> deltas;
+
+            if (!string.IsNullOrWhiteSpace(copyFromPoint))
+            {
+                var source = entry.Rows.FirstOrDefault(r =>
+                    r.MeasurementPoint.Equals(copyFromPoint.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                if (source is null)
+                    return (false, $"Copy-from row '{copyFromPoint}' not found.");
+
+                deltas = [.. source.Deltas];
+            }
+            else
+            {
+                // Zero deltas — same count as current columns
+                deltas = Enumerable.Repeat(0.0, _columns.Count).ToList();
+            }
+
+            entry.Rows.Add(new GradingRow
+            {
+                MeasurementPoint = point,
+                BaseIndex        = _baseIdx,
+                Deltas           = deltas,
+            });
+
+            return (true, null);
+        }
+    }
+
+    // ── Seed helpers ────────────────────────────────────────────────────
+
+    private GradingRow R(string point, double xs, double s, double l, double xl, double xxl) =>
+        new() { MeasurementPoint = point, BaseIndex = _baseIdx, Deltas = [xs, s, 0, l, xl, xxl] };
+
+    private static List<GradingRow> Rows(params GradingRow[] rows) => [.. rows];
 }

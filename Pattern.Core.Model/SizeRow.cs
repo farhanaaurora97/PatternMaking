@@ -1,12 +1,9 @@
 namespace Pattern.Core.Model;
 
+/// <summary>One measurement row; <see cref="Values"/> order matches the chart’s size columns (left to right).</summary>
 public class SizeRow
 {
-    public string  MeasurementPoint { get; set; } = string.Empty;
-    public decimal XS  { get; set; }
-    public decimal S   { get; set; }
-    public decimal M   { get; set; }
-    public decimal L   { get; set; }
-    public decimal XL  { get; set; }
-    public decimal XXL { get; set; }
+    public string MeasurementPoint { get; set; } = string.Empty;
+
+    public List<decimal> Values { get; set; } = [];
 }

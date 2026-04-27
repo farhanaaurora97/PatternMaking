@@ -64,6 +64,7 @@
         txt.textContent = `✅ Export complete — ${window.EXPORT_TOTAL_FILES} files ready`;
         markStep(i - 1, true);
         toast('Export Complete', `${selectedFormat} files packaged and ready to download`, 'success', '📦');
+        triggerDownload();
         return;
       }
       if (i > 0) markStep(i - 1, true);
@@ -89,6 +90,22 @@
     const icon = document.getElementById(`xstep-icon-${idx}`);
     step?.classList.add('active-step');
     if (icon) icon.textContent = '◌';
+  }
+
+  function triggerDownload() {
+    const params = new URLSearchParams({
+      patternId: String(window.EXPORT_PATTERN_ID || 0),
+      style: window.EXPORT_STYLE || 'skinny',
+      format: selectedFormat,
+      sizes: window.EXPORT_SIZES_CSV || 'XS,S,M,L,XL,XXL',
+    });
+    const url = `${window.DOWNLOAD_PACKAGE_URL}?${params.toString()}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
 })();

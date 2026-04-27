@@ -1,70 +1,118 @@
 @model DashboardViewModel
-@{ ViewData["Title"] = "Dashboard"; }
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@{ ViewData["Title"] = "Dashboard";
+  var firstPattern = Model.Patterns.FirstOrDefault();
+  var chartJson = JsonSerializer.Serialize(Model.Charts, new JsonSerializerOptions
+  {
+      PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+  });
+}
 
-<div class="page-hdr">
-  <div>
-    <div class="page-title">Denim Pattern Module</div>
-    <div class="page-sub">Bottom Wear — Jeans &amp; Denim Collection</div>
-    <span class="tag tag-navy" id="dash-style-tag">✦ @Model.CurrentStyleLabel</span>
-  </div>
-  <div class="row">
-    <button class="btn btn-outline" id="btn-duplicate">⊕ Duplicate Pattern</button>
-    <a class="btn btn-primary" asp-controller="Canvas" asp-action="Index">⊞ Open in Canvas</a>
-  </div>
-</div>
-
-<!-- Stats -->
-<div class="grid-4">
-  <div class="stat-card">
-    <div class="stat-label">Active Patterns</div>
-    <div class="stat-val" id="stat-active" data-target="@Model.ActivePatternCount">0</div>
-    <div class="stat-delta delta-up">
-      <span class="delta-icon up">↑</span>
-      <span id="delta-active">@Model.ActivePatternCount total patterns</span>
+<div class="patternpro-dashboard">
+  <script type="application/json" id="dashboard-chart-data">@Html.Raw(chartJson)</script>
+  <div class="page-hdr">
+    <div class="ph-left">
+      <div class="page-title">All Pants — Pattern Module</div>
+      <div class="page-sub">Denim, chinos, trousers, cargo, joggers &amp; more — full bottom-wear collection</div>
+      <div class="ph-tag"><span class="ph-tag-dot"></span> @Model.CurrentStyleLabel</div>
     </div>
-    <div class="stat-bar"><div class="stat-bar-fill" id="bar-active" style="width:0%"></div></div>
+    <div class="ph-right">
+      <button type="button" class="btn-dup" id="btn-duplicate">⊕ Duplicate Pattern</button>
+      <a class="btn-canvas" asp-controller="Canvas" asp-action="Index" asp-route-patternId="@firstPattern?.Id" asp-route-style="@firstPattern?.StyleKey">⊞ Open in Canvas</a>
+    </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">Sizes Graded</div>
-    <div class="stat-val">6<span class="stat-unit">sz</span></div>
-    <div class="stat-delta delta-info"><span class="delta-icon info">→</span>XS → XXL range</div>
-    <div class="stat-bar"><div class="stat-bar-fill" style="width:100%"></div></div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Pattern Pieces</div>
-    <div class="stat-val" id="stat-pieces">@Model.PieceCount</div>
-    <div class="stat-delta delta-info"><span class="delta-icon info">◈</span>per style</div>
-    <div class="stat-bar"><div class="stat-bar-fill" style="width:75%"></div></div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Completion</div>
-    <div class="stat-val" id="stat-completion"
-         data-target="@Model.CompletionPercent">0<span class="stat-unit">%</span></div>
-    <div class="stat-delta delta-up"><span class="delta-icon up">↑</span>Grading done</div>
-    <div class="stat-bar"><div class="stat-bar-fill" id="bar-completion" style="width:0%"
-         data-target="@Model.CompletionPercent"></div></div>
-  </div>
-</div>
 
-<!-- Style Progress + Activity -->
-<div class="grid-2">
-  <div class="card">
-    <div class="card-title">Style Progress</div>
-    @foreach (var (key, label) in new[] { ("skinny","Skinny"),("slim","Slim"),("straight","Straight"),("bootcut","Bootcut"),("wideleg","Wide Leg") })
-    {
-      var pct = Model.StyleProgress.GetValueOrDefault(key, 0);
-      <div class="prog-row">
-        <div class="prog-name">@label</div>
-        <div class="prog-track">
-          <div class="prog-fill" id="prog-@key" style="width:0%" data-target="@pct"></div>
-        </div>
-        <div class="prog-pct" id="pct-@key">@pct%</div>
+  <div class="grid-4">
+    <div class="stat-card">
+      <div class="stat-label">Active Patterns</div>
+      <div class="stat-val" id="stat-active" data-target="@Model.ActivePatternCount">0</div>
+      <div class="stat-delta @(Model.WeekOverWeekDelta >= 0 ? "delta-up" : "delta-down")" id="delta-wow">
+        @Model.PatternsCreatedThisWeek new this week
+        @if (Model.WeekOverWeekDelta == 0)
+        {
+          <span> · Same as last week</span>
+        }
+        else
+        {
+          <span> · @(Model.WeekOverWeekDelta > 0 ? "↑" : "↓")@Math.Abs(Model.WeekOverWeekDelta) vs last week</span>
+        }
       </div>
-    }
+      <div class="stat-bar"><div class="stat-bar-fill" id="bar-active" data-target="@Model.ActiveBarPercent" style="width:0%"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Sizes Graded</div>
+      <div class="stat-val">@Model.GradedSizesCount<span class="stat-unit"> sz</span></div>
+      <div class="stat-delta">XS — XXL range</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:100%"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pattern Pieces</div>
+      <div class="stat-val" id="stat-pieces" data-target="@Model.AvgPieceCount">0</div>
+      <div class="stat-delta">◇ avg per style</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:70%"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Completion</div>
+      <div class="stat-val" id="stat-completion" data-target="@Model.CompletionPercent">0<span class="stat-unit">%</span></div>
+      <div class="stat-delta delta-up">↑ Grading done</div>
+      <div class="stat-bar"><div class="stat-bar-fill" id="bar-completion" data-target="@Model.CompletionPercent" style="width:0%"></div></div>
+    </div>
   </div>
-  <div class="card">
-    <div class="card-title">Recent Activity</div>
-    <div id="activity-feed">
+
+  <div class="due-week-strip" role="status" aria-live="polite">
+    <span class="due-week-strip__icon" aria-hidden="true">📅</span>
+    <span class="due-week-strip__text"><strong>@Model.DueThisWeekCount</strong> pattern@(Model.DueThisWeekCount == 1 ? "" : "s") due this week</span>
+    <span class="due-week-strip__sub">Deadlines falling Mon–Sun (calendar week)</span>
+  </div>
+
+  <div class="chart-section">
+    <div class="chart-section-title">Analytics</div>
+    <div class="grid-2 chart-grid">
+      <div class="card chart-card">
+        <div class="card-title">Status mix</div>
+        <p class="chart-sub">Where each pattern sits in the workflow</p>
+        <div class="chart-canvas-wrap">
+          <canvas id="chart-status" aria-label="Patterns by status"></canvas>
+          <p class="chart-empty" id="chart-status-empty" hidden>No patterns yet — create one to see the breakdown.</p>
+        </div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-title">Patterns by fit</div>
+        <p class="chart-sub">Stacked by workflow status — pending, draft, in progress, graded, done</p>
+        <div class="chart-canvas-wrap chart-canvas-wrap--bar">
+          <canvas id="chart-styles" aria-label="Pattern count by fit"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="card chart-card chart-card--wide">
+      <div class="card-title">Patterns by pant type</div>
+      <p class="chart-sub">Each bar is a product line, sorted by count. Colors are fixed (e.g. Denim = blue, Chinos = tan) — see the key under the chart.</p>
+      <p class="chart-hint" id="chart-pant-types-hint" aria-live="polite"></p>
+      <div class="chart-canvas-wrap chart-canvas-wrap--pant-types">
+        <canvas id="chart-pant-types" aria-label="Pattern count by pant type"></canvas>
+      </div>
+      <div class="chart-pant-legend" id="chart-pant-types-legend" aria-label="Color key for product lines"></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Style Progress</div>
+      @foreach (var item in Model.StyleProgress)
+      {
+        <div class="prog-row">
+          <div class="prog-name">@item.Key</div>
+          <div class="prog-track">
+            <div class="prog-fill" data-target="@item.Value" style="width:0%"></div>
+          </div>
+          <div class="prog-pct">@item.Value%</div>
+        </div>
+      }
+    </div>
+    <div class="card">
+      <div class="card-title">Recent Activity</div>
       @foreach (var item in Model.RecentActivity)
       {
         <div class="act-row">
@@ -75,65 +123,93 @@
       }
     </div>
   </div>
-</div>
 
-<!-- Patterns Table -->
-<div class="tbl-wrap">
-  <div class="tbl-header">
-    <span class="tbl-title">All Patterns</span>
-    <div class="tbl-search">
-      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="var(--ink4)" stroke-width="1.4"/><path d="M9 9l2.5 2.5" stroke="var(--ink4)" stroke-width="1.4" stroke-linecap="round"/></svg>
-      <input type="text" id="tbl-search-input" placeholder="Search patterns..." />
+  <div class="tbl-wrap">
+    <div class="tbl-header">
+      <span class="tbl-label">All Patterns</span>
+      <div class="tbl-search">
+        <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4" stroke="#9ca3af" stroke-width="1.4"/><path d="M9 9l2.5 2.5" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <input type="search" id="tbl-search-input" placeholder="Search patterns…" autocomplete="off" />
+      </div>
+      <span class="tbl-count" id="tbl-count" data-total="@Model.TotalPatternCount">@Model.TotalPatternCount of @Model.TotalPatternCount</span>
+      <button type="button" class="status-filter-clear" id="btn-clear-status-filter" hidden>All statuses</button>
+      <div class="cat-tabs" id="cat-tabs">
+        @foreach (var cat in Model.CategoryTabs)
+        {
+          <button type="button" class="cat-tab @(cat == "All" ? "active" : "")" data-cat="@cat">@cat</button>
+        }
+      </div>
+      <div class="tbl-spacer" style="flex:1"></div>
+      <button type="button" class="add-btn" id="btn-add-table">+ Add</button>
     </div>
-    <span class="tbl-count" id="tbl-count">@Model.Patterns.Count of @Model.Patterns.Count</span>
-    <span class="spacer"></span>
-    <button class="btn btn-outline btn-sm" id="btn-add-pattern">＋ Add</button>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th data-sort="name">Pattern Name <span class="sort-icon">↕</span></th>
-        <th data-sort="style">Style <span class="sort-icon">↕</span></th>
-        <th data-sort="base">Base Size <span class="sort-icon">↕</span></th>
-        <th data-sort="pieces">Pieces <span class="sort-icon">↕</span></th>
-        <th data-sort="status">Status <span class="sort-icon">↕</span></th>
-        <th data-sort="date">Last Updated <span class="sort-icon">↕</span></th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody id="patterns-tbody">
-      @foreach (var p in Model.Patterns)
-      {
-        <tr id="row-@p.Id">
-          <td class="td-label">@p.DisplayName</td>
-          <td class="td-mono">@p.Style</td>
-          <td class="td-mono">@p.BaseSize</td>
-          <td class="td-mono">@p.PieceCount</td>
-          <td>
-            <span class="status-tag @p.StatusCssClass"
-                  data-action="cycle-status" data-id="@p.Id"
-                  title="Click to change status">@p.StatusLabel</span>
-          </td>
-          <td class="td-mono" style="color:var(--ink3)">@p.Date</td>
-          <td>
-            <div style="display:flex;gap:6px">
-              <a class="btn btn-outline btn-xs"
-                 asp-controller="Canvas" asp-action="Index">Open</a>
-              <button class="btn btn-danger btn-xs"
-                      data-action="delete-pattern" data-id="@p.Id">✕</button>
-            </div>
-          </td>
+    <table>
+      <thead>
+        <tr>
+          <th data-sort="name">Pattern Name <span class="sort-icon">↕</span></th>
+          <th data-sort="style">Style <span class="sort-icon">↕</span></th>
+          <th data-sort="base">Base Size <span class="sort-icon">↕</span></th>
+          <th data-sort="pieces">Pieces <span class="sort-icon">↕</span></th>
+          <th data-sort="status">Status <span class="sort-icon">↕</span></th>
+          <th data-sort="due">Due <span class="sort-icon">↕</span></th>
+          <th data-sort="date">Last Updated <span class="sort-icon">↕</span></th>
+          <th></th>
         </tr>
-      }
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody id="patterns-tbody">
+        @foreach (var p in Model.Patterns)
+        {
+          <tr id="row-@p.Id" data-category="@p.Category" data-status="@p.Status">
+            <td class="td-bold">@p.DisplayName</td>
+            <td class="td-mono">@p.Style</td>
+            <td class="td-mono">@p.BaseSize</td>
+            <td class="td-mono">@p.PieceCount</td>
+            <td>
+              <select class="status-select @p.StatusCssClass" data-action="set-status" data-id="@p.Id" data-prev-status="@p.Status" aria-label="Pattern status">
+                @foreach (var opt in new[] { ("Pending", "Pending"), ("Draft", "Draft"), ("InProgress", "In Progress"), ("Graded", "Graded"), ("Done", "Done") })
+                {
+                  <option value="@opt.Item1" selected="@(p.Status == opt.Item1)">@opt.Item2</option>
+                }
+              </select>
+            </td>
+            <td class="td-mono due-cell @(string.IsNullOrWhiteSpace(p.DueDateIso) ? "due-cell--empty" : "")">
+              <input type="date" class="due-date-input" data-id="@p.Id"
+                     value="@p.DueDateIso" title="Click to set due date"
+                     aria-label="Due date for @p.DisplayName" />
+            </td>
+            <td class="td-mono" style="color:#b0a898">@p.Date</td>
+            <td>
+              <div class="action-btns">
+                <a class="btn-open" asp-controller="Pieces" asp-action="Index" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey">Open</a>
+                <a class="btn-canvas-row" asp-controller="Canvas" asp-action="Index" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey" title="Open in Canvas editor">✏ Canvas</a>
+                <a class="btn-dl" asp-controller="Export" asp-action="DownloadPackage" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey" asp-route-format="DXF" title="Download DXF">↓ DXF</a>
+                <button type="button" class="btn-dup-row" data-action="duplicate-pattern" data-id="@p.Id" title="Duplicate pattern">⊕</button>
+                <button type="button" class="btn-del" data-action="delete-pattern" data-id="@p.Id">×</button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 
-<div style="font-size:11.5px;color:var(--ink4);text-align:center;margin-top:-10px">
-  Tip: Click any <strong>status tag</strong> to cycle through statuses &nbsp;·&nbsp;
-  <span class="kbd">N</span> New pattern
+  <nav class="pp-quick-actions" aria-label="Quick actions">
+    <button type="button" class="pp-qa-btn" id="qa-new" title="New pattern (N)">＋ Pattern</button>
+    <a class="pp-qa-btn" asp-controller="Grading" asp-action="Index" title="Open Grading (G)">Grading</a>
+    <a class="pp-qa-btn" asp-controller="Export" asp-action="Index" asp-route-patternId="@firstPattern?.Id" asp-route-style="@firstPattern?.StyleKey" title="Export DXF (E)">Export DXF</a>
+  </nav>
+
+  <div class="tip">
+    Tip: Set <strong>status</strong> from the table dropdown &nbsp;·&nbsp;
+    <span class="kbd">N</span> New &nbsp;·&nbsp;
+    <span class="kbd">F</span> Search &nbsp;·&nbsp;
+    <span class="kbd">G</span> Grading &nbsp;·&nbsp;
+    <span class="kbd">E</span> Export
+  </div>
 </div>
 
 @section Scripts {
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" crossorigin="anonymous"></script>
+  <script src="~/js/dashboard-charts.js" asp-append-version="true"></script>
   <script src="~/js/dashboard.js" asp-append-version="true"></script>
 }

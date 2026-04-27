@@ -14,7 +14,28 @@ public class PatternCreateViewModel
     [Required]
     public string BaseSize { get; set; } = "M";
 
+    /// <summary>Bottom-wear product line (denim, chinos, trousers, …).</summary>
+    [Required]
+    public string CategoryKey { get; set; } = "denim";
+
     public string Designer { get; set; } = "Pattern Designer";
+
+    public static IEnumerable<(string Value, string Label)> CategoryOptions =>
+    [
+        ("denim", "Denim"),
+        ("chinos", "Chinos"),
+        ("trousers", "Trousers"),
+        ("cargo", "Cargo"),
+        ("joggers", "Joggers"),
+        ("linen", "Linen"),
+        ("leather", "Leather"),
+        ("palazzo", "Palazzo"),
+        ("shorts", "Shorts"),
+        ("sweatpants", "Sweatpants"),
+        ("corduroy", "Corduroy"),
+        ("dress", "Dress pants"),
+        ("workwear", "Workwear"),
+    ];
 
     public static IEnumerable<(string Value, string Label)> StyleOptions =>
     [

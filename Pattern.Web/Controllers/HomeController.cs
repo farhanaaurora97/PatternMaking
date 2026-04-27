@@ -11,26 +11,48 @@ public class HomeController(IPatternService patternService) : Controller
         var patterns = patternService.GetAll();
         var styleDef  = patternService.GetStyleDefinition(style);
 
+        var list = patterns.ToList();
+        var total = list.Count;
+        var activeNonDraft = list.Count(p => p.Status != "Draft");
+        var patternVms = list.Select(p => p.ToViewModel()).ToList();
+
+        var today = DateTime.Today;
+        var weekStart = StartOfWeekMonday(today);
+        var weekEnd = weekStart.AddDays(7);
+        var prevWeekStart = weekStart.AddDays(-7);
+        var patternsThisWeek = list.Count(p => p.CreatedAt >= weekStart && p.CreatedAt < weekEnd);
+        var patternsLastWeek = list.Count(p => p.CreatedAt >= prevWeekStart && p.CreatedAt < weekStart);
+        var dueThisWeek = list.Count(p => p.DueDate.HasValue && p.DueDate.Value >= weekStart && p.DueDate.Value < weekEnd);
+
         var vm = new DashboardViewModel
         {
             CurrentStyle      = style,
             CurrentStyleLabel = styleDef.Label,
             PieceCount        = styleDef.PieceCount,
-            Patterns          = patterns.Select(p => p.ToViewModel()).ToList(),
-            ActivePatternCount = patterns.Count,
-            CompletionPercent  = patterns.Count == 0 ? 0
-                : (int)Math.Round(patterns.Count(p => p.Status is "Graded" or "Done") * 100.0 / patterns.Count),
-            PendingCount = patterns.Count(p => p.Status is "Pending" or "Draft"),
-            StyleProgress = BuildStyleProgress(patterns),
+            Patterns          = patternVms,
+            TotalPatternCount = total,
+            ActivePatternCount = activeNonDraft,
+            ActiveBarPercent   = total == 0 ? 0 : (int)Math.Round(activeNonDraft * 100.0 / total),
+            AvgPieceCount      = total == 0 ? 0 : (int)Math.Round(list.Average(p => p.PieceCount)),
+            GradedSizesCount   = 6,
+            CompletionPercent  = total == 0 ? 0
+                : (int)Math.Round(list.Count(p => p.Status is "Graded" or "Done") * 100.0 / total),
+            PendingCount = list.Count(p => p.Status is "Pending" or "Draft"),
+            PatternsCreatedThisWeek = patternsThisWeek,
+            PatternsCreatedLastWeek = patternsLastWeek,
+            DueThisWeekCount = dueThisWeek,
+            StyleProgress = BuildStyleProgress(list),
+            CategoryTabs = ["All", .. patternVms.Select(p => p.Category).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c, StringComparer.OrdinalIgnoreCase)],
             RecentActivity =
             [
-                new("Graded", "ab-green", "Skinny — XS to XXL grading complete",     "2h ago"),
-                new("Draft",  "ab-navy",  "Bootcut block generated from M base",      "5h ago"),
-                new("Export", "ab-gold",  "Slim DXF exported to PLM system",          "1d ago"),
-                new("Review", "ab-red",   "Crotch curve adjustment needed — back leg","2d ago"),
-                new("Done",   "ab-green", "Straight — seam allowance layer set",      "3d ago"),
+                new("Graded", "badge-graded", "Skinny — XS to XXL grading complete",     "2h ago"),
+                new("Draft",  "badge-draft",  "Bootcut block generated from M base",      "5h ago"),
+                new("Export", "badge-export", "Slim DXF exported to PLM system",          "1d ago"),
+                new("Review", "badge-review", "Crotch curve adjustment needed — back leg","2d ago"),
+                new("Done",   "badge-done",   "Straight — seam allowance layer set",      "3d ago"),
             ],
             CreateForm = new PatternCreateViewModel(),
+            Charts           = BuildCharts(list),
         };
 
         SetLayoutData("Home", "Dashboard", style, vm.PendingCount);
@@ -39,18 +61,19 @@ public class HomeController(IPatternService patternService) : Controller
 
     // ── AJAX: Create pattern ────────────────────────────────────────
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Create(PatternCreateViewModel form)
+    [IgnoreAntiforgeryToken]
+    public IActionResult Create([FromBody] PatternCreateViewModel form)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 
-        var created = patternService.Create(form.Name, form.StyleKey, form.BaseSize, form.Designer);
+        var created = patternService.Create(form.Name, form.StyleKey, form.BaseSize, form.Designer, form.CategoryKey);
         return Ok(created.ToViewModel());
     }
 
     // ── AJAX: Cycle status ──────────────────────────────────────────
     [HttpPost]
+    [Route("Home/CycleStatus/{id:int}")]
     public IActionResult CycleStatus(int id)
     {
         var updated = patternService.CycleStatus(id);
@@ -58,12 +81,56 @@ public class HomeController(IPatternService patternService) : Controller
         return Ok(updated.ToViewModel());
     }
 
+    // ── AJAX: Set status directly ───────────────────────────────────
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult SetStatus([FromBody] SetStatusBody body)
+    {
+        var updated = patternService.SetStatus(body.Id, body.Status);
+        if (updated is null) return BadRequest();
+        return Ok(updated.ToViewModel());
+    }
+
+    // ── AJAX: Set due date ──────────────────────────────────────────
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult SetDueDate([FromBody] SetDueDateBody body)
+    {
+        DateTime? date = null;
+        if (!string.IsNullOrWhiteSpace(body.Date) && DateTime.TryParse(body.Date, out var d))
+            date = d;
+        var updated = patternService.SetDueDate(body.Id, date);
+        if (updated is null) return NotFound();
+        return Ok(updated.ToViewModel());
+    }
+
+    // ── AJAX: Duplicate pattern ─────────────────────────────────────
+    [HttpPost]
+    [Route("Home/Duplicate/{id:int}")]
+    [IgnoreAntiforgeryToken]
+    public IActionResult Duplicate(int id)
+    {
+        var copy = patternService.Duplicate(id);
+        if (copy is null) return NotFound();
+        return Ok(copy.ToViewModel());
+    }
+
     // ── AJAX: Delete pattern ────────────────────────────────────────
     [HttpDelete]
+    [Route("Home/Delete/{id:int}")]
+    [IgnoreAntiforgeryToken]
     public IActionResult Delete(int id)
     {
         var ok = patternService.Delete(id);
         return ok ? Ok() : NotFound();
+    }
+
+    // ── AJAX: Chart data ────────────────────────────────────────────
+    [HttpGet]
+    public IActionResult ChartsData()
+    {
+        var list = patternService.GetAll().ToList();
+        return Ok(BuildCharts(list));
     }
 
     // ── AJAX: Get all patterns (for re-render) ──────────────────────
@@ -76,10 +143,65 @@ public class HomeController(IPatternService patternService) : Controller
         return Ok(patterns.Select(p => p.ToViewModel()));
     }
 
+    private static DashboardChartsModel BuildCharts(IReadOnlyList<Pattern.Core.Model.Pattern> list)
+    {
+        var statusOrder = new[] { "Pending", "Draft", "InProgress", "Graded", "Done" };
+        var statusLabels = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["Pending"] = "Pending",
+            ["Draft"] = "Draft",
+            ["InProgress"] = "In Progress",
+            ["Graded"] = "Graded",
+            ["Done"] = "Done",
+        };
+        var statusColors = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["Pending"] = "#d97706",
+            ["Draft"] = "#64748b",
+            ["InProgress"] = "#1e40af",
+            ["Graded"] = "#16a34a",
+            ["Done"] = "#7c3aed",
+        };
+
+        var statusSlices = statusOrder
+            .Select(s => new ChartStatusSlice(s, statusLabels[s], list.Count(p => p.Status == s), statusColors[s]))
+            .ToList();
+
+        var pantTypeBars = list
+            .GroupBy(p => string.IsNullOrWhiteSpace(p.Category) ? "Other" : p.Category)
+            .Select(g => new ChartStyleBar(g.Key, g.Count()))
+            .OrderByDescending(x => x.Count)
+            .ThenBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var styleOrder = new[] { "Skinny", "Slim", "Straight", "Bootcut", "Wide Leg" };
+        var stackedDatasets = statusOrder.Select(s => new ChartStackDataset
+        {
+            Key = s,
+            Label = statusLabels[s],
+            Data = styleOrder.Select(fit => list.Count(p => p.Style == fit && p.Status == s)).ToList(),
+            BackgroundColor = statusColors[s],
+        }).ToList();
+
+        var stylesByFit = new ChartStackedByFit
+        {
+            Labels = styleOrder.ToList(),
+            Datasets = stackedDatasets,
+        };
+
+        return new DashboardChartsModel { Status = statusSlices, StylesByFit = stylesByFit, PantTypes = pantTypeBars };
+    }
+
+    private static DateTime StartOfWeekMonday(DateTime date)
+    {
+        var d = date.Date;
+        var diff = d.DayOfWeek == DayOfWeek.Sunday ? -6 : DayOfWeek.Monday - d.DayOfWeek;
+        return d.AddDays(diff);
+    }
+
     private static Dictionary<string, int> BuildStyleProgress(IEnumerable<Pattern.Core.Model.Pattern> patterns)
     {
         var styles = new[] { "Skinny", "Slim", "Straight", "Bootcut", "Wide Leg" };
-        var keys   = new[] { "skinny", "slim", "straight", "bootcut", "wideleg" };
         var defaults = new[] { 90, 75, 60, 40, 20 };
         var result = new Dictionary<string, int>();
 
@@ -87,7 +209,7 @@ public class HomeController(IPatternService patternService) : Controller
         {
             var list  = patterns.Where(p => p.Style == styles[i]).ToList();
             var done  = list.Count(p => p.Status is "Graded" or "Done");
-            result[keys[i]] = list.Count == 0 ? defaults[i]
+            result[styles[i]] = list.Count == 0 ? defaults[i]
                 : (int)Math.Round(done * 100.0 / list.Count);
         }
         return result;
@@ -102,3 +224,6 @@ public class HomeController(IPatternService patternService) : Controller
             PendingBadgeCount = pendingCount,
         };
 }
+
+public sealed record SetStatusBody(int Id, string Status);
+public sealed record SetDueDateBody(int Id, string? Date);
