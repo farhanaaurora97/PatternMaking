@@ -2,3 +2,8 @@ bin/
 obj/
 *.user
 .vs/
+App_Data/
+tmp-export-*/
+check-pdf/
+check-pdf.zip
+tmp-export-*.zip
