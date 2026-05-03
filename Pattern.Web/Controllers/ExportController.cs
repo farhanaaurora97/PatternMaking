@@ -8,10 +8,10 @@ public class ExportController(IExportService exportService, IPatternService patt
 {
     public IActionResult Index(int patternId = 0, string style = "skinny", string? sizes = null, string? source = null)
     {
-        var patterns = patternService.GetAll();
+        var patterns = patternService.GetAll().ToList();
         var selectedPattern = patternId > 0
             ? patterns.FirstOrDefault(p => p.Id == patternId)
-            : patterns.FirstOrDefault();
+            : patterns.OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id).FirstOrDefault();
         if (selectedPattern is not null)
         {
             patternId = selectedPattern.Id;
@@ -28,11 +28,12 @@ public class ExportController(IExportService exportService, IPatternService patt
             SizeCount          = selectedSizes.Count,
             SizesCsv           = string.Join(",", selectedSizes),
             SelectedFormat     = "DXF",
+            CanvasGradeBaseSize = selectedPattern is not null ? selectedPattern.BaseSize : null,
         };
 
         ViewBag.ExportSource  = source ?? "standard";
         ViewBag.CurrentStyle  = style;
-        SetLayout("Export", "Export / DXF", style);
+        SetLayout("Export", "Export / DXF", style, vm.PatternId > 0 ? vm.PatternId : null);
         return View(vm);
     }
 
@@ -52,14 +53,43 @@ public class ExportController(IExportService exportService, IPatternService patt
         return Ok(pieces);
     }
 
+    /// <summary>ZIP download for Export page — GET must stay callable via fetch (same-origin credentials).</summary>
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public IActionResult DownloadPackage(int patternId = 0, string style = "skinny", string format = "DXF", string? sizes = null)
     {
-        var pattern = patternId > 0 ? patternService.GetAll().FirstOrDefault(p => p.Id == patternId) : null;
-        if (pattern is not null) style = ToStyleKey(pattern.Style);
+        var patterns = patternService.GetAll().ToList();
+        var pattern = patternId > 0
+            ? patterns.FirstOrDefault(p => p.Id == patternId)
+            : patterns.OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id).FirstOrDefault();
+        if (pattern is not null)
+        {
+            patternId = pattern.Id;
+            style = ToStyleKey(pattern.Style);
+        }
         var selectedSizes = ParseSizes(sizes);
-        var (bytes, contentType, fileName) = exportService.BuildExportPackage(style, format, selectedSizes);
-        return File(bytes, contentType, fileName);
+        byte[] bytes;
+        string contentType;
+        string fileName;
+        try
+        {
+            (bytes, contentType, fileName) = exportService.BuildExportPackage(style, format, selectedSizes, patternId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+
+        if (bytes.Length == 0)
+            return BadRequest("Export produced no data.");
+
+        // Avoid stale or stripped bodies from intermediaries when downloading ZIP (DXF/SVG/PDF inside).
+        Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private";
+        Response.Headers["Pragma"] = "no-cache";
+
+        // Stream-based FileResult plays nicer with fetch().blob() than raw byte[] on some hosts.
+        var ms = new MemoryStream(bytes, writable: false);
+        return File(ms, contentType, fileName);
     }
 
     private static List<string> ParseSizes(string? sizes)
@@ -82,12 +112,13 @@ public class ExportController(IExportService exportService, IPatternService patt
         _ => "skinny",
     };
 
-    private void SetLayout(string controller, string title, string style) =>
+    private void SetLayout(string controller, string title, string style, int? patternId = null) =>
         ViewData["Layout"] = new LayoutViewModel
         {
             ActiveController = controller,
             PageTitle        = title,
             CurrentStyle     = style,
+            CurrentPatternId = patternId,
         };
 }
 

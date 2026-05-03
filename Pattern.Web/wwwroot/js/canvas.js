@@ -24,6 +24,9 @@
   // ── 2. STATE ─────────────────────────────────────────────────────
   let selectedPiece = window.CANVAS_INIT_PIECE || 0;
   const patternId   = window.CANVAS_PATTERN_ID || 0;
+  if (patternId > 0) {
+    try { sessionStorage.setItem('pp_last_canvas_pattern_id', String(patternId)); } catch (_) {}
+  }
   let tool          = 'select';
   let scale = 1, panX = 0, panY = 0;
   let showSA = true, showGrain = true, showLabels = true, showNotches = true;

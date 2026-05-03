@@ -84,8 +84,8 @@
             183
           ]
         ],
-        "offsetX": -159,
-        "offsetY": 19
+        "offsetX": 30,
+        "offsetY": 20
       },
       {
         "name": "Back Leg",
@@ -170,8 +170,8 @@
             216
           ]
         ],
-        "offsetX": -74,
-        "offsetY": -14
+        "offsetX": 176,
+        "offsetY": 20
       },
       {
         "name": "Waistband",
@@ -476,7 +476,7 @@
             0
           ]
         ],
-        "offsetX": 107,
+        "offsetX": 106,
         "offsetY": 500
       },
       {
@@ -530,24 +530,82 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            18,
+            0
           ],
           [
-            300,
-            50
+            72,
+            0
           ],
           [
-            300,
-            400
+            90,
+            44
           ],
           [
-            100,
-            400
+            64,
+            80
+          ],
+          [
+            46,
+            188
+          ],
+          [
+            41,
+            320
+          ],
+          [
+            -5,
+            320
+          ],
+          [
+            -10,
+            188
+          ],
+          [
+            -28,
+            80
+          ],
+          [
+            0,
+            71
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            45,
+            15
+          ],
+          [
+            45,
+            305
+          ]
+        ],
+        "cf": [
+          [
+            18,
+            0
+          ],
+          [
+            18,
+            320
+          ]
+        ],
+        "notches": [
+          [
+            17,
+            0
+          ],
+          [
+            19,
+            0
+          ],
+          [
+            -10,
+            188
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 20
       },
       {
         "name": "Back Leg",
@@ -558,24 +616,82 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            36,
+            0
           ],
           [
-            300,
-            50
+            96,
+            0
           ],
           [
-            300,
-            400
+            108,
+            63
           ],
           [
-            100,
-            400
+            89,
+            114
+          ],
+          [
+            64,
+            222
+          ],
+          [
+            59,
+            354
+          ],
+          [
+            13,
+            354
+          ],
+          [
+            8,
+            222
+          ],
+          [
+            -17,
+            114
+          ],
+          [
+            0,
+            101
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            66,
+            15
+          ],
+          [
+            66,
+            339
+          ]
+        ],
+        "cf": [
+          [
+            36,
+            0
+          ],
+          [
+            36,
+            354
+          ]
+        ],
+        "notches": [
+          [
+            35,
+            0
+          ],
+          [
+            37,
+            0
+          ],
+          [
+            8,
+            222
+          ]
+        ],
+        "offsetX": 188,
+        "offsetY": 20
       },
       {
         "name": "Waistband",
@@ -586,24 +702,54 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            114,
+            0
           ],
           [
-            300,
-            400
+            114,
+            10
           ],
           [
-            100,
-            400
+            0,
+            10
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            57,
+            3
+          ],
+          [
+            57,
+            7
+          ]
+        ],
+        "cf": [
+          [
+            57,
+            0
+          ],
+          [
+            57,
+            10
+          ]
+        ],
+        "notches": [
+          [
+            56,
+            0
+          ],
+          [
+            58,
+            0
+          ]
+        ],
+        "offsetX": 353,
+        "offsetY": 20
       },
       {
         "name": "Fly Facing",
@@ -614,24 +760,49 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            15,
+            0
           ],
           [
-            300,
-            400
+            15,
+            52
           ],
           [
-            100,
-            400
+            7,
+            56
+          ],
+          [
+            0,
+            52
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            47
+          ]
+        ],
+        "cf": [],
+        "notches": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            9
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 414
       },
       {
         "name": "Fly Shield",
@@ -642,24 +813,36 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            12,
+            0
           ],
           [
-            300,
-            400
+            12,
+            52
           ],
           [
-            100,
-            400
+            0,
+            52
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            47
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 85,
+        "offsetY": 414
       },
       {
         "name": "Coin Pocket",
@@ -670,24 +853,40 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            24,
+            0
           ],
           [
-            300,
-            400
+            24,
+            14
           ],
           [
-            100,
-            400
+            12,
+            18
+          ],
+          [
+            0,
+            14
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            12,
+            3
+          ],
+          [
+            12,
+            15
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 137,
+        "offsetY": 414
       },
       {
         "name": "Front Pocket Bag",
@@ -698,24 +897,49 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            36,
+            0
           ],
           [
-            300,
-            400
+            36,
+            45
           ],
           [
-            100,
-            400
+            18,
+            54
+          ],
+          [
+            0,
+            45
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            18,
+            5
+          ],
+          [
+            18,
+            39
+          ]
+        ],
+        "cf": [],
+        "notches": [
+          [
+            0,
+            18
+          ],
+          [
+            36,
+            18
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 510
       },
       {
         "name": "Back Patch Pocket",
@@ -726,24 +950,54 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            42,
+            0
           ],
           [
-            300,
-            400
+            42,
+            42
           ],
           [
-            100,
-            400
+            0,
+            42
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            21,
+            5
+          ],
+          [
+            21,
+            37
+          ]
+        ],
+        "cf": [
+          [
+            21,
+            0
+          ],
+          [
+            21,
+            42
+          ]
+        ],
+        "notches": [
+          [
+            20,
+            0
+          ],
+          [
+            22,
+            0
+          ]
+        ],
+        "offsetX": 106,
+        "offsetY": 510
       },
       {
         "name": "Belt Loop",
@@ -754,24 +1008,36 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            8,
+            0
           ],
           [
-            300,
-            400
+            8,
+            27
           ],
           [
-            100,
-            400
+            0,
+            27
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            24
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 188,
+        "offsetY": 510
       }
     ],
     "straight": [
@@ -784,24 +1050,82 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            18,
+            0
           ],
           [
-            300,
-            50
+            70,
+            0
           ],
           [
-            300,
-            400
+            88,
+            45
           ],
           [
-            100,
-            400
+            63,
+            81
+          ],
+          [
+            50,
+            188
+          ],
+          [
+            43,
+            318
+          ],
+          [
+            -7,
+            318
+          ],
+          [
+            -14,
+            188
+          ],
+          [
+            -27,
+            81
+          ],
+          [
+            0,
+            72
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            44,
+            15
+          ],
+          [
+            44,
+            303
+          ]
+        ],
+        "cf": [
+          [
+            18,
+            0
+          ],
+          [
+            18,
+            318
+          ]
+        ],
+        "notches": [
+          [
+            17,
+            0
+          ],
+          [
+            19,
+            0
+          ],
+          [
+            -14,
+            188
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 20
       },
       {
         "name": "Back Leg",
@@ -812,24 +1136,82 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            35,
+            0
           ],
           [
-            300,
-            50
+            93,
+            0
           ],
           [
-            300,
-            400
+            105,
+            62
           ],
           [
-            100,
-            400
+            87,
+            112
+          ],
+          [
+            67,
+            219
+          ],
+          [
+            60,
+            350
+          ],
+          [
+            10,
+            350
+          ],
+          [
+            3,
+            219
+          ],
+          [
+            -17,
+            112
+          ],
+          [
+            0,
+            100
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            64,
+            15
+          ],
+          [
+            64,
+            335
+          ]
+        ],
+        "cf": [
+          [
+            35,
+            0
+          ],
+          [
+            35,
+            350
+          ]
+        ],
+        "notches": [
+          [
+            34,
+            0
+          ],
+          [
+            36,
+            0
+          ],
+          [
+            3,
+            219
+          ]
+        ],
+        "offsetX": 185,
+        "offsetY": 20
       },
       {
         "name": "Waistband",
@@ -840,24 +1222,54 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            111,
+            0
           ],
           [
-            300,
-            400
+            111,
+            10
           ],
           [
-            100,
-            400
+            0,
+            10
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            55,
+            3
+          ],
+          [
+            55,
+            7
+          ]
+        ],
+        "cf": [
+          [
+            56,
+            0
+          ],
+          [
+            56,
+            10
+          ]
+        ],
+        "notches": [
+          [
+            55,
+            0
+          ],
+          [
+            57,
+            0
+          ]
+        ],
+        "offsetX": 347,
+        "offsetY": 20
       },
       {
         "name": "Fly Facing",
@@ -868,24 +1280,49 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            15,
+            0
           ],
           [
-            300,
-            400
+            15,
+            53
           ],
           [
-            100,
-            400
+            7,
+            57
+          ],
+          [
+            0,
+            53
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            48
+          ]
+        ],
+        "cf": [],
+        "notches": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            9
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 410
       },
       {
         "name": "Fly Shield",
@@ -896,24 +1333,36 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            12,
+            0
           ],
           [
-            300,
-            400
+            12,
+            53
           ],
           [
-            100,
-            400
+            0,
+            53
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            48
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 85,
+        "offsetY": 410
       },
       {
         "name": "Side Pocket Bag",
@@ -924,24 +1373,49 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            39,
+            0
           ],
           [
-            300,
-            400
+            39,
+            48
           ],
           [
-            100,
-            400
+            19,
+            57
+          ],
+          [
+            0,
+            48
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            19,
+            5
+          ],
+          [
+            19,
+            42
+          ]
+        ],
+        "cf": [],
+        "notches": [
+          [
+            0,
+            18
+          ],
+          [
+            39,
+            18
+          ]
+        ],
+        "offsetX": 137,
+        "offsetY": 410
       },
       {
         "name": "Back Patch Pocket",
@@ -952,24 +1426,54 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            42,
+            0
           ],
           [
-            300,
-            400
+            42,
+            42
           ],
           [
-            100,
-            400
+            0,
+            42
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            21,
+            5
+          ],
+          [
+            21,
+            37
+          ]
+        ],
+        "cf": [
+          [
+            21,
+            0
+          ],
+          [
+            21,
+            42
+          ]
+        ],
+        "notches": [
+          [
+            20,
+            0
+          ],
+          [
+            22,
+            0
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 507
       },
       {
         "name": "Belt Loop",
@@ -980,24 +1484,36 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            8,
+            0
           ],
           [
-            300,
-            400
+            8,
+            27
           ],
           [
-            100,
-            400
+            0,
+            27
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            24
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 112,
+        "offsetY": 507
       }
     ],
     "wideLeg": [
@@ -1236,24 +1752,82 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            20,
+            0
           ],
           [
-            300,
-            50
+            82,
+            0
           ],
           [
-            300,
-            400
+            101,
+            47
           ],
           [
-            100,
-            400
+            72,
+            86
+          ],
+          [
+            54,
+            194
+          ],
+          [
+            55,
+            326
+          ],
+          [
+            -15,
+            326
+          ],
+          [
+            -14,
+            194
+          ],
+          [
+            -32,
+            86
+          ],
+          [
+            0,
+            76
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            51,
+            15
+          ],
+          [
+            51,
+            311
+          ]
+        ],
+        "cf": [
+          [
+            20,
+            0
+          ],
+          [
+            20,
+            326
+          ]
+        ],
+        "notches": [
+          [
+            19,
+            0
+          ],
+          [
+            21,
+            0
+          ],
+          [
+            -14,
+            194
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 20
       },
       {
         "name": "Back Leg",
@@ -1264,24 +1838,82 @@
         "description": "",
         "points": [
           [
+            40,
+            0
+          ],
+          [
+            108,
+            0
+          ],
+          [
+            121,
+            68
+          ],
+          [
             100,
-            50
+            123
           ],
           [
-            300,
-            50
+            74,
+            231
           ],
           [
-            300,
-            400
+            75,
+            363
           ],
           [
-            100,
-            400
+            5,
+            363
+          ],
+          [
+            6,
+            231
+          ],
+          [
+            -20,
+            123
+          ],
+          [
+            0,
+            109
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            74,
+            15
+          ],
+          [
+            74,
+            348
+          ]
+        ],
+        "cf": [
+          [
+            40,
+            0
+          ],
+          [
+            40,
+            363
+          ]
+        ],
+        "notches": [
+          [
+            39,
+            0
+          ],
+          [
+            41,
+            0
+          ],
+          [
+            6,
+            231
+          ]
+        ],
+        "offsetX": 203,
+        "offsetY": 20
       },
       {
         "name": "Waistband",
@@ -1292,24 +1924,54 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            129,
+            0
           ],
           [
-            300,
-            400
+            129,
+            10
           ],
           [
-            100,
-            400
+            0,
+            10
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            64,
+            3
+          ],
+          [
+            64,
+            7
+          ]
+        ],
+        "cf": [
+          [
+            64,
+            0
+          ],
+          [
+            64,
+            10
+          ]
+        ],
+        "notches": [
+          [
+            63,
+            0
+          ],
+          [
+            65,
+            0
+          ]
+        ],
+        "offsetX": 384,
+        "offsetY": 20
       },
       {
         "name": "Fly Facing",
@@ -1320,24 +1982,49 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            15,
+            0
           ],
           [
-            300,
-            400
+            15,
+            56
           ],
           [
-            100,
-            400
+            7,
+            60
+          ],
+          [
+            0,
+            56
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            51
+          ]
+        ],
+        "cf": [],
+        "notches": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            9
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 423
       },
       {
         "name": "Fly Shield",
@@ -1348,24 +2035,36 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            12,
+            0
           ],
           [
-            300,
-            400
+            12,
+            56
           ],
           [
-            100,
-            400
+            0,
+            56
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            51
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 85,
+        "offsetY": 423
       },
       {
         "name": "Side Pocket Bag",
@@ -1376,24 +2075,49 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            39,
+            0
           ],
           [
-            300,
-            400
+            39,
+            48
           ],
           [
-            100,
-            400
+            19,
+            57
+          ],
+          [
+            0,
+            48
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            19,
+            5
+          ],
+          [
+            19,
+            42
+          ]
+        ],
+        "cf": [],
+        "notches": [
+          [
+            0,
+            18
+          ],
+          [
+            39,
+            18
+          ]
+        ],
+        "offsetX": 137,
+        "offsetY": 423
       },
       {
         "name": "Back Patch Pocket",
@@ -1404,24 +2128,54 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            42,
+            0
           ],
           [
-            300,
-            400
+            42,
+            42
           ],
           [
-            100,
-            400
+            0,
+            42
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            21,
+            5
+          ],
+          [
+            21,
+            37
+          ]
+        ],
+        "cf": [
+          [
+            21,
+            0
+          ],
+          [
+            21,
+            42
+          ]
+        ],
+        "notches": [
+          [
+            20,
+            0
+          ],
+          [
+            22,
+            0
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 523
       },
       {
         "name": "Belt Loop",
@@ -1432,24 +2186,36 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            8,
+            0
           ],
           [
-            300,
-            400
+            8,
+            27
           ],
           [
-            100,
-            400
+            0,
+            27
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            24
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 112,
+        "offsetY": 523
       },
       {
         "name": "Flare Insert",
@@ -1460,24 +2226,36 @@
         "description": "",
         "points": [
           [
-            100,
-            50
+            0,
+            0
           ],
           [
-            300,
-            50
+            24,
+            0
           ],
           [
-            300,
-            400
+            45,
+            84
           ],
           [
-            100,
-            400
+            -21,
+            84
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [
+          [
+            12,
+            5
+          ],
+          [
+            12,
+            79
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 160,
+        "offsetY": 523
       }
     ]
   },
@@ -1714,8 +2492,8 @@
             60
           ]
         ],
-        "offsetX": 620,
-        "offsetY": 20
+        "offsetX": 303,
+        "offsetY": -127
       },
       {
         "name": "Fly Facing",
@@ -1767,8 +2545,8 @@
             100
           ]
         ],
-        "offsetX": 1060,
-        "offsetY": 20
+        "offsetX": 633,
+        "offsetY": 15
       },
       {
         "name": "Fly Shield",
@@ -1816,8 +2594,8 @@
             100
           ]
         ],
-        "offsetX": 1195,
-        "offsetY": 20
+        "offsetX": 717,
+        "offsetY": 18
       },
       {
         "name": "Coin Pocket",
@@ -1865,8 +2643,8 @@
             60
           ]
         ],
-        "offsetX": 1320,
-        "offsetY": 20
+        "offsetX": 792,
+        "offsetY": 7
       },
       {
         "name": "Front Pocket Bag",
@@ -1918,8 +2696,8 @@
             110
           ]
         ],
-        "offsetX": 1060,
-        "offsetY": 260
+        "offsetX": 579,
+        "offsetY": 214
       },
       {
         "name": "Back Patch Pocket",
@@ -1976,8 +2754,8 @@
             60
           ]
         ],
-        "offsetX": 1320,
-        "offsetY": 260
+        "offsetX": 719,
+        "offsetY": 226
       },
       {
         "name": "Belt Loop",
@@ -2016,8 +2794,8 @@
         ],
         "cf": [],
         "notches": [],
-        "offsetX": 1440,
-        "offsetY": 260
+        "offsetX": 842,
+        "offsetY": 114
       }
     ],
     "0": [
@@ -3679,8 +4457,11 @@
             400
           ]
         ],
-        "offsetX": 0,
-        "offsetY": 0
+        "grain": [],
+        "cf": [],
+        "notches": [],
+        "offsetX": -324,
+        "offsetY": -44
       },
       {
         "name": "Waist Tab",
@@ -3691,20 +4472,20 @@
         "description": "",
         "points": [
           [
-            239,
-            38
+            310,
+            44
           ],
           [
-            72,
-            48
+            93,
+            41
           ],
           [
-            300,
-            400
+            305,
+            410
           ],
           [
-            100,
-            400
+            93,
+            405
           ]
         ],
         "grain": [],
@@ -4474,6 +5255,990 @@
         ],
         "offsetX": 0,
         "offsetY": 0
+      }
+    ],
+    "23": [
+      {
+        "name": "Front Leg",
+        "cut": "Cut 2",
+        "color": "#a78bfa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Back Leg",
+        "cut": "Cut 2",
+        "color": "#60a5fa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Waistband",
+        "cut": "Cut 2",
+        "color": "#34d399",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Fly Facing",
+        "cut": "Cut 2",
+        "color": "#fbbf24",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Fly Shield",
+        "cut": "Cut 2",
+        "color": "#f87171",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Coin Pocket",
+        "cut": "Cut 2",
+        "color": "#e879f9",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Front Pocket Bag",
+        "cut": "Cut 2",
+        "color": "#a78bfa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Back Patch Pocket",
+        "cut": "Cut 2",
+        "color": "#60a5fa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Belt Loop",
+        "cut": "Cut 2",
+        "color": "#34d399",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      }
+    ],
+    "24": [
+      {
+        "name": "Front Leg",
+        "cut": "Cut 2",
+        "color": "#a78bfa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Back Leg",
+        "cut": "Cut 2",
+        "color": "#60a5fa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Waistband",
+        "cut": "Cut 2",
+        "color": "#34d399",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Fly Facing",
+        "cut": "Cut 2",
+        "color": "#fbbf24",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Fly Shield",
+        "cut": "Cut 2",
+        "color": "#f87171",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Coin Pocket",
+        "cut": "Cut 2",
+        "color": "#e879f9",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Front Pocket Bag",
+        "cut": "Cut 2",
+        "color": "#a78bfa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Back Patch Pocket",
+        "cut": "Cut 2",
+        "color": "#60a5fa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      {
+        "name": "Belt Loop",
+        "cut": "Cut 2",
+        "color": "#34d399",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            100,
+            50
+          ],
+          [
+            300,
+            50
+          ],
+          [
+            300,
+            400
+          ],
+          [
+            100,
+            400
+          ]
+        ],
+        "offsetX": 0,
+        "offsetY": 0
+      }
+    ],
+    "19": [
+      {
+        "name": "Front Leg",
+        "cut": "Cut 2",
+        "color": "#a78bfa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            18,
+            0
+          ],
+          [
+            70,
+            0
+          ],
+          [
+            88,
+            45
+          ],
+          [
+            63,
+            81
+          ],
+          [
+            50,
+            188
+          ],
+          [
+            43,
+            318
+          ],
+          [
+            -7,
+            318
+          ],
+          [
+            -14,
+            188
+          ],
+          [
+            -27,
+            81
+          ],
+          [
+            0,
+            72
+          ]
+        ],
+        "grain": [
+          [
+            44,
+            15
+          ],
+          [
+            44,
+            303
+          ]
+        ],
+        "cf": [
+          [
+            18,
+            0
+          ],
+          [
+            18,
+            318
+          ]
+        ],
+        "notches": [
+          [
+            17,
+            0
+          ],
+          [
+            19,
+            0
+          ],
+          [
+            -14,
+            188
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 20
+      },
+      {
+        "name": "Back Leg",
+        "cut": "Cut 2",
+        "color": "#60a5fa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            35,
+            0
+          ],
+          [
+            93,
+            0
+          ],
+          [
+            105,
+            62
+          ],
+          [
+            87,
+            112
+          ],
+          [
+            67,
+            219
+          ],
+          [
+            60,
+            350
+          ],
+          [
+            10,
+            350
+          ],
+          [
+            3,
+            219
+          ],
+          [
+            -17,
+            112
+          ],
+          [
+            0,
+            100
+          ]
+        ],
+        "grain": [
+          [
+            64,
+            15
+          ],
+          [
+            64,
+            335
+          ]
+        ],
+        "cf": [
+          [
+            35,
+            0
+          ],
+          [
+            35,
+            350
+          ]
+        ],
+        "notches": [
+          [
+            34,
+            0
+          ],
+          [
+            36,
+            0
+          ],
+          [
+            3,
+            219
+          ]
+        ],
+        "offsetX": 185,
+        "offsetY": 20
+      },
+      {
+        "name": "Waistband",
+        "cut": "Cut 2",
+        "color": "#34d399",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            111,
+            0
+          ],
+          [
+            111,
+            10
+          ],
+          [
+            0,
+            10
+          ]
+        ],
+        "grain": [
+          [
+            55,
+            3
+          ],
+          [
+            55,
+            7
+          ]
+        ],
+        "cf": [
+          [
+            56,
+            0
+          ],
+          [
+            56,
+            10
+          ]
+        ],
+        "notches": [
+          [
+            55,
+            0
+          ],
+          [
+            57,
+            0
+          ]
+        ],
+        "offsetX": 347,
+        "offsetY": 20
+      },
+      {
+        "name": "Fly Facing",
+        "cut": "Cut 2",
+        "color": "#fbbf24",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            15,
+            0
+          ],
+          [
+            15,
+            53
+          ],
+          [
+            7,
+            57
+          ],
+          [
+            0,
+            53
+          ]
+        ],
+        "grain": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            48
+          ]
+        ],
+        "cf": [],
+        "notches": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            9
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 410
+      },
+      {
+        "name": "Fly Shield",
+        "cut": "Cut 2",
+        "color": "#f87171",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            12,
+            0
+          ],
+          [
+            12,
+            53
+          ],
+          [
+            0,
+            53
+          ]
+        ],
+        "grain": [
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            48
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 85,
+        "offsetY": 410
+      },
+      {
+        "name": "Side Pocket Bag",
+        "cut": "Cut 2",
+        "color": "#e879f9",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            39,
+            0
+          ],
+          [
+            39,
+            48
+          ],
+          [
+            19,
+            57
+          ],
+          [
+            0,
+            48
+          ]
+        ],
+        "grain": [
+          [
+            19,
+            5
+          ],
+          [
+            19,
+            42
+          ]
+        ],
+        "cf": [],
+        "notches": [
+          [
+            0,
+            18
+          ],
+          [
+            39,
+            18
+          ]
+        ],
+        "offsetX": 137,
+        "offsetY": 410
+      },
+      {
+        "name": "Back Patch Pocket",
+        "cut": "Cut 2",
+        "color": "#a78bfa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            0,
+            42
+          ]
+        ],
+        "grain": [
+          [
+            21,
+            5
+          ],
+          [
+            21,
+            37
+          ]
+        ],
+        "cf": [
+          [
+            21,
+            0
+          ],
+          [
+            21,
+            42
+          ]
+        ],
+        "notches": [
+          [
+            20,
+            0
+          ],
+          [
+            22,
+            0
+          ]
+        ],
+        "offsetX": 30,
+        "offsetY": 507
+      },
+      {
+        "name": "Belt Loop",
+        "cut": "Cut 2",
+        "color": "#60a5fa",
+        "category": "Hardware \u0026 Details",
+        "grainLine": "Straight",
+        "description": "",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            27
+          ],
+          [
+            0,
+            27
+          ]
+        ],
+        "grain": [
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            24
+          ]
+        ],
+        "cf": [],
+        "notches": [],
+        "offsetX": 112,
+        "offsetY": 507
       }
     ]
   }

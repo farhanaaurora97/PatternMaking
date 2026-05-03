@@ -86,20 +86,40 @@
       <div class="sb-divider"></div>
       <div class="sb-section">Tools</div>
 
-      <a class="@Nav("Canvas")" asp-controller="Canvas" asp-action="Index">
+      @if (layout.CurrentPatternId is int canvasPid && canvasPid > 0)
+      {
+      <a class="@Nav("Canvas")" asp-controller="Canvas" asp-action="Index" asp-route-style="@style" asp-route-patternId="@canvasPid">
         <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.4" fill="none" opacity=".85"/><path d="M4.5 8L6.5 10L10.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/></svg>
         Canvas Editor
       </a>
+      }
+      else
+      {
+      <a class="@Nav("Canvas")" asp-controller="Canvas" asp-action="Index" asp-route-style="@style">
+        <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.4" fill="none" opacity=".85"/><path d="M4.5 8L6.5 10L10.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/></svg>
+        Canvas Editor
+      </a>
+      }
 
-      <a class="@Nav("Nest")" asp-controller="Nest" asp-action="Index">
+      <a class="@Nav("Nest")" asp-controller="Nest" asp-action="Index" asp-route-style="@style">
         <svg viewBox="0 0 15 15" fill="none"><path d="M3 12V6L7.5 3L12 6V12H9V9H6V12H3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="none" opacity=".75"/></svg>
         Graded Nest
       </a>
 
+      @if (layout.CurrentPatternId is int exportPid && exportPid > 0)
+      {
+      <a class="@Nav("Export")" asp-controller="Export" asp-action="Index" asp-route-patternId="@exportPid" asp-route-style="@style">
+        <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2V10M4.5 7L7.5 10L10.5 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/><path d="M2 11V13H13V11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+        Export / DXF
+      </a>
+      }
+      else
+      {
       <a class="@Nav("Export")" asp-controller="Export" asp-action="Index">
         <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2V10M4.5 7L7.5 10L10.5 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/><path d="M2 11V13H13V11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
         Export / DXF
       </a>
+      }
     </nav>
 
     <div class="sb-footer">

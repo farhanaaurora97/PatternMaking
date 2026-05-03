@@ -69,6 +69,13 @@
         <span style="font-size:13px;color:var(--ink3)">Sizes</span>
         <span style="font-size:13px;font-weight:600;color:var(--ink)">@Model.SizesCsv</span>
       </div>
+      @if (!string.IsNullOrWhiteSpace(Model.CanvasGradeBaseSize))
+      {
+      <div class="cp-row" style="margin-bottom:9px">
+        <span style="font-size:13px;color:var(--ink3)">Canvas master</span>
+        <span style="font-size:13px;font-weight:600;color:var(--ink)" title="Saved canvas is treated as this size; other sizes are graded from it.">@Model.CanvasGradeBaseSize (grading ref.)</span>
+      </div>
+      }
       <div class="cp-row" style="margin-bottom:0">
         <span style="font-size:13px;color:var(--ink3)">Format</span>
         <span class="tag tag-green" id="exp-format">@Model.SelectedFormat</span>
@@ -91,6 +98,11 @@
     </div>
   </div>
 </div>
+
+@* Hidden target for GET download — avoids Chrome/Edge "File wasn't available on site" with fetch/blob or <a download> on live URLs. *@
+<iframe name="pp-export-dl" id="pp-export-dl" title="Export download"
+        style="position:absolute;width:0;height:0;border:0;left:-9999px;visibility:hidden"
+        aria-hidden="true"></iframe>
 
 @* ── Export Preview Modal ─────────────────────────────────────────── *@
 <div class="modal-overlay" id="preview-modal-overlay">

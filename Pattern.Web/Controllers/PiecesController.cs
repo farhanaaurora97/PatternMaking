@@ -12,7 +12,7 @@ public class PiecesController(
 {
     public IActionResult Index(int patternId, string style = "skinny")
     {
-        SetLayout("Pieces", "Pattern Pieces", style);
+        SetLayout("Pieces", "Pattern Pieces", style, patternId);
         return View(BuildViewModel(patternId, style));
     }
 
@@ -57,7 +57,7 @@ public class PiecesController(
         if (pattern is not null)
             pattern.PieceCount = pieces.Count;
 
-        SetLayout("Pieces", "Pattern Pieces", style);
+        SetLayout("Pieces", "Pattern Pieces", style, patternId);
         return RedirectToAction("Index", new { patternId, style });
     }
 
@@ -69,7 +69,7 @@ public class PiecesController(
         var vm = BuildViewModel(patternId, style);
         if (!ok) vm.ErrorMessage = error;
 
-        SetLayout("Pieces", "Pattern Pieces", style);
+        SetLayout("Pieces", "Pattern Pieces", style, patternId);
         return View("Index", vm);
     }
 
@@ -101,11 +101,12 @@ public class PiecesController(
         };
     }
 
-    private void SetLayout(string controller, string title, string style) =>
+    private void SetLayout(string controller, string title, string style, int patternId = 0) =>
         ViewData["Layout"] = new LayoutViewModel
         {
             ActiveController = controller,
             PageTitle        = title,
             CurrentStyle     = style,
+            CurrentPatternId = patternId > 0 ? patternId : null,
         };
 }

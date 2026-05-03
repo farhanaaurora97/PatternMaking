@@ -117,8 +117,8 @@ No database required. Data persists across restarts.
 
 | Format | Details |
 |---|---|
-| **DXF** | AutoCAD 2000 (AC1015), LWPOLYLINE per piece, layers |
-| **SVG** | Polygon elements with viewBox and piece labels |
+| **DXF** | AutoCAD R12-style ASCII (AC1009): `LINE` entities on layer 0 — better Illustrator import than LWPOLYLINE |
+| **SVG** | Paths + viewBox; UTF-8 without BOM for strict importers |
 | **PDF** | One PDF per piece via PdfSharpCore |
 | **Package** | All formats delivered as a ZIP with manifest.txt |
 

@@ -12,19 +12,21 @@ public class CanvasController(
     // ── Page ────────────────────────────────────────────────────────
     public IActionResult Index(int patternId = 0, string style = "skinny", int piece = 0)
     {
+        var styleKey = FitStyleKeys.Normalize(style);
+
         // Only load pieces when coming from a specific pattern
         var names = patternId > 0
-            ? pieceService.GetPieceDefinitions(patternId, style).Select(d => d.Name).ToList()
+            ? pieceService.GetPieceDefinitions(patternId, styleKey).Select(d => d.Name).ToList()
             : [];
 
         var vm = new CanvasViewModel
         {
             PatternId          = patternId,
-            StyleKey           = style,
+            StyleKey           = styleKey,
             PieceNames         = names,
             SelectedPieceIndex = names.Count == 0 ? 0 : Math.Clamp(piece, 0, names.Count - 1),
         };
-        SetLayout("Canvas", "Canvas Editor");
+        SetLayout("Canvas", "Canvas Editor", styleKey, vm.PatternId > 0 ? vm.PatternId : null);
         return View(vm);
     }
 
@@ -36,7 +38,8 @@ public class CanvasController(
         if (patternId == 0)
             return Ok(Array.Empty<CanvasPieceDto>());
 
-        var defs = pieceService.GetPieceDefinitions(patternId, style);
+        var styleKey = FitStyleKeys.Normalize(style);
+        var defs = pieceService.GetPieceDefinitions(patternId, styleKey);
         var dtos = defs.Select(d => new CanvasPieceDto
         {
             Name    = d.Name,
@@ -54,17 +57,20 @@ public class CanvasController(
 
     // ── POST: persist one piece's full geometry after canvas edits ──
     [HttpPost]
-    public IActionResult SavePiece([FromBody] SavePieceRequest req)
+    public IActionResult SavePiece([FromBody] SavePieceRequest? req)
     {
+        if (req is null)
+            return BadRequest(new { error = "Request body is required." });
         if (req.Pts is null || req.Pts.Count < 3)
             return BadRequest(new { error = "At least 3 points required." });
 
+        var styleKey = FitStyleKeys.Normalize(req.Style);
         var (ok, error) = req.PatternId > 0
             ? pieceService.UpdatePatternPieceGeometry(
-                req.PatternId, req.Style, req.Name,
+                req.PatternId, styleKey, req.Name,
                 req.Pts, req.Ox, req.Oy, req.Grain, req.Cf, req.Notches)
             : pieceService.UpdatePieceGeometry(
-                req.Style, req.Name,
+                styleKey, req.Name,
                 req.Pts, req.Ox, req.Oy, req.Grain, req.Cf, req.Notches);
 
         return ok ? Ok() : BadRequest(new { error });
@@ -72,17 +78,21 @@ public class CanvasController(
 
     // ── POST: save every piece at once (Save All button) ────────────
     [HttpPost]
-    public IActionResult SaveAllPieces([FromBody] SaveAllPiecesRequest req)
+    public IActionResult SaveAllPieces([FromBody] SaveAllPiecesRequest? req)
     {
+        if (req is null || req.Pieces is null)
+            return BadRequest(new { error = "Request body is required." });
+
         var errors = new List<string>();
+        var styleKey = FitStyleKeys.Normalize(req.Style);
         foreach (var p in req.Pieces)
         {
             if (p.Pts is null || p.Pts.Count < 3) { errors.Add($"{p.Name}: need ≥ 3 points"); continue; }
             var (ok, err) = req.PatternId > 0
                 ? pieceService.UpdatePatternPieceGeometry(
-                    req.PatternId, req.Style, p.Name, p.Pts, p.Ox, p.Oy, p.Grain, p.Cf, p.Notches)
+                    req.PatternId, styleKey, p.Name, p.Pts, p.Ox, p.Oy, p.Grain, p.Cf, p.Notches)
                 : pieceService.UpdatePieceGeometry(
-                    req.Style, p.Name, p.Pts, p.Ox, p.Oy, p.Grain, p.Cf, p.Notches);
+                    styleKey, p.Name, p.Pts, p.Ox, p.Oy, p.Grain, p.Cf, p.Notches);
             if (!ok) errors.Add($"{p.Name}: {err}");
         }
         return errors.Count == 0
@@ -97,9 +107,10 @@ public class CanvasController(
         if (string.IsNullOrWhiteSpace(piece))
             return BadRequest(new { error = "piece name required" });
 
+        var styleKey = FitStyleKeys.Normalize(style);
         var defs = patternId > 0
-            ? pieceService.GetPieceDefinitions(patternId, style)
-            : pieceService.GetPieceDefinitions(style);
+            ? pieceService.GetPieceDefinitions(patternId, styleKey)
+            : pieceService.GetPieceDefinitions(styleKey);
         var def  = defs.FirstOrDefault(d => d.Name.Equals(piece, StringComparison.OrdinalIgnoreCase));
         if (def is null) return NotFound(new { error = $"Piece '{piece}' not found." });
 
@@ -143,16 +154,19 @@ public class CanvasController(
 
     // ── POST: create a new piece from user-drawn canvas points ───────
     [HttpPost]
-    public IActionResult CreatePiece([FromBody] CreatePieceRequest req)
+    public IActionResult CreatePiece([FromBody] CreatePieceRequest? req)
     {
+        if (req is null)
+            return BadRequest(new { error = "Request body is required." });
         if (req.Pts is null || req.Pts.Count < 3)
             return BadRequest(new { error = "At least 3 points required." });
 
+        var styleKey = FitStyleKeys.Normalize(req.Style);
         var (ok, error, piece) = req.PatternId > 0
             ? pieceService.CreatePatternPiece(
-                req.PatternId, req.Style, req.Name, req.Category, req.Cut, req.Color, req.Pts, req.Ox, req.Oy)
+                req.PatternId, styleKey, req.Name, req.Category, req.Cut, req.Color, req.Pts, req.Ox, req.Oy)
             : pieceService.CreateStylePiece(
-                req.Style, req.Name, req.Category, req.Cut, req.Color, req.Pts, req.Ox, req.Oy);
+                styleKey, req.Name, req.Category, req.Cut, req.Color, req.Pts, req.Ox, req.Oy);
 
         if (!ok) return BadRequest(new { error });
 
@@ -176,7 +190,8 @@ public class CanvasController(
         [FromQuery(Name = "sizes")] string[]? sizes = null)
     {
         sizes ??= ["S", "M", "XL", "XXL"];
-        var gradedSet = draftingService.DraftGradedSet(style, sizes);
+        var styleKey = FitStyleKeys.Normalize(style);
+        var gradedSet = draftingService.DraftGradedSet(styleKey, sizes);
 
         var result = gradedSet.ToDictionary(
             kvp => kvp.Key,
@@ -198,8 +213,11 @@ public class CanvasController(
     }
 
     [HttpPost]
-    public IActionResult DraftFromMeasurements([FromBody] DraftFromMeasurementsRequest req)
+    public IActionResult DraftFromMeasurements([FromBody] DraftFromMeasurementsRequest? req)
     {
+        if (req is null)
+            return BadRequest(new { error = "Request body is required." });
+
         var sizes = req.Sizes?.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
                     ?? [];
         if (sizes.Length == 0)
@@ -220,7 +238,8 @@ public class CanvasController(
         if (baseMeasurements.Values.Any(v => v <= 0))
             return BadRequest(new { error = "All body measurements must be greater than zero." });
 
-        var gradedSet = draftingService.DraftGradedSetFromMeasurements(req.Style, req.BaseSize, sizes, baseMeasurements);
+        var styleKey = FitStyleKeys.Normalize(req.Style);
+        var gradedSet = draftingService.DraftGradedSetFromMeasurements(styleKey, req.BaseSize, sizes, baseMeasurements);
         var result = gradedSet.ToDictionary(
             kvp => kvp.Key,
             kvp => kvp.Value.Select(d => new CanvasPieceDto
@@ -241,8 +260,11 @@ public class CanvasController(
     }
 
     [HttpPost]
-    public IActionResult RecommendSize([FromBody] RecommendSizeRequest req)
+    public IActionResult RecommendSize([FromBody] RecommendSizeRequest? req)
     {
+        if (req is null)
+            return BadRequest(new { error = "Request body is required." });
+
         var measurements = ToMeasurementsDictionary(
             req.Waist, req.Hip, req.FrontRise, req.BackRise, req.Thigh, req.Knee, req.Ankle, req.Inseam);
         if (measurements.Values.Any(v => v <= 0))
@@ -272,8 +294,11 @@ public class CanvasController(
     }
 
     [HttpPost]
-    public IActionResult SaveMeasurementProfile([FromBody] SaveMeasurementProfileRequest req)
+    public IActionResult SaveMeasurementProfile([FromBody] SaveMeasurementProfileRequest? req)
     {
+        if (req is null)
+            return BadRequest(new { error = "Request body is required." });
+
         var measurements = ToMeasurementsDictionary(
             req.Waist, req.Hip, req.FrontRise, req.BackRise, req.Thigh, req.Knee, req.Ankle, req.Inseam);
         if (measurements.Values.Any(v => v <= 0))
@@ -299,6 +324,12 @@ public class CanvasController(
             ["Inseam"] = inseam,
         };
 
-    private void SetLayout(string controller, string title) =>
-        ViewData["Layout"] = new LayoutViewModel { ActiveController = controller, PageTitle = title };
+    private void SetLayout(string controller, string title, string currentStyle = "skinny", int? patternId = null) =>
+        ViewData["Layout"] = new LayoutViewModel
+        {
+            ActiveController = controller,
+            PageTitle      = title,
+            CurrentStyle   = currentStyle,
+            CurrentPatternId = patternId,
+        };
 }

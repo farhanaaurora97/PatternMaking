@@ -2,6 +2,17 @@
 
 (function initExport() {
 
+  // After editing on Canvas, sidebar "Export" may land here without ?patternId=.
+  // Prefer the pattern you had open on Canvas (session) when navigation came from there.
+  (function syncPatternIdFromCanvasSession() {
+    try {
+      const ref = document.referrer || '';
+      if (!/\/Canvas/i.test(ref)) return;
+      const last = parseInt(sessionStorage.getItem('pp_last_canvas_pattern_id') || '0', 10);
+      if (last > 0) window.EXPORT_PATTERN_ID = last;
+    } catch (_) { /* ignore */ }
+  })();
+
   let selectedFormat = 'DXF';
 
   // ── Format card selection ──────────────────────────────────────────
@@ -33,12 +44,74 @@
   // ── Download / run export ──────────────────────────────────────────
   document.getElementById('btn-download-export')?.addEventListener('click', runExport);
 
+  /** Path-only action for GET form (e.g. /Export/DownloadPackage or /MyApp/Export/DownloadPackage). */
+  function exportDownloadFormAction() {
+    let p = (window.DOWNLOAD_PACKAGE_URL || '/Export/DownloadPackage').trim();
+    if (/^https?:\/\//i.test(p)) {
+      try {
+        return new URL(p).pathname || '/Export/DownloadPackage';
+      } catch (_) {
+        return '/Export/DownloadPackage';
+      }
+    }
+    if (!p.startsWith('/')) p = '/' + p.replace(/^\/+/, '');
+    return p || '/Export/DownloadPackage';
+  }
+
+  /**
+   * Real browser GET (form submit) into a named iframe — same as a normal file link download.
+   * Avoids Chrome/Edge "File wasn't available on site" from programmatic fetch/blob or anchor download on live URLs.
+   */
+  function triggerExportDownload() {
+    let frame = document.getElementById('pp-export-dl');
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.id = 'pp-export-dl';
+      frame.name = 'pp-export-dl';
+      frame.title = 'Export download';
+      frame.setAttribute('aria-hidden', 'true');
+      frame.style.cssText = 'position:absolute;width:0;height:0;border:0;left:-9999px;visibility:hidden';
+      document.body.appendChild(frame);
+    }
+
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = exportDownloadFormAction();
+    form.target = 'pp-export-dl';
+    form.style.display = 'none';
+    form.setAttribute('aria-hidden', 'true');
+
+    const add = (name, value) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = String(value);
+      form.appendChild(input);
+    };
+
+    add('patternId', window.EXPORT_PATTERN_ID || 0);
+    add('style', window.EXPORT_STYLE || 'skinny');
+    add('format', selectedFormat);
+    add('sizes', window.EXPORT_SIZES_CSV || 'XS,S,M,L,XL,XXL');
+    add('_ts', Date.now());
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  }
+
   async function runExport() {
     const wrap    = document.getElementById('export-progress-wrap');
     const bar     = document.getElementById('export-bar');
     const txt     = document.getElementById('export-progress-text');
     const stepsEl = document.getElementById('export-steps');
     if (!wrap) return;
+
+    try {
+      triggerExportDownload();
+    } catch (err) {
+      toast('Download failed', err?.message || 'Could not start download.', 'error', '⚠️');
+    }
 
     const res = await fetch(window.EXPORT_URL, {
       method: 'POST',
@@ -63,8 +136,7 @@
         bar.style.width = '100%';
         txt.textContent = `✅ Export complete — ${window.EXPORT_TOTAL_FILES} files ready`;
         markStep(i - 1, true);
-        toast('Export Complete', `${selectedFormat} files packaged and ready to download`, 'success', '📦');
-        triggerDownload();
+        toast('Export Complete', `${selectedFormat} package downloading (check your Downloads folder)`, 'success', '📦');
         return;
       }
       if (i > 0) markStep(i - 1, true);
@@ -90,22 +162,6 @@
     const icon = document.getElementById(`xstep-icon-${idx}`);
     step?.classList.add('active-step');
     if (icon) icon.textContent = '◌';
-  }
-
-  function triggerDownload() {
-    const params = new URLSearchParams({
-      patternId: String(window.EXPORT_PATTERN_ID || 0),
-      style: window.EXPORT_STYLE || 'skinny',
-      format: selectedFormat,
-      sizes: window.EXPORT_SIZES_CSV || 'XS,S,M,L,XL,XXL',
-    });
-    const url = `${window.DOWNLOAD_PACKAGE_URL}?${params.toString()}`;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = '';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   }
 
 })();

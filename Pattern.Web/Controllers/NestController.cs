@@ -1,13 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
 using Pattern.PublicServices.Interfaces;
 using Pattern.Web.Model;
+
 namespace Pattern.Web.Controllers;
+
 public class NestController(IPieceService pieceService) : Controller
 {
     public IActionResult Index(string style = "skinny")
     {
-        var vm = new NestViewModel { StyleKey = style };
-        SetLayout("Nest", "Graded Nest");
+        var styleKey = FitStyleKeys.Normalize(style);
+        var vm = new NestViewModel { StyleKey = styleKey };
+        SetLayout("Nest", "Graded Nest", styleKey);
         return View(vm);
     }
 
@@ -19,6 +22,11 @@ public class NestController(IPieceService pieceService) : Controller
         return Ok(basePiece);
     }
 
-    private void SetLayout(string controller, string title) =>
-        ViewData["Layout"] = new LayoutViewModel { ActiveController = controller, PageTitle = title };
+    private void SetLayout(string controller, string title, string currentStyle = "skinny") =>
+        ViewData["Layout"] = new LayoutViewModel
+        {
+            ActiveController = controller,
+            PageTitle      = title,
+            CurrentStyle   = currentStyle,
+        };
 }

@@ -1,3 +1,4 @@
+using System.Linq;
 using Pattern.Core.Model;
 using Pattern.PublicServices.Interfaces;
 
@@ -130,6 +131,130 @@ public class PatternDraftingService : IPatternDraftingService
         return result;
     }
 
+    /// <inheritdoc />
+    public IReadOnlyList<PieceDefinition> GradeCanvasPiecesForSize(
+        IReadOnlyList<PieceDefinition> canvasPieces,
+        string styleKey,
+        string baseSize,
+        string targetSize)
+    {
+        var sk = styleKey.Trim();
+        var b  = ResolveSizeLabel(baseSize);
+        var t  = ResolveSizeLabel(targetSize);
+        if (b.Equals(t, StringComparison.OrdinalIgnoreCase))
+            return canvasPieces.Select(ClonePieceDefinition).ToList();
+
+        var baseDraft   = DraftPieces(sk, b).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+        var targetDraft = DraftPieces(sk, t).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+
+        var list = new List<PieceDefinition>(canvasPieces.Count);
+        foreach (var user in canvasPieces)
+        {
+            if (!baseDraft.TryGetValue(user.Name, out var bRef) || !targetDraft.TryGetValue(user.Name, out var tRef))
+            {
+                list.Add(ClonePieceDefinition(user));
+                continue;
+            }
+
+            list.Add(MorphPieceTowardTemplate(user, bRef, tRef));
+        }
+
+        return list;
+    }
+
+    private string ResolveSizeLabel(string requested)
+    {
+        var cols = _sizeChart.GetColumnLabels();
+        if (cols.Count == 0) return "M";
+        if (string.IsNullOrWhiteSpace(requested))
+            return cols.Count > 2 ? cols[2] : cols[0];
+        var match = cols.FirstOrDefault(c => c.Equals(requested.Trim(), StringComparison.OrdinalIgnoreCase));
+        return match ?? (cols.Count > 2 ? cols[2] : cols[0]);
+    }
+
+    private static PieceDefinition MorphPieceTowardTemplate(PieceDefinition user, PieceDefinition bRef, PieceDefinition tRef)
+    {
+        var p = ClonePieceDefinition(user);
+        p.Points  = MorphClosedPolyline(user.Points, bRef.Points, tRef.Points);
+        p.Grain   = MorphOptionalPolyline(user.Grain, bRef.Grain, tRef.Grain);
+        p.Cf      = MorphOptionalPolyline(user.Cf, bRef.Cf, tRef.Cf);
+        p.Notches = MorphOptionalPolyline(user.Notches, bRef.Notches, tRef.Notches);
+        return p;
+    }
+
+    private static PieceDefinition ClonePieceDefinition(PieceDefinition p) =>
+        new()
+        {
+            Name        = p.Name,
+            Cut         = p.Cut,
+            Color       = p.Color,
+            Category    = p.Category,
+            GrainLine   = p.GrainLine,
+            Description = p.Description,
+            Points      = p.Points.Select(pt => new[] { pt[0], pt[1] }).ToList(),
+            Grain       = p.Grain?.Select(pt => new[] { pt[0], pt[1] }).ToList(),
+            Cf          = p.Cf?.Select(pt => new[] { pt[0], pt[1] }).ToList(),
+            Notches     = p.Notches?.Select(pt => new[] { pt[0], pt[1] }).ToList(),
+            OffsetX     = p.OffsetX,
+            OffsetY     = p.OffsetY,
+        };
+
+    private static List<int[]> MorphClosedPolyline(List<int[]> user, List<int[]> bBase, List<int[]> bTarget)
+    {
+        if (user.Count == bBase.Count && bBase.Count == bTarget.Count)
+        {
+            return user.Select((pt, i) => new[]
+            {
+                pt[0] + bTarget[i][0] - bBase[i][0],
+                pt[1] + bTarget[i][1] - bBase[i][1],
+            }).ToList();
+        }
+
+        return MorphPointsByBBox(user, bBase, bTarget);
+    }
+
+    private static List<int[]>? MorphOptionalPolyline(List<int[]>? user, List<int[]>? bBase, List<int[]>? bTarget)
+    {
+        if (user is null || user.Count == 0) return user;
+        if (bBase is null || bTarget is null || bBase.Count == 0 || bTarget.Count == 0) return user;
+        return MorphClosedPolyline(user, bBase, bTarget);
+    }
+
+    /// <summary>
+    /// When vertex counts diverge (edited topology), scale user vertices relative to template bbox centers.
+    /// </summary>
+    private static List<int[]> MorphPointsByBBox(List<int[]> user, List<int[]> bBase, List<int[]> bTarget)
+    {
+        Bbox(bBase, out var bcx, out var bcy, out var bw, out var bh);
+        Bbox(bTarget, out var tcx, out var tcy, out var tw, out var th);
+        var sx = tw / Math.Max(1.0, bw);
+        var sy = th / Math.Max(1.0, bh);
+
+        var result = new List<int[]>(user.Count);
+        foreach (var pt in user)
+        {
+            var dx = pt[0] - bcx;
+            var dy = pt[1] - bcy;
+            result.Add([(int)Math.Round(tcx + dx * sx), (int)Math.Round(tcy + dy * sy)]);
+        }
+
+        return result;
+    }
+
+    private static void Bbox(List<int[]> pts, out double cx, out double cy, out double w, out double h)
+    {
+        var xs = pts.Select(p => p[0]).ToArray();
+        var ys = pts.Select(p => p[1]).ToArray();
+        var minX = xs.Min();
+        var maxX = xs.Max();
+        var minY = ys.Min();
+        var maxY = ys.Max();
+        w = Math.Max(1, maxX - minX);
+        h = Math.Max(1, maxY - minY);
+        cx = (minX + maxX) / 2.0;
+        cy = (minY + maxY) / 2.0;
+    }
+
     public string RecommendClosestSize(string baseSize, IReadOnlyDictionary<string, decimal> baseMeasurements)
     {
         var columns = _sizeChart.GetColumnLabels().ToList();
@@ -213,21 +338,37 @@ public class PatternDraftingService : IPatternDraftingService
         int bHemY    = Px(aBr  + aInseam);
         int bHipY    = Px(aBr  * 0.55m);
 
+        var sk = styleKey.Trim();
         var pieces = new List<PieceDefinition>
         {
             DraftFrontLeg(cef, wQ, hQ, thQ, knQ, anQ, fHipY, fCrotchY, fKneeY, fHemY),
             DraftBackLeg (ceb, wQ, hQ, thQ, knQ, anQ, bHipY, bCrotchY, bKneeY, bHemY),
             DraftWaistband(aWaist),
             DraftFlyFacing(aFr),
-            DraftFlyShield(aFr),
         };
 
-        if (styleKey is "skinny" or "slim")
+        // Wide-leg style omits fly shield (matches PieceService piece list).
+        if (!sk.Equals("wideLeg", StringComparison.OrdinalIgnoreCase))
+            pieces.Add(DraftFlyShield(aFr));
+
+        if (sk.Equals("skinny", StringComparison.OrdinalIgnoreCase)
+            || sk.Equals("slim", StringComparison.OrdinalIgnoreCase))
             pieces.Add(DraftCoinPocket());
 
-        pieces.Add(DraftFrontPocketBag());
+        if (sk.Equals("skinny", StringComparison.OrdinalIgnoreCase)
+            || sk.Equals("slim", StringComparison.OrdinalIgnoreCase))
+            pieces.Add(DraftFrontPocketBag());
+        else
+            pieces.Add(DraftSidePocketBag());
+
         pieces.Add(DraftBackPatchPocket());
         pieces.Add(DraftBeltLoop());
+
+        if (sk.Equals("bootcut", StringComparison.OrdinalIgnoreCase))
+            pieces.Add(DraftFlareInsert());
+
+        if (sk.Equals("wideLeg", StringComparison.OrdinalIgnoreCase))
+            pieces.Add(DraftWaistTab());
 
         LayoutPieces(pieces);
         return pieces.AsReadOnly();
@@ -399,6 +540,68 @@ public class PatternDraftingService : IPatternDraftingService
             Points    = [[0, 0], [w, 0], [w, h - Px(3m)], [w / 2, h], [0, h - Px(3m)]],
             Grain     = [[w / 2, 5], [w / 2, h - 15]],
             Notches   = [[0, Px(6m)], [w, Px(6m)]],
+        };
+    }
+
+    private static PieceDefinition DraftSidePocketBag()
+    {
+        int w = Px(13m);
+        int h = Px(19m);
+
+        return new PieceDefinition
+        {
+            Name      = "Side Pocket Bag",
+            Category  = "Pockets",
+            Cut       = "Cut 2",
+            Color     = "#0F6E56",
+            GrainLine = "Straight",
+            Points    = [[0, 0], [w, 0], [w, h - Px(3m)], [w / 2, h], [0, h - Px(3m)]],
+            Grain     = [[w / 2, 5], [w / 2, h - 15]],
+            Notches   = [[0, Px(6m)], [w, Px(6m)]],
+        };
+    }
+
+    private static PieceDefinition DraftFlareInsert()
+    {
+        int wTop = Px(8m);
+        int wBot = Px(22m);
+        int h    = Px(28m);
+
+        int cx = wTop / 2;
+        return new PieceDefinition
+        {
+            Name      = "Flare Insert",
+            Category  = "Body Panels",
+            Cut       = "Cut 2",
+            Color     = "#7c3aed",
+            GrainLine = "Straight",
+            Points    =
+            [
+                [0, 0],
+                [wTop, 0],
+                [cx + wBot / 2, h],
+                [cx - wBot / 2, h],
+            ],
+            Grain     = [[cx, 5], [cx, h - 5]],
+            Notches   = [],
+        };
+    }
+
+    private static PieceDefinition DraftWaistTab()
+    {
+        int w = Px(5m);
+        int h = Px(4m);
+
+        return new PieceDefinition
+        {
+            Name      = "Waist Tab",
+            Category  = "Hardware & Details",
+            Cut       = "Cut 4",
+            Color     = "#854F0B",
+            GrainLine = "Straight",
+            Points    = [[0, 0], [w, 0], [w, h], [0, h]],
+            Grain     = [[w / 2, 2], [w / 2, h - 2]],
+            Notches   = [],
         };
     }
 

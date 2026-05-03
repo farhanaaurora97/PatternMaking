@@ -6,5 +6,6 @@ public interface IExportService
     (byte[] Bytes, string ContentType, string FileName) BuildExportPackage(
         string style,
         string format,
-        IReadOnlyList<string> sizes);
+        IReadOnlyList<string> sizes,
+        int patternId = 0);
 }

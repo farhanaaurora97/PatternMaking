@@ -72,22 +72,92 @@ public class PieceService : IPieceService
         if (_defsPerStyle.TryGetValue(styleKey, out var list))
             return list.AsReadOnly();
 
-        var style    = GetStyleDefinition(styleKey);
-        var defaults = style.PieceList
-            .Select((name, i) => new PieceDefinition
+        List<PieceDefinition> defaults = styleKey.Equals("skinny", StringComparison.OrdinalIgnoreCase)
+            ? _skinnyDefaults.Select(CloneDef).ToList()
+            : BuildStylePieceListFromSkinny(styleKey);
+
+        _defsPerStyle[styleKey] = defaults;
+        Persist();
+        return defaults.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Seed straight / slim / bootcut / wide-leg from skinny geometry where piece names match,
+    /// so the canvas is usable without only placeholder rectangles.
+    /// </summary>
+    private List<PieceDefinition> BuildStylePieceListFromSkinny(string styleKey)
+    {
+        var style        = GetStyleDefinition(styleKey);
+        var skinnyPieces = _defsPerStyle.TryGetValue("skinny", out var sl)
+            ? sl
+            : _skinnyDefaults;
+        var byName = skinnyPieces.ToDictionary(d => d.Name, StringComparer.OrdinalIgnoreCase);
+
+        var list = new List<PieceDefinition>(style.PieceList.Count);
+        for (var i = 0; i < style.PieceList.Count; i++)
+        {
+            var name = style.PieceList[i];
+            if (byName.TryGetValue(name, out var src))
+            {
+                list.Add(CloneDef(src));
+                continue;
+            }
+
+            if (name.Equals("Side Pocket Bag", StringComparison.OrdinalIgnoreCase)
+                && byName.TryGetValue("Front Pocket Bag", out var fp))
+            {
+                var sp = CloneDef(fp);
+                sp.Name = "Side Pocket Bag";
+                list.Add(sp);
+                continue;
+            }
+
+            if (name.Equals("Flare Insert", StringComparison.OrdinalIgnoreCase))
+            {
+                list.Add(new PieceDefinition
+                {
+                    Name        = name,
+                    Category    = "Body Panels",
+                    GrainLine   = "Straight",
+                    Cut         = "Cut 2",
+                    Color       = "#7c3aed",
+                    Points      = [.. _basePiecePoints],
+                    Grain       = [[200, 60], [200, 340]],
+                    OffsetX     = 1520,
+                    OffsetY     = 260,
+                });
+                continue;
+            }
+
+            if (name.Equals("Waist Tab", StringComparison.OrdinalIgnoreCase))
+            {
+                list.Add(new PieceDefinition
+                {
+                    Name        = name,
+                    Category    = "Hardware & Details",
+                    GrainLine   = "Straight",
+                    Cut         = "Cut 4",
+                    Color       = "#854F0B",
+                    Points      = [[60, 60], [120, 60], [120, 100], [60, 100]],
+                    Grain       = [[90, 65], [90, 95]],
+                    OffsetX     = 1600,
+                    OffsetY     = 260,
+                });
+                continue;
+            }
+
+            list.Add(new PieceDefinition
             {
                 Name    = name,
                 Cut     = "Cut 2",
                 Color   = DefaultColor(i),
                 Points  = [.. _basePiecePoints],
-                OffsetX = 0,
-                OffsetY = 0,
-            })
-            .ToList();
+                OffsetX = 30 + i * 45,
+                OffsetY = 400,
+            });
+        }
 
-        _defsPerStyle[styleKey] = defaults;
-        Persist();
-        return defaults.AsReadOnly();
+        return list;
     }
 
     public IReadOnlyList<PieceDefinition> GetPieceDefinitions(int patternId, string styleKey)
