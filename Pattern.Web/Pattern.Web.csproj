@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pattern.Web.Model\Pattern.Web.Model.csproj" />
-    <ProjectReference Include="..\Pattern.PublicServices\Pattern.PublicServices.csproj" />
+    <ProjectReference Include="..\PatternPro.Business\PatternPro.Business.csproj" />
     <ProjectReference Include="..\Pattern.Core.Model\Pattern.Core.Model.csproj" />
   </ItemGroup>
 

@@ -1,0 +1,63 @@
+@model BlockGeneratorViewModel
+@{ ViewData["Title"] = "Block Generator"; }
+
+<div class="page-hdr">
+  <div>
+    <div class="page-title">Block Generator</div>
+    <div class="page-sub">Ease allowances &amp; drafting formulas — @Model.StyleLabel</div>
+  </div>
+  <div class="row">
+    <button class="btn btn-outline btn-sm" id="btn-reset-ease"
+            data-style="@Model.StyleKey">↺ Reset to Default</button>
+    <button class="btn btn-primary btn-sm" id="btn-generate-block"
+            data-style="@Model.StyleKey">⊞ Generate Block</button>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">
+        Ease Allowances
+        <span style="margin-left:auto;font-size:10px;color:var(--ink4);font-weight:400;letter-spacing:0;text-transform:none">Click value to edit</span>
+      </div>
+      <div id="ease-list" data-style="@Model.StyleKey">
+        @foreach (var (key, value) in Model.EaseValues)
+        {
+          var cls = value < 0 ? "ease-neg" : value > 0 ? "ease-pos" : "ease-zero";
+          var display = (value > 0 ? "+" : "") + value + " cm";
+          <div class="ease-row">
+            <span class="ease-key">@key</span>
+            <span class="ease-val @cls"
+                  data-ease-key="@key"
+                  data-ease-style="@Model.StyleKey">@display</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Fit Profile</div>
+      <div id="fit-profile" style="font-size:13px;color:var(--ink2);line-height:1.75">
+        @Model.FitProfile
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Drafting Formulas — M Base Size</div>
+    <div id="formula-list">
+      @foreach (var f in Model.Formulas)
+      {
+        <div class="formula-item">
+          <span class="formula-key">@f.Key</span>
+          <span class="formula-eq">@f.Equation</span>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+  <script src="~/js/blockgen.js" asp-append-version="true"></script>
+}

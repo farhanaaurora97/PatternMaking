@@ -1,0 +1,29 @@
+@model SizeChartViewModel
+
+<div class="modal-overlay" id="modal-add-measurement">
+  <div class="modal">
+    <div class="modal-title">Add measurement row</div>
+    <div class="modal-sub">New row copies the size curve from an existing measurement so you can rename and adjust later.</div>
+    <div class="modal-error" id="add-mp-error">Enter a name.</div>
+
+    <div class="form-row">
+      <label class="form-label" for="add-mp-name">Measurement point</label>
+      <input class="form-input" id="add-mp-name" type="text" placeholder="e.g. Seat, Knee — extended" maxlength="48" autocomplete="off" />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" for="add-mp-copy">Copy grade from</label>
+      <select class="form-input" id="add-mp-copy">
+        @foreach (var row in Model.Rows)
+        {
+          <option value="@row.MeasurementPoint">@row.MeasurementPoint</option>
+        }
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" type="button" id="btn-add-mp-cancel">Cancel</button>
+      <button class="btn btn-gold" type="button" id="btn-add-mp-confirm">Add row</button>
+    </div>
+  </div>
+</div>

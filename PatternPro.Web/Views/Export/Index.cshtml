@@ -1,0 +1,130 @@
+@model ExportViewModel
+@{ ViewData["Title"] = "Export / DXF"; }
+
+<div class="page-hdr">
+  <div>
+    <div class="page-title">Export Pattern</div>
+    <div class="page-sub">Choose format and destination for your pattern files</div>
+    @if (string.Equals((string?)ViewBag.ExportSource, "draft", StringComparison.OrdinalIgnoreCase))
+    {
+      <div class="tag tag-purple" style="margin-top:6px;display:inline-flex">Draft sizes from canvas loaded</div>
+    }
+  </div>
+</div>
+
+<div class="export-grid">
+  @foreach (var fmt in ExportViewModel.Formats)
+  {
+    <div class="export-card @(fmt.Name == Model.SelectedFormat ? "selected" : "")"
+         data-format="@fmt.Name">
+      <div class="exp-icon">@fmt.Icon</div>
+      <div class="exp-name">@fmt.Name</div>
+      <div class="exp-desc">@fmt.Description</div>
+      @if (fmt.Recommended)
+      {
+        <div style="margin-top:14px"><span class="tag tag-green">Recommended</span></div>
+      }
+    </div>
+  }
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">Export Settings</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="cp-row">
+        <span style="font-size:13px;color:var(--ink2);font-weight:500">Scale</span>
+        <select style="border:1px solid var(--bdr2);border-radius:var(--r);padding:5px 10px;font-family:'DM Sans',sans-serif;font-size:12.5px;color:var(--ink);background:#fff">
+          <option>1:1 (Full Scale)</option>
+          <option>1:4 (Quarter)</option>
+          <option>1:5 (Fifth)</option>
+          <option>1:10 (Tenth)</option>
+        </select>
+      </div>
+      <div class="cp-row"><span style="font-size:13px;color:var(--ink2);font-weight:500">SA Included</span><button class="tog on" id="tog-sa-export"></button></div>
+      <div class="cp-row"><span style="font-size:13px;color:var(--ink2);font-weight:500">Grain Line</span><button class="tog on" id="tog-grain-export"></button></div>
+      <div class="cp-row"><span style="font-size:13px;color:var(--ink2);font-weight:500">Notches</span><button class="tog on" id="tog-notch-export"></button></div>
+      <div class="cp-row"><span style="font-size:13px;color:var(--ink2);font-weight:500">Labels</span><button class="tog on" id="tog-labels-export"></button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Export Summary</div>
+    <div style="background:var(--cream);border-radius:var(--r2);padding:16px;border:1px solid var(--bdr);margin-bottom:16px">
+      <div class="cp-row" style="margin-bottom:9px">
+        <span style="font-size:13px;color:var(--ink3)">Pattern</span>
+        <span style="font-size:13px;font-weight:600;color:var(--ink)" id="exp-pattern">@Model.PatternDisplayName</span>
+      </div>
+      <div class="cp-row" style="margin-bottom:9px">
+        <span style="font-size:13px;color:var(--ink3)">Style</span>
+        <span style="font-size:13px;font-weight:600;color:var(--ink)" id="exp-style">@Model.StyleLabel</span>
+      </div>
+      <div class="cp-row" style="margin-bottom:9px">
+        <span style="font-size:13px;color:var(--ink3)">Pieces</span>
+        <span style="font-size:13px;font-weight:600;color:var(--ink)" id="exp-pieces">
+          @Model.PieceCount pieces × @Model.SizeCount sizes = @Model.TotalFiles files
+        </span>
+      </div>
+      <div class="cp-row" style="margin-bottom:9px">
+        <span style="font-size:13px;color:var(--ink3)">Sizes</span>
+        <span style="font-size:13px;font-weight:600;color:var(--ink)">@Model.SizesCsv</span>
+      </div>
+      @if (!string.IsNullOrWhiteSpace(Model.CanvasGradeBaseSize))
+      {
+      <div class="cp-row" style="margin-bottom:9px">
+        <span style="font-size:13px;color:var(--ink3)">Canvas master</span>
+        <span style="font-size:13px;font-weight:600;color:var(--ink)" title="Saved canvas is treated as this size; other sizes are graded from it.">@Model.CanvasGradeBaseSize (grading ref.)</span>
+      </div>
+      }
+      <div class="cp-row" style="margin-bottom:0">
+        <span style="font-size:13px;color:var(--ink3)">Format</span>
+        <span class="tag tag-green" id="exp-format">@Model.SelectedFormat</span>
+      </div>
+    </div>
+
+    <div class="export-progress-wrap" id="export-progress-wrap">
+      <div class="export-progress-bar-track">
+        <div class="export-progress-bar-fill" id="export-bar"></div>
+      </div>
+      <div class="export-progress-text" id="export-progress-text">Preparing files...</div>
+      <div class="export-steps" id="export-steps"></div>
+    </div>
+
+    <hr>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn btn-outline" id="btn-preview">Preview</button>
+      <button class="btn btn-gold" style="padding:9px 22px;font-size:13px"
+              id="btn-download-export">↓ Download Export</button>
+    </div>
+  </div>
+</div>
+
+@* Hidden target for GET download — avoids Chrome/Edge "File wasn't available on site" with fetch/blob or <a download> on live URLs. *@
+<iframe name="pp-export-dl" id="pp-export-dl" title="Export download"
+        style="position:absolute;width:0;height:0;border:0;left:-9999px;visibility:hidden"
+        aria-hidden="true"></iframe>
+
+@* ── Export Preview Modal ─────────────────────────────────────────── *@
+<div class="modal-overlay" id="preview-modal-overlay">
+  <div class="modal modal-wide">
+    <div class="modal-title">Export Preview</div>
+    <div class="modal-sub" id="preview-modal-sub">Pattern pieces at base size — verify before export</div>
+    <div id="preview-canvas-grid" class="preview-grid"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btn-preview-close">Close</button>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+  <script>
+    window.EXPORT_URL       = '@Url.Action("StartExport", "Export")';
+    window.EXPORT_TOTAL_FILES = @Model.TotalFiles;
+    window.PREVIEW_URL      = '@Url.Action("PreviewPieces", "Export")';
+    window.EXPORT_STYLE     = '@ViewBag.CurrentStyle';
+    window.EXPORT_PATTERN_ID = @Model.PatternId;
+    window.EXPORT_SIZES_CSV = '@Model.SizesCsv';
+    window.DOWNLOAD_PACKAGE_URL = '@Url.Action("DownloadPackage", "Export")';
+  </script>
+  <script src="~/js/export.js" asp-append-version="true"></script>
+}

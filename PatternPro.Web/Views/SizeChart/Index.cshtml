@@ -1,0 +1,55 @@
+@model SizeChartViewModel
+@{ ViewData["Title"] = "Size Chart"; }
+
+<div class="page-hdr">
+  <div>
+    <div class="page-title">Size Chart</div>
+    <div class="page-sub">Body measurements in cm — M is the base size</div>
+  </div>
+  <div class="row" style="flex-wrap:wrap;gap:8px">
+    <a class="btn btn-outline btn-sm" asp-controller="SizeChart" asp-action="ExportCsv">↓ Export CSV</a>
+    <button class="btn btn-outline btn-sm" type="button" id="btn-add-measurement">＋ Add measurement</button>
+    <button class="btn btn-primary btn-sm" type="button" id="btn-add-size">＋ Add Size</button>
+  </div>
+</div>
+
+<div class="tbl-wrap">
+  <div class="tbl-header">
+    <span class="tbl-title">Body Measurements — Bottom Wear (All Sizes)</span>
+    <span class="spacer"></span>
+    <span style="font-size:10.5px;color:var(--ink4);font-family:'DM Mono',monospace;font-weight:600">UNIT: CM</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Measurement Point</th>
+        @for (var i = 0; i < Model.ColumnLabels.Count; i++)
+        {
+          var col = Model.ColumnLabels[i];
+          var isBase = string.Equals(col, "M", StringComparison.Ordinal);
+          <th class="@(isBase ? "sch-m" : null)" style="text-align:center">@col@if (isBase) { <text> — Base</text> }</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var row in Model.Rows)
+      {
+        <tr>
+          <td class="td-label">@row.MeasurementPoint</td>
+          @for (var i = 0; i < row.Values.Count; i++)
+          {
+            var isBase = i < Model.ColumnLabels.Count && string.Equals(Model.ColumnLabels[i], "M", StringComparison.Ordinal);
+            <td class="td-mono @(isBase ? "td-base" : null)">@row.Values[i]</td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@await Html.PartialAsync("_AddSizeColumnModal")
+@await Html.PartialAsync("_AddMeasurementRowModal", Model)
+
+@section Scripts {
+  <script src="~/js/size-chart.js" asp-append-version="true"></script>
+}

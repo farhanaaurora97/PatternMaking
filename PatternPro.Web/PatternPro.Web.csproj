@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PatternPro.Web</RootNamespace>
+    <AssemblyName>PatternPro.Web</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PatternPro.Web.Model\PatternPro.Web.Model.csproj" />
+    <ProjectReference Include="..\PatternPro.Business\PatternPro.Business.csproj" />
+    <ProjectReference Include="..\Pattern.Core.Model\Pattern.Core.Model.csproj" />
+  </ItemGroup>
+
+</Project>
+

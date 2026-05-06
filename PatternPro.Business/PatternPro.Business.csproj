@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PatternPro.Core\PatternPro.Core.csproj" />
+    <ProjectReference Include="..\Pattern.Core.Model\Pattern.Core.Model.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PdfSharpCore" Version="1.3.67" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Phase 1: compile implementations from their original location, but under PatternPro.Business namespaces. -->
+    <Compile Include="..\Pattern.PublicServices\Services\*.cs"
+             Exclude="..\Pattern.PublicServices\Services\JsonDataStore.cs"
+             Link="Services\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

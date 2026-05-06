@@ -1,0 +1,17 @@
+<div class="modal-overlay" id="modal-add-size">
+  <div class="modal">
+    <div class="modal-title">Add size column</div>
+    <div class="modal-sub">New column is filled by extrapolating from the last two sizes on each row (linear grade).</div>
+    <div class="modal-error" id="add-size-error">Enter a label.</div>
+
+    <div class="form-row">
+      <label class="form-label" for="add-size-label">Size label</label>
+      <input class="form-input" id="add-size-label" type="text" placeholder="e.g. 3XL, XXXL" maxlength="12" autocomplete="off" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" type="button" id="btn-add-size-cancel">Cancel</button>
+      <button class="btn btn-gold" type="button" id="btn-add-size-confirm">Add column</button>
+    </div>
+  </div>
+</div>
