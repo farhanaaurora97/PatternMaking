@@ -9,6 +9,11 @@
     "ast_hash": "ce234b07f574d60cfedfbd521e184d9e",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\Pattern.Core.Model\\ExportPurpose.cs": {
+    "mtime": 1779165776.3453255,
+    "ast_hash": "6decb79bbbf9c683d72cf84f1d1035ac",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\Pattern.Core.Model\\GeneratedBlock.cs": {
     "mtime": 1775378610.185623,
     "ast_hash": "b60d5fd629ecefad9e9bd98a6c4e5b42",
@@ -25,23 +30,33 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Core.Model\\Pattern.cs": {
-    "mtime": 1775461320.2779288,
-    "ast_hash": "208c619b59dec30fe2c71b5cb9c46d6c",
+    "mtime": 1779608668.6750576,
+    "ast_hash": "4650ebe29f71c2e73ed9a71de7579f5a",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\Pattern.Core.Model\\PatternActivityEntry.cs": {
+    "mtime": 1779608667.1121762,
+    "ast_hash": "d82779b2c2ce2312779e3ad1dca1d0b3",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Core.Model\\PersistenceStores.cs": {
-    "mtime": 1778127125.8736143,
-    "ast_hash": "a0643ae0fec19d403a1ab7a98beafbaf",
+    "mtime": 1779002594.4486582,
+    "ast_hash": "a6cd1cb8a22bec1e36cd99132887d950",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Core.Model\\PieceDefinition.cs": {
-    "mtime": 1778310644.727208,
-    "ast_hash": "7d61821dbaa61a013de997c5fbeab202",
+    "mtime": 1779608672.729945,
+    "ast_hash": "61ad8efc922ce00b0353bc8dd7585a16",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\Pattern.Core.Model\\ProductionValidationReport.cs": {
+    "mtime": 1779165772.5924275,
+    "ast_hash": "927030056790c1d99a58a33cf37c684c",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Core.Model\\SizeRow.cs": {
-    "mtime": 1775967066.4488404,
-    "ast_hash": "e7b5e8e09c89f3cfd1ee04e3f41fd985",
+    "mtime": 1779608670.1459363,
+    "ast_hash": "8f064ce67093ac08af1ef1548f529f44",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Core.Model\\StyleAssemblyCatalog.cs": {
@@ -52,6 +67,11 @@
   "E:\\Code\\PatternMaking\\Pattern.Core.Model\\StyleDefinition.cs": {
     "mtime": 1775368309.287545,
     "ast_hash": "c77ee223bf0166c58045bedaefc52725",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\Pattern.Core.Model\\StyleLifecycle.cs": {
+    "mtime": 1779342041.1318014,
+    "ast_hash": "b7da50ff9edea5910b92bdb84678d7e9",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Class1.cs": {
@@ -94,29 +114,29 @@
     "ast_hash": "3e46ceed40f55a5d99579beab687b4d8",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\AppDataDefaults.cs": {
+    "mtime": 1779002594.4486582,
+    "ast_hash": "a5874d2b3aabb4d22104fdb8d9cd39f4",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\BlockGeneratorService.cs": {
-    "mtime": 1778052033.8499694,
-    "ast_hash": "bad216def168bf1b9b15966e1d1dfe15",
+    "mtime": 1779608988.6463327,
+    "ast_hash": "367fac4b1c442985a4a590bdfe7b1be0",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\ExportAnnotations.cs": {
-    "mtime": 1778392403.4707432,
-    "ast_hash": "9811787f573432ebdd3f59f24c992b3c",
+    "mtime": 1779608841.148046,
+    "ast_hash": "97a9602b49b16efcfc3ea9539a66fd5d",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\ExportService.cs": {
-    "mtime": 1778392946.2599761,
-    "ast_hash": "13acd773bab99daf51602ef94ec64bcc",
+    "mtime": 1779608863.7471745,
+    "ast_hash": "f614ef49eda51b7efa16ff2d9de2e0c7",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\GradingService.cs": {
-    "mtime": 1778052038.8498256,
-    "ast_hash": "79d901d9086de4dcfe4e6b6dac6bee8e",
-    "semantic_hash": ""
-  },
-  "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\JsonDataStore.cs": {
-    "mtime": 1777178698.3690915,
-    "ast_hash": "285634f8d131684eb1dec3c1c28946fb",
+    "mtime": 1779608739.7132256,
+    "ast_hash": "d7f793cb333267f974bf21ce8d810d6d",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\NotchGrainResolver.cs": {
@@ -130,13 +150,18 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\PatternService.cs": {
-    "mtime": 1778127129.5705278,
-    "ast_hash": "6a44988e228736976b84aec48cfd681a",
+    "mtime": 1779608932.630345,
+    "ast_hash": "6bea16db11df65c573f0bca0ea0a9fa3",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\PieceService.cs": {
-    "mtime": 1778310673.52796,
-    "ast_hash": "8636e01c09503cc8b214abfa7f1ccc67",
+    "mtime": 1779274063.3376675,
+    "ast_hash": "0b49e52c0a504d75e6c5ad81b0eca848",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\ProductionCertificationService.cs": {
+    "mtime": 1779608746.684584,
+    "ast_hash": "e0b9e18fea610317ed9660ab3011455c",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\SeamAllowanceOffset.cs": {
@@ -144,9 +169,24 @@
     "ast_hash": "70e6d597dafc74a9e463e40c84242b1b",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\SeamGeometry.cs": {
+    "mtime": 1779165784.7246065,
+    "ast_hash": "f6b86c56c50f9f2ed47b5e2d58ee702e",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\SeamValidationService.cs": {
+    "mtime": 1779169884.7242062,
+    "ast_hash": "57edf9fc19039dc2056bfcfb125dbb14",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\SizeChartService.cs": {
-    "mtime": 1778052041.949493,
-    "ast_hash": "bb8c93b904b78910da355f687a5cae5f",
+    "mtime": 1779608732.209325,
+    "ast_hash": "73e44ad975f90d48391e06d3539a7e8c",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\Pattern.Web\\appsettings.Development.example.json": {
+    "mtime": 1780825760.3164866,
+    "ast_hash": "4c5825d51bc298ba4875090ce0e04707",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\appsettings.Development.json": {
@@ -155,13 +195,13 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\appsettings.json": {
-    "mtime": 1774946451.5933485,
-    "ast_hash": "f7e65dde4e5533740a0d57ac9355c0e8",
+    "mtime": 1779083331.0898604,
+    "ast_hash": "3f5d3ffc31296fc30747bff71fbbbc91",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Program.cs": {
-    "mtime": 1778325992.6561365,
-    "ast_hash": "5b71a14fc7b57edcefe77b7f129bf2a6",
+    "mtime": 1780819203.1107535,
+    "ast_hash": "88030b4fb8268a309831698a62613f22",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\BlockGeneratorController.cs": {
@@ -170,13 +210,13 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\CanvasController.cs": {
-    "mtime": 1778310701.1128278,
-    "ast_hash": "63294816a3e533d963043656d6f4ec1f",
+    "mtime": 1779274068.6880794,
+    "ast_hash": "f4c4ee9e76e4421ffae3e030a83d980d",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\ExportController.cs": {
-    "mtime": 1778051085.424657,
-    "ast_hash": "64f757f1cc96414933d5b35ff6a1d612",
+    "mtime": 1779172531.0270355,
+    "ast_hash": "8ee3c6505a9ac8e5657605710dc46abd",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\FitStyleKeys.cs": {
@@ -190,8 +230,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\HomeController.cs": {
-    "mtime": 1778051080.016238,
-    "ast_hash": "f278cdbe260a7ceac647a2658e2b2ddf",
+    "mtime": 1779608877.9833841,
+    "ast_hash": "d15973e34df85b25e775ae59a534237a",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\LibraryController.cs": {
@@ -205,8 +245,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\PatternViewModelExtensions.cs": {
-    "mtime": 1776499017.1705654,
-    "ast_hash": "479a33d04c52b5e711f3e5f2d1abdf83",
+    "mtime": 1779608934.1096964,
+    "ast_hash": "4d42bbee0fe324d6a851c67b3564ef96",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\PiecesController.cs": {
@@ -217,6 +257,11 @@
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\SizeChartController.cs": {
     "mtime": 1778052117.5294945,
     "ast_hash": "a0314e9a589533d9a52761467717fe8a",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\StyleSheetController.cs": {
+    "mtime": 1779342108.253299,
+    "ast_hash": "bff5075f569b872fce1fb86e2b145db8",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Properties\\launchSettings.json": {
@@ -230,8 +275,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\canvas.js": {
-    "mtime": 1778478273.9625237,
-    "ast_hash": "1e35e754d49d62e417deba59a6d23ead",
+    "mtime": 1779274092.4640481,
+    "ast_hash": "03aace6a51dba1d6f932c32d0b1cdec2",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\dashboard-charts.js": {
@@ -240,13 +285,13 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\dashboard.js": {
-    "mtime": 1776062460.3457153,
-    "ast_hash": "67850bba1ed5b10c54d9856083f202e1",
+    "mtime": 1779342171.759626,
+    "ast_hash": "3d84a6c56657331adbbc67752209961f",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\export.js": {
-    "mtime": 1777791595.2361033,
-    "ast_hash": "e2511337b3bf9ec05b00f2e3a7cf587d",
+    "mtime": 1779173540.6273499,
+    "ast_hash": "5be0d9a13b884e8dd6a8bdd9973c0cd1",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\nest.js": {
@@ -260,13 +305,18 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\site.js": {
-    "mtime": 1775449151.2220788,
-    "ast_hash": "2993e75d11b11fe96b7d543e70e905b7",
+    "mtime": 1780816415.4745672,
+    "ast_hash": "772aa93fed15a0ee0f9a444422de6ae5",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\size-chart.js": {
     "mtime": 1777695414.5300937,
     "ast_hash": "001ac4c479eb69b97e1cd1d41b64d0e6",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\style-sheet.js": {
+    "mtime": 1779342135.5844443,
+    "ast_hash": "c977d0d874b633688a13b76c64bbcae0",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\BlockGeneratorViewModel.cs": {
@@ -275,8 +325,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\CanvasPieceDto.cs": {
-    "mtime": 1778310657.0243046,
-    "ast_hash": "e60cf0e061cd42177775d2ee53f13716",
+    "mtime": 1779274077.2427218,
+    "ast_hash": "228c3b48c36d6a4ccb86fc859db74ffe",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\CanvasViewModel.cs": {
@@ -285,13 +335,13 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\DashboardViewModel.cs": {
-    "mtime": 1775545923.6731923,
-    "ast_hash": "bbf579eb1fe2daadf121f188eff66c3e",
+    "mtime": 1779167309.4870827,
+    "ast_hash": "a0978d7f876a33d4836c19085924d9ea",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\ExportViewModel.cs": {
-    "mtime": 1777783501.741435,
-    "ast_hash": "9bf9e87f122985383d540dc2ae2d30a9",
+    "mtime": 1779165895.9735587,
+    "ast_hash": "e1a680fb9505fa7029b2854770bb81af",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\GradingViewModel.cs": {
@@ -315,13 +365,13 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\PatternCreateViewModel.cs": {
-    "mtime": 1775448906.6852646,
-    "ast_hash": "ecd0737b0c35d8adecd4546bc9a6b718",
+    "mtime": 1779342079.870003,
+    "ast_hash": "38623038d1ded2e2d236ac5b3a21ae05",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\PatternViewModel.cs": {
-    "mtime": 1776499007.3523777,
-    "ast_hash": "a12b3710255dcc4150c2cd9fb3cbb3ba",
+    "mtime": 1779608934.9238913,
+    "ast_hash": "7363d28d5190503db237b2e4285b6608",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\PiecesViewModel.cs": {
@@ -334,9 +384,9 @@
     "ast_hash": "9c4500754b8a1facddd5576f1dcfc264",
     "semantic_hash": ""
   },
-  "E:\\Code\\PatternMaking\\PatternPro.Business\\Services\\JsonDataStore.cs": {
-    "mtime": 1778127128.03939,
-    "ast_hash": "09a064ccc2181b4f5c7badaaef6fef90",
+  "E:\\Code\\PatternMaking\\Pattern.Web.Model\\StyleSheetViewModel.cs": {
+    "mtime": 1779342193.6558213,
+    "ast_hash": "cd5c3c8ff68e6c44d2a5e7ed1909432c",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\Class1.cs": {
@@ -345,18 +395,18 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\IBlockGeneratorService.cs": {
-    "mtime": 1778050634.749267,
+    "mtime": 1779608982.5299513,
     "ast_hash": "bb22610a704950b5aa7f07a2a3532719",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\IExportService.cs": {
-    "mtime": 1778050614.3379512,
-    "ast_hash": "0081b853ead04b4b72394a13bbffbd00",
+    "mtime": 1779165851.2074184,
+    "ast_hash": "7e7e3f5fcf19803a388ba8e7c2d504fa",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\IGradingService.cs": {
-    "mtime": 1778050639.0460439,
-    "ast_hash": "cfa518ba4c0deff44a1498371cd1fe6b",
+    "mtime": 1779608715.8273282,
+    "ast_hash": "d44c9bd3330dbb07fbc69d7a082b6a83",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\IPatternDraftingService.cs": {
@@ -365,23 +415,68 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\IPatternService.cs": {
-    "mtime": 1778050262.6065123,
-    "ast_hash": "e81a1d2e5b23b368e44781881e285b0e",
+    "mtime": 1779608718.3465328,
+    "ast_hash": "a96d2599f670ed4711c3f8368634e4fe",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\IPieceService.cs": {
-    "mtime": 1778310664.9547281,
-    "ast_hash": "192454122948517da97ebe784e1c9d56",
+    "mtime": 1779274062.5787566,
+    "ast_hash": "2d285b7d6662e4833ddba02839c3847b",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\IProductionCertificationService.cs": {
+    "mtime": 1779169970.5494766,
+    "ast_hash": "792b9b6ef12487ff5fce4ce2ad39b3bf",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\ISeamValidationService.cs": {
+    "mtime": 1779165778.3574035,
+    "ast_hash": "c90b4183aa2933aa7e24b850b80ace48",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\ISizeChartService.cs": {
-    "mtime": 1778050643.2277653,
-    "ast_hash": "d4f970e93862bb2661c37aadf0a36da2",
+    "mtime": 1779608714.6661592,
+    "ast_hash": "5d7d8c98d9b931dd5e59f113f712ed61",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\Persistence\\IAppDataStore.cs": {
-    "mtime": 1778127126.8001764,
-    "ast_hash": "f90d2cc4b5631186a5dde9395cb78447",
+    "mtime": 1779002594.45265,
+    "ast_hash": "a7eb8bf219ce7bd10246f6eead150c08",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Core\\Persistence\\IDataAccessLayer.cs": {
+    "mtime": 1779009362.3691974,
+    "ast_hash": "5d17687363b7dd4e96c805b63f041874",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Core\\Persistence\\Repositories\\IEaseOverridesRepository.cs": {
+    "mtime": 1779002698.500432,
+    "ast_hash": "8d1bb44c3dbb9e6ef0657ee5308d72c0",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Core\\Persistence\\Repositories\\IGradingRepository.cs": {
+    "mtime": 1779002698.0420153,
+    "ast_hash": "a49185a0ff1b0e34ec3ff9f1a09a9001",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Core\\Persistence\\Repositories\\IMeasurementProfileRepository.cs": {
+    "mtime": 1779002698.9263194,
+    "ast_hash": "863aaed7a3a77e43a8f03f81ae3ee27f",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Core\\Persistence\\Repositories\\IPatternRepository.cs": {
+    "mtime": 1779002709.087025,
+    "ast_hash": "93850e1ff004229ad17393bf16bd98db",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Core\\Persistence\\Repositories\\IPieceRepository.cs": {
+    "mtime": 1779002697.2007327,
+    "ast_hash": "23ccfd01f6aeabff0d60b6ae252d0dbe",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Core\\Persistence\\Repositories\\ISizeChartRepository.cs": {
+    "mtime": 1779002697.5978572,
+    "ast_hash": "2e9197943a6163e1d137aec055d9e98b",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core.Model\\BlockDefinition.cs": {
@@ -429,9 +524,29 @@
     "ast_hash": "c77ee223bf0166c58045bedaefc52725",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\DependencyInjection.cs": {
+    "mtime": 1779083329.3529,
+    "ast_hash": "4e7c98b9067e10057c42252a05f14d08",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\JsonAppDataStore.cs": {
+    "mtime": 1779009372.2811253,
+    "ast_hash": "40886760da61de8fea04260fd6083324",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\PersistenceJson.cs": {
+    "mtime": 1779002594.446658,
+    "ast_hash": "ab68797cefae6456ea33dc4f7d09ebb8",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\PostgreSqlAppDataStore.cs": {
-    "mtime": 1778913937.6548488,
-    "ast_hash": "509ee4a541ea9507d6315ae03b8f160d",
+    "mtime": 1779608708.1233032,
+    "ast_hash": "856fa5dabd0da0b2788c8b5acebd328a",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Mapping\\AppDataPersistenceMapper.cs": {
+    "mtime": 1780808624.082696,
+    "ast_hash": "7e2513d77584b9b8af1fc772309c4672",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\20260507041332_InitialCreate.cs": {
@@ -464,9 +579,49 @@
     "ast_hash": "b4261b9c6ba484310ca3e3e6f407742a",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\20260517091629_AddRelationalAppDataTables.cs": {
+    "mtime": 1779009390.0425746,
+    "ast_hash": "2a646910ac81394dfaea07083506f9cb",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\20260517091629_AddRelationalAppDataTables.Designer.cs": {
+    "mtime": 1779009390.043204,
+    "ast_hash": "1501313bf0de7aa580cc356ec4a3a62d",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\20260519044731_AddProductionCertificationColumns.cs": {
+    "mtime": 1779166051.723655,
+    "ast_hash": "3744d3d6851897f7f8f2adeff26299d7",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\20260519044731_AddProductionCertificationColumns.Designer.cs": {
+    "mtime": 1779166051.723655,
+    "ast_hash": "2833c4279156e1cad2523655eba2ba9f",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\20260521054336_AddStyleSheetPlmFields.cs": {
+    "mtime": 1779342216.1764543,
+    "ast_hash": "c16c7802b24a0f6ad4aa0dbe75a44627",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\20260521054336_AddStyleSheetPlmFields.Designer.cs": {
+    "mtime": 1779342216.1764543,
+    "ast_hash": "b6eba95bb41ba9f7c7c3d03bc2417402",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\20260524074933_AddIndustryWorkflowFields.cs": {
+    "mtime": 1779608973.6441877,
+    "ast_hash": "8af4b8f6e26bb1ddb35492e19a15c4aa",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\20260524074933_AddIndustryWorkflowFields.Designer.cs": {
+    "mtime": 1779608973.6441877,
+    "ast_hash": "c88244951bdfc319f381ffd4d69a7b5a",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Migrations\\PatternProDbContextModelSnapshot.cs": {
-    "mtime": 1778739715.3546207,
-    "ast_hash": "37298e7030a053d2e3513bf01450f5dd",
+    "mtime": 1779608973.6441877,
+    "ast_hash": "0e0fe863a26d6fa55ca595ea6267b5d7",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\AppKeyValue.cs": {
@@ -474,9 +629,49 @@
     "ast_hash": "de54423b1b1da73b2a73d08c8a14e2b4",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\EaseOverrideEntity.cs": {
+    "mtime": 1779009302.2766395,
+    "ast_hash": "061f43fb2f12f0e17425146728946e5f",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\GradingColumnEntity.cs": {
+    "mtime": 1779009298.936718,
+    "ast_hash": "25d425141fe8001ff55d21f36f1c011c",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\GradingDeltaEntity.cs": {
+    "mtime": 1779009301.066869,
+    "ast_hash": "578d346adec5d13b36b8942a22e20e4a",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\GradingMetaEntity.cs": {
+    "mtime": 1779009297.9611592,
+    "ast_hash": "330dba23154926160fd304ffe0804c1a",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\GradingRowEntity.cs": {
+    "mtime": 1779009300.1722906,
+    "ast_hash": "3feb8450fba20d78c926024d891cdc5f",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\GradingStyleEntity.cs": {
+    "mtime": 1779009299.2013679,
+    "ast_hash": "464e8b33760a6067c1abb6231b6aae76",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\MeasurementProfileEntity.cs": {
+    "mtime": 1779009301.2670393,
+    "ast_hash": "1747d7a8ef86f1fd435ba1f2922df03b",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\MeasurementProfileValueEntity.cs": {
+    "mtime": 1779009301.72667,
+    "ast_hash": "df5dc126ea32025e684bea88f91bf79a",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\PatternProDbContext.cs": {
-    "mtime": 1778913937.6518497,
-    "ast_hash": "728bd81f42d95fcc9d0d9d5956bd9425",
+    "mtime": 1779608712.8648686,
+    "ast_hash": "ab5201c6abdc27f7059abff7af6f5038",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\PatternProDbContextFactory.cs": {
@@ -485,13 +680,53 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\PieceEntity.cs": {
-    "mtime": 1778913937.6518497,
-    "ast_hash": "d4305d58197ee892dafe5012304912e1",
+    "mtime": 1779608685.8134964,
+    "ast_hash": "ecf98e20d7424e6f53ea65d6767788ab",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\PieceVertexEntity.cs": {
     "mtime": 1778913937.6518497,
     "ast_hash": "a50b36d9f1df6066c88a68ebbfdd56f0",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\SizeChartColumnEntity.cs": {
+    "mtime": 1779009295.9534788,
+    "ast_hash": "4809b38fd67a539ca543b209cef8fbb7",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\SizeChartRowEntity.cs": {
+    "mtime": 1779608674.012657,
+    "ast_hash": "8a044db98defa5dc06b9480835677c12",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Persistence\\SizeChartValueEntity.cs": {
+    "mtime": 1779009297.266552,
+    "ast_hash": "11f5e076ced2a1f71b9a47b2c0fbcaf1",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.DataAccess\\Repositories\\AppDataRepositories.cs": {
+    "mtime": 1779002751.098635,
+    "ast_hash": "740a950ab93492dfa7ec15f4074bd54d",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Tests\\ExportServiceFactoryGateTests.cs": {
+    "mtime": 1779167609.4656086,
+    "ast_hash": "335cb73b34d57d09f0a5474cd86925e3",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Tests\\ProductionCertificationServiceTests.cs": {
+    "mtime": 1779169994.29099,
+    "ast_hash": "8b5dc475333c5a92430a53c6c19f6046",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Tests\\SeamValidationServiceTests.cs": {
+    "mtime": 1779167516.094549,
+    "ast_hash": "76ee3cf77b912f2b09bf89f0164c8c3b",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Tests\\TestPieceFactory.cs": {
+    "mtime": 1779167515.9709885,
+    "ast_hash": "91778bbc6fb706a9d6b6767e93dfadbc",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\BlockGeneratorViewModel.cs": {
@@ -500,8 +735,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\CanvasPieceDto.cs": {
-    "mtime": 1778310651.1835804,
-    "ast_hash": "e60cf0e061cd42177775d2ee53f13716",
+    "mtime": 1779274077.3982162,
+    "ast_hash": "228c3b48c36d6a4ccb86fc859db74ffe",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\CanvasViewModel.cs": {
@@ -510,13 +745,13 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\DashboardViewModel.cs": {
-    "mtime": 1775545923.6731923,
-    "ast_hash": "bbf579eb1fe2daadf121f188eff66c3e",
+    "mtime": 1779167310.5285878,
+    "ast_hash": "abf1530d535340b4713103671ac5fe16",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\ExportViewModel.cs": {
-    "mtime": 1777783501.741435,
-    "ast_hash": "9bf9e87f122985383d540dc2ae2d30a9",
+    "mtime": 1779167290.454384,
+    "ast_hash": "e1a680fb9505fa7029b2854770bb81af",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\GradingViewModel.cs": {
@@ -540,13 +775,13 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\PatternCreateViewModel.cs": {
-    "mtime": 1775448906.6852646,
-    "ast_hash": "ecd0737b0c35d8adecd4546bc9a6b718",
+    "mtime": 1779342079.870003,
+    "ast_hash": "38623038d1ded2e2d236ac5b3a21ae05",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\PatternViewModel.cs": {
-    "mtime": 1776499007.3523777,
-    "ast_hash": "a12b3710255dcc4150c2cd9fb3cbb3ba",
+    "mtime": 1779608934.9238913,
+    "ast_hash": "7363d28d5190503db237b2e4285b6608",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\PiecesViewModel.cs": {
@@ -559,9 +794,54 @@
     "ast_hash": "9c4500754b8a1facddd5576f1dcfc264",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\StyleSheetViewModel.cs": {
+    "mtime": 1779342193.6558213,
+    "ast_hash": "cd5c3c8ff68e6c44d2a5e7ed1909432c",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\tools\\DbSnapshot\\Program.cs": {
+    "mtime": 1779083369.0845513,
+    "ast_hash": "953e63ae8fbe98f303f1010f20cf0d01",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\tools\\PatternPro.DbTool\\Program.cs": {
+    "mtime": 1779274173.0004227,
+    "ast_hash": "a518744858f50bce7c90a6fcc8442041",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\README.md": {
-    "mtime": 1778050317.225572,
-    "ast_hash": "137d0a0bd6ec75c9dc473348f41e9aa1",
+    "mtime": 1780819210.0048487,
+    "ast_hash": "b621cd028af6d3a3ec055e6e53f2f882",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\docs\\INDUSTRY_WORKFLOW.md": {
+    "mtime": 1779608948.597962,
+    "ast_hash": "0aef421d67eb4b0168adec3a79e2c49e",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\docs\\OTHER_PC_SETUP.md": {
+    "mtime": 1780825773.744307,
+    "ast_hash": "452a6bb0cc80d1c58b05102308d01eea",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\docs\\POSTGRES_SYNC.md": {
+    "mtime": 1779274172.8607745,
+    "ast_hash": "03e734813aefc9150b6aa29de7d8f664",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\docs\\PRODUCTION_CERTIFICATION.md": {
+    "mtime": 1779167285.1153467,
+    "ast_hash": "c95a426e28e65629ba26c201db1d5522",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\docs\\STYLE_SHEET.md": {
+    "mtime": 1779342226.4498103,
+    "ast_hash": "e5666845f129b00bf29cfca2fd541604",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\docs\\WORKFLOW.md": {
+    "mtime": 1779268923.1949666,
+    "ast_hash": "3583ffe65792ff4033d6f3d93d2b7bec",
     "semantic_hash": ""
   }
 }

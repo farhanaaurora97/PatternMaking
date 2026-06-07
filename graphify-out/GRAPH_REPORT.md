@@ -1,16 +1,16 @@
-# Graph Report - PatternMaking  (2026-05-16)
+# Graph Report - PatternMaking  (2026-06-07)
 
 ## Corpus Check
-- 113 files · ~39,058 words
+- 169 files · ~56,327 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 939 nodes · 1281 edges · 115 communities (30 shown, 85 thin omitted)
+- 1381 nodes · 1798 edges · 167 communities (43 shown, 124 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `910e2478`
+- Built from commit: `bb7d0d7d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -128,56 +128,103 @@
 - [[_COMMUNITY_Community 110|Community 110]]
 - [[_COMMUNITY_Community 111|Community 111]]
 - [[_COMMUNITY_Community 112|Community 112]]
+- [[_COMMUNITY_Community 115|Community 115]]
+- [[_COMMUNITY_Community 116|Community 116]]
+- [[_COMMUNITY_Community 117|Community 117]]
+- [[_COMMUNITY_Community 118|Community 118]]
+- [[_COMMUNITY_Community 119|Community 119]]
+- [[_COMMUNITY_Community 120|Community 120]]
+- [[_COMMUNITY_Community 121|Community 121]]
+- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 124|Community 124]]
+- [[_COMMUNITY_Community 125|Community 125]]
+- [[_COMMUNITY_Community 126|Community 126]]
+- [[_COMMUNITY_Community 127|Community 127]]
+- [[_COMMUNITY_Community 128|Community 128]]
+- [[_COMMUNITY_Community 129|Community 129]]
+- [[_COMMUNITY_Community 130|Community 130]]
+- [[_COMMUNITY_Community 131|Community 131]]
+- [[_COMMUNITY_Community 132|Community 132]]
+- [[_COMMUNITY_Community 133|Community 133]]
+- [[_COMMUNITY_Community 134|Community 134]]
+- [[_COMMUNITY_Community 135|Community 135]]
+- [[_COMMUNITY_Community 136|Community 136]]
+- [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 138|Community 138]]
+- [[_COMMUNITY_Community 139|Community 139]]
+- [[_COMMUNITY_Community 140|Community 140]]
+- [[_COMMUNITY_Community 141|Community 141]]
+- [[_COMMUNITY_Community 142|Community 142]]
+- [[_COMMUNITY_Community 143|Community 143]]
+- [[_COMMUNITY_Community 144|Community 144]]
+- [[_COMMUNITY_Community 145|Community 145]]
+- [[_COMMUNITY_Community 146|Community 146]]
+- [[_COMMUNITY_Community 147|Community 147]]
+- [[_COMMUNITY_Community 148|Community 148]]
+- [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
+- [[_COMMUNITY_Community 152|Community 152]]
+- [[_COMMUNITY_Community 153|Community 153]]
+- [[_COMMUNITY_Community 154|Community 154]]
+- [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 156|Community 156]]
+- [[_COMMUNITY_Community 157|Community 157]]
+- [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 159|Community 159]]
+- [[_COMMUNITY_Community 160|Community 160]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
+- [[_COMMUNITY_Community 165|Community 165]]
+- [[_COMMUNITY_Community 166|Community 166]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `PatternDraftingService` - 35 edges
-2. `PieceService` - 24 edges
-3. `PatternService` - 19 edges
-4. `PostgreSqlAppDataStore` - 18 edges
-5. `ExportService` - 17 edges
-6. `CanvasController` - 16 edges
-7. `HomeController` - 16 edges
-8. `GradingService` - 15 edges
-9. `draw()` - 14 edges
-10. `IPieceService` - 13 edges
+2. `PostgreSqlAppDataStore` - 35 edges
+3. `PatternService` - 29 edges
+4. `PieceService` - 27 edges
+5. `SizeChartService` - 21 edges
+6. `ExportService` - 20 edges
+7. `GradingService` - 19 edges
+8. `HomeController` - 19 edges
+9. `IPatternService` - 19 edges
+10. `ExportController` - 18 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `BlockGeneratorService` --references--> `Dictionary`  [EXTRACTED]
-  Pattern.PublicServices/Services/BlockGeneratorService.cs → Pattern.Web/Controllers/PatternViewModelExtensions.cs
-- `GradingService` --references--> `Dictionary`  [EXTRACTED]
-  Pattern.PublicServices/Services/GradingService.cs → Pattern.Web/Controllers/PatternViewModelExtensions.cs
-- `PatternService` --references--> `Dictionary`  [EXTRACTED]
-  Pattern.PublicServices/Services/PatternService.cs → Pattern.Web/Controllers/PatternViewModelExtensions.cs
-- `PieceService` --references--> `Dictionary`  [EXTRACTED]
-  Pattern.PublicServices/Services/PieceService.cs → Pattern.Web/Controllers/PatternViewModelExtensions.cs
-- `JsonDataStore` --references--> `JsonSerializerOptions`  [EXTRACTED]
-  PatternPro.Business/Services/JsonDataStore.cs → PatternPro.DataAccess/PostgreSqlAppDataStore.cs
+- `PatternDraftingService` --references--> `string`  [EXTRACTED]
+  Pattern.PublicServices/Services/PatternDraftingService.cs → PatternPro.Web.Model/StyleSheetViewModel.cs
+- `PatternService` --references--> `string`  [EXTRACTED]
+  Pattern.PublicServices/Services/PatternService.cs → PatternPro.Web.Model/StyleSheetViewModel.cs
+- `SeamValidationService` --references--> `string`  [EXTRACTED]
+  Pattern.PublicServices/Services/SeamValidationService.cs → PatternPro.Web.Model/StyleSheetViewModel.cs
+- `StyleLifecycleOptions` --references--> `string`  [EXTRACTED]
+  Pattern.Web.Model/StyleSheetViewModel.cs → PatternPro.Web.Model/StyleSheetViewModel.cs
+- `PostgreSqlAppDataStore` --references--> `string`  [EXTRACTED]
+  PatternPro.DataAccess/PostgreSqlAppDataStore.cs → PatternPro.Web.Model/StyleSheetViewModel.cs
 
-## Communities (115 total, 85 thin omitted)
+## Communities (167 total, 124 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
-Nodes (89): addNotchOnEdge(), addPieceToSidebar(), addRound(), applyDraftSize(), applyUndo(), autoPill, buildApplyButtons(), canvas (+81 more)
-
-### Community 1 - "Community 1"
-Cohesion: 0.05
-Nodes (7): Controller, BlockGeneratorController, ExportController, GradingController, LibraryController, NestController, SizeChartController
+Nodes (90): addNotchOnEdge(), addPieceToSidebar(), addRound(), applyDraftSize(), applyUndo(), autoPill, buildApplyButtons(), canvas (+82 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.11
-Nodes (34): animateCount(), applyFilters(), applyTrafficLight(), barActive, barCompletion, btn, btnClearStatus, buildStatusOptions() (+26 more)
+Cohesion: 0.1
+Nodes (38): animateCount(), applyFilters(), applyTrafficLight(), barActive, barCompletion, barFactory, btn, btnClearStatus (+30 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.09
-Nodes (10): DbContext, IAppDataStore, IDbContextFactory, JsonSerializerOptions, PostgreSqlAppDataStore, PatternProDbContext, JsonDataStore, PatternsStore (+2 more)
+Cohesion: 0.06
+Nodes (16): DbContext, IAppDataStore, IDataAccessLayer, JsonSerializerOptions, StyleLifecycle, StyleLifecycleOptions, StyleSheetViewModel, JsonAppDataStore (+8 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.14
 Nodes (3): decimal, IPatternDraftingService, PatternDraftingService
 
 ### Community 5 - "Community 5"
-Cohesion: 0.11
-Nodes (3): double, ExportAnnotations, NotchGrainResolver
+Cohesion: 0.08
+Nodes (6): double, ISeamValidationService, ExportAnnotations, NotchGrainResolver, SeamGeometry, SeamValidationService
 
 ### Community 6 - "Community 6"
 Cohesion: 0.17
@@ -192,40 +239,44 @@ Cohesion: 0.28
 Nodes (14): colorForPantCategory(), colorForStatus(), dataEl, destroyAllCharts(), destroyChart(), escapeLegendHtml(), fillPantTypeLegend(), hexLuminance() (+6 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.12
-Nodes (7): Migration, InitialCreate, PatternPro.DataAccess.Migrations, MovePatternProToSchema, PatternPro.DataAccess.Migrations, NormalizePiecesStorage, PatternPro.DataAccess.Migrations
-
-### Community 14 - "Community 14"
-Cohesion: 0.18
-Nodes (3): int, IPatternService, PatternService
+Cohesion: 0.06
+Nodes (15): Migration, InitialCreate, PatternPro.DataAccess.Migrations, MovePatternProToSchema, PatternPro.DataAccess.Migrations, NormalizePiecesStorage, PatternPro.DataAccess.Migrations, AddRelationalAppDataTables (+7 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.13
-Nodes (14): code:bash (git clone <repo-url>), code:powershell (netstat -ano | findstr :5001), code:block3 (PatternMaking/), Data Persistence, Export Formats, Features, Fits Supported, Getting Started (+6 more)
+Cohesion: 0.08
+Nodes (26): code:powershell (cd PatternMaking\Pattern.Web), code:powershell (cd PatternMaking\PatternPro.Web), code:json ({), code:powershell (dotnet ef database update --project PatternPro.DataAccess --), code:powershell (cd PatternMaking), code:powershell (dotnet run --project tools/PatternPro.DbTool -- certify 23), code:block7 (PatternMaking/), code:powershell (dotnet test PatternPro.Tests/PatternPro.Tests.csproj) (+18 more)
 
 ### Community 19 - "Community 19"
 Cohesion: 0.15
 Nodes (12): ASPNETCORE_ENVIRONMENT, applicationUrl, commandName, environmentVariables, launchBrowser, applicationUrl, commandName, environmentVariables (+4 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.15
-Nodes (4): IGradingService, ISizeChartService, object, SizeChartService
+Cohesion: 0.14
+Nodes (3): IGradingService, ISizeChartService, SizeChartService
+
+### Community 24 - "Community 24"
+Cohesion: 0.1
+Nodes (26): 1. Get latest code, 1. Get latest code from main PC, 2. Install prerequisites, 3. PostgreSQL connection (per machine), 4. Sync data from JSON → Postgres (optional), 4. Sync data (optional), 5. Run the app, 6. Verify (+18 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.33
 Nodes (3): NotchRuleDefinition, SeamPairDefinition, StyleAssemblyCatalog
 
 ### Community 29 - "Community 29"
-Cohesion: 0.22
-Nodes (8): CanvasPieceDto, CreatePieceRequest, DraftFromMeasurementsRequest, PieceMeasurementsDto, RecommendSizeRequest, SaveAllPiecesRequest, SaveMeasurementProfileRequest, SavePieceRequest
+Cohesion: 0.2
+Nodes (9): CanvasPieceDto, CreatePieceRequest, DraftFromMeasurementsRequest, PieceMeasurementsDto, RecommendSizeRequest, ResetFromStyleRequest, SaveAllPiecesRequest, SaveMeasurementProfileRequest (+1 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.44
-Nodes (7): activateStep(), el, exportDownloadFormAction(), last, markStep(), runExport(), triggerExportDownload()
+Cohesion: 0.21
+Nodes (16): activateStep(), approveForCutting(), completeFactoryCertification(), el, exportDownloadFormAction(), last, markStep(), postJson() (+8 more)
 
 ### Community 32 - "Community 32"
-Cohesion: 0.22
-Nodes (8): CanvasPieceDto, CreatePieceRequest, DraftFromMeasurementsRequest, PieceMeasurementsDto, RecommendSizeRequest, SaveAllPiecesRequest, SaveMeasurementProfileRequest, SavePieceRequest
+Cohesion: 0.2
+Nodes (9): CanvasPieceDto, CreatePieceRequest, DraftFromMeasurementsRequest, PieceMeasurementsDto, RecommendSizeRequest, ResetFromStyleRequest, SaveAllPiecesRequest, SaveMeasurementProfileRequest (+1 more)
+
+### Community 33 - "Community 33"
+Cohesion: 0.15
+Nodes (4): PatternViewModelExtensions, Dictionary, IBlockGeneratorService, BlockGeneratorService
 
 ### Community 35 - "Community 35"
 Cohesion: 0.46
@@ -248,8 +299,12 @@ Cohesion: 0.6
 Nodes (4): commitEase(), el, range, rerenderEase()
 
 ### Community 50 - "Community 50"
-Cohesion: 0.33
-Nodes (5): AllowedHosts, Logging, LogLevel, Default, Microsoft.AspNetCore
+Cohesion: 0.25
+Nodes (7): AllowedHosts, ConnectionStrings, Postgres, Logging, LogLevel, Default, Microsoft.AspNetCore
+
+### Community 52 - "Community 52"
+Cohesion: 0.09
+Nodes (5): DbContextOptions, SimpleDbContextFactory, IDbContextFactory, PostgreSqlAppDataStore, PgFactory
 
 ### Community 53 - "Community 53"
 Cohesion: 0.4
@@ -267,25 +322,69 @@ Nodes (4): ChartStackDataset, ChartStackedByFit, DashboardChartsModel, Dashboard
 Cohesion: 0.6
 Nodes (3): bars, body, obs
 
+### Community 68 - "Community 68"
+Cohesion: 0.25
+Nodes (7): EaseOverridesStore, GradingStore, GradingStyleEntry, MeasurementProfilesStore, PatternsStore, PiecesStore, SizeChartStore
+
+### Community 115 - "Community 115"
+Cohesion: 0.16
+Nodes (11): applyFilters(), btn, btnClear, id, refreshRows(), renderRows(), row, searchInput (+3 more)
+
+### Community 116 - "Community 116"
+Cohesion: 0.15
+Nodes (6): IEaseOverridesRepository, IPatternRepository, IPieceRepository, EaseOverridesRepository, PatternRepository, PieceRepository
+
+### Community 118 - "Community 118"
+Cohesion: 0.18
+Nodes (10): 1 — Style register (PLM), 2 — Size spec, 3 — Block + ease, 4 — Pattern pieces, 5 — Canvas, 6 — Grading, 7 — Export / CAM, 8 — Controlled factory release (+2 more)
+
+### Community 119 - "Community 119"
+Cohesion: 0.18
+Nodes (10): After sync, code:bash (dotnet run --project tools/PatternPro.DbTool -- sync), code:bash (dotnet run --project tools/PatternPro.DbTool -- sync 23 24), code:bash (dotnet run --project tools/PatternPro.DbTool -- certify-fact), code:bash (dotnet run --project tools/PatternPro.DbTool -- seed-style 2), code:bash (dotnet run --project tools/PatternPro.DbTool -- sync "E:\Cod), code:block6 (Host=localhost;Port=5433;Database=patternpro;Username=postgr), Connection string (+2 more)
+
+### Community 120 - "Community 120"
+Cohesion: 0.22
+Nodes (3): Controller, LibraryController, StyleSheetController
+
+### Community 121 - "Community 121"
+Cohesion: 0.2
+Nodes (9): API (`ExportController`), code:block1 (Canvas (save pieces) → QC validation → Design approval → Cut), Database columns (`patternpro.patterns`), End-to-end checklist (one pattern), Gates (factory export), Production certification, Server enforcement, UI (+1 more)
+
+### Community 122 - "Community 122"
+Cohesion: 0.2
+Nodes (9): Before the app, Certification details, code:powershell (dotnet run --project tools/PatternPro.DbTool -- sync), Done when, Export sub-steps (step 8), Factory ready (dashboard), PatternPro workflow (first to last), PostgreSQL sync (+1 more)
+
+### Community 131 - "Community 131"
+Cohesion: 0.33
+Nodes (5): API, Fields (industry style sheet), Open it, Style Sheet (PLM register), Two statuses (important)
+
+### Community 133 - "Community 133"
+Cohesion: 0.14
+Nodes (4): int, List, object, GradingService
+
+### Community 165 - "Community 165"
+Cohesion: 0.29
+Nodes (6): ConnectionStrings, Postgres, Logging, LogLevel, Default, Microsoft.AspNetCore
+
 ## Knowledge Gaps
-- **121 isolated node(s):** `BlockDefinition`, `EaseFormula`, `GeneratedBlock`, `GradingRow`, `MeasurementProfile` (+116 more)
+- **219 isolated node(s):** `Default`, `Microsoft.AspNetCore`, `Postgres`, `2. Install prerequisites`, `code:powershell (taskkill /IM Pattern.Web.exe /F 2>$null)` (+214 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **85 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **124 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
+- **Why does `string` connect `Community 3` to `Community 4`, `Community 5`, `Community 14`, `Community 52`?**
+  _High betweenness centrality (0.023) - this node is a cross-community bridge._
 - **Why does `PatternDraftingService` connect `Community 4` to `Community 33`, `Community 3`, `Community 20`?**
-  _High betweenness centrality (0.010) - this node is a cross-community bridge._
-- **Why does `string` connect `Community 3` to `Community 4`, `Community 14`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `PatternService` connect `Community 14` to `Community 24`, `Community 3`, `Community 52`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **What connects `BlockDefinition`, `EaseFormula`, `GeneratedBlock` to the rest of the system?**
-  _121 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `PatternService` connect `Community 14` to `Community 33`, `Community 3`, `Community 116`, `Community 133`?**
+  _High betweenness centrality (0.012) - this node is a cross-community bridge._
+- **What connects `Default`, `Microsoft.AspNetCore`, `Postgres` to the rest of the system?**
+  _219 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06 - nodes in this community are weakly interconnected._
-- **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
+- **Should `Community 3` be split into smaller, more focused modules?**
+  _Cohesion score 0.06 - nodes in this community are weakly interconnected._
