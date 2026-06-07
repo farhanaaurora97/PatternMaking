@@ -85,6 +85,8 @@ On startup, check the console:
 - `Data store: PostgreSQL patternpro @ ...` — using Postgres
 - `Data store: JSON files ...` — using `Pattern.Web/App_Data/*.json`
 
+**Second PC?** See [docs/OTHER_PC_SETUP.md](docs/OTHER_PC_SETUP.md) — use **http://localhost:5001**, do **not** add Kestrel HTTPS to `appsettings.json`.
+
 ## Data storage
 
 ### PostgreSQL (recommended)
