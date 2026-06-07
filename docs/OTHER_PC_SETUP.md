@@ -1,65 +1,101 @@
 # Second PC setup (copy from main machine)
 
-Use this when you clone or copy PatternPro to another computer (e.g. `E:\All Code\PatternMaking\PatternMaking`).
+Use this when you clone PatternPro on another computer (e.g. `E:\All Code\PatternMaking\PatternMaking`).
+
+## Important: use the same branch as main PC
+
+| PC | Branch |
+|----|--------|
+| **Main PC** (latest factory workflow, Postgres, DbTool) | `arch/patternpro-phase1` |
+| **Old branch** (canvas/export only, no phase 1) | `my-custom-branch` |
+
+If the other PC shows `my-custom-branch`, switch:
+
+```powershell
+cd "E:\All Code\PatternMaking\PatternMaking"
+git fetch origin
+git checkout arch/patternpro-phase1
+git pull origin arch/patternpro-phase1
+```
+
+---
+
+## Fix `git pull` blocked by bin/obj files
+
+If pull fails with **"Your local changes would be overwritten"** and paths under `bin/` or `obj/`:
+
+Those are **build outputs**, not source code. Discard them, then pull:
+
+```powershell
+git restore .
+git clean -fd
+git pull origin arch/patternpro-phase1
+```
+
+**Warning:** `git clean -fd` removes **untracked** files. It may delete local `appsettings.Development.json` — recreate it from the example (step 3 below).
+
+Do **not** run `git add` on `bin/` or `obj/` folders.
+
+---
 
 ## Do **not** add Kestrel HTTPS to appsettings.json
 
-Some editors suggest:
+Remove any block like:
 
 ```json
 "Kestrel": { "Endpoints": { "Https": { "Url": "https://localhost:5001" } } }
 ```
 
-**Remove that.** Development uses plain **HTTP** only. HTTPS redirect runs in Production only (see `Program.cs`).
-
-If you already added it:
+Development uses **HTTP** only:
 
 ```powershell
 git checkout -- Pattern.Web/appsettings.json
 ```
 
-## 1. Get latest code from main PC
+Open **http://localhost:5001** (not https).
 
-On the **main PC**, commit and push your changes. On the **other PC**:
+---
+
+## 1. Get latest code
 
 ```powershell
 cd "E:\All Code\PatternMaking\PatternMaking"
-git pull
-```
-
-If you have local edits you do not need:
-
-```powershell
-git checkout -- Pattern.Web/appsettings.json
-git pull
+git fetch origin
+git checkout arch/patternpro-phase1
+git pull origin arch/patternpro-phase1
 ```
 
 ## 2. Install prerequisites
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Optional: PostgreSQL 14+ (same as main PC)
+- Optional: PostgreSQL 14+
 
 ## 3. PostgreSQL connection (per machine)
 
-Edit **`Pattern.Web/appsettings.Development.json`** (this file is local; adjust password/port for **this** PC):
+Copy the example file and set **your** password:
+
+```powershell
+copy Pattern.Web\appsettings.Development.example.json Pattern.Web\appsettings.Development.json
+notepad Pattern.Web\appsettings.Development.json
+```
+
+Example content:
 
 ```json
 {
   "ConnectionStrings": {
-    "Postgres": "Host=localhost;Port=5433;Database=patternpro;Username=postgres;Password=YOUR_PASSWORD_HERE"
+    "Postgres": "Host=localhost;Port=5433;Database=patternpro;Username=postgres;Password=YOUR_PASSWORD"
   }
 }
 ```
 
-Do the same in `PatternPro.Web/appsettings.Development.json` if you use that app.
+`appsettings.Development.json` is **local only** (gitignored) — each PC has its own copy.
 
-- PostgreSQL must be **running** on this PC.
-- Create database `patternpro` if it does not exist.
-- If Postgres is not installed, the app uses `Pattern.Web/App_Data/*.json` instead (data will not match main PC until you sync).
+- PostgreSQL must be **running**
+- Database `patternpro` must exist
+- Without Postgres, the app uses `Pattern.Web/App_Data/*.json`
 
-## 4. Sync data from JSON → Postgres (optional)
-
-From repo root:
+## 4. Sync data (optional)
 
 ```powershell
 dotnet run --project tools/PatternPro.DbTool -- sync
@@ -68,60 +104,50 @@ dotnet run --project tools/PatternPro.DbTool -- certify-factory 22 23 24
 
 ## 5. Run the app
 
-Stop any old instance first:
-
 ```powershell
 taskkill /IM Pattern.Web.exe /F 2>$null
 taskkill /IM PatternPro.Web.exe /F 2>$null
-```
 
-**Primary app:**
-
-```powershell
 cd Pattern.Web
 dotnet run
 ```
 
-Open: **http://localhost:5001** (not https)
+Open: **http://localhost:5001**
 
-**Alternate app (second terminal):**
-
-```powershell
-cd PatternPro.Web
-dotnet run
-```
-
-Open: **http://localhost:5002**
+PatternPro.Web (optional second app): **http://localhost:5002**
 
 ## 6. Verify
 
 | Check | OK when |
 |-------|---------|
 | Console | `Data store: PostgreSQL patternpro @ ...` or `JSON files` |
-| Dashboard | http://localhost:5001 loads |
+| Dashboard | http://localhost:5001 |
+| Factory ready | 3+ after sync + certify |
 | Export | http://localhost:5001/Export?patternId=23&style=slim |
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
-| `address already in use` | `taskkill /IM Pattern.Web.exe /F` then run again |
-| Postgres connection error | Start PostgreSQL; fix password/port in `appsettings.Development.json` |
-| `Failed to determine the https port` | Pull latest code (HTTPS redirect disabled in Development) |
-| Build file locked | Stop running app, then `dotnet build` |
-| Only slim downloads | Export is **one pattern + one fit** per ZIP — open Export from each dashboard row |
+| Wrong branch / missing DbTool | `git checkout arch/patternpro-phase1` then pull |
+| Pull blocked by bin/obj | `git restore .` then `git clean -fd` then pull |
+| `address already in use` | `taskkill /IM Pattern.Web.exe /F` |
+| Postgres error | Start Postgres; fix `appsettings.Development.json` |
+| Missing Development json | Copy from `appsettings.Development.example.json` |
+| Only slim in ZIP | One pattern + one fit per export — use Dashboard Export per row |
 
-## URLs (same on every PC)
+## Quick copy-paste (other PC)
 
-| Screen | URL |
-|--------|-----|
-| Dashboard | http://localhost:5001 |
-| Canvas DN-023 | http://localhost:5001/Canvas?patternId=23&style=slim |
-| Export DN-023 | http://localhost:5001/Export?patternId=23&style=slim |
+```powershell
+cd "E:\All Code\PatternMaking\PatternMaking"
+git fetch origin
+git checkout arch/patternpro-phase1
+git restore .
+git clean -fd
+git pull origin arch/patternpro-phase1
+copy Pattern.Web\appsettings.Development.example.json Pattern.Web\appsettings.Development.json
+notepad Pattern.Web\appsettings.Development.json
+dotnet run --project Pattern.Web
+```
 
-## What main PC changed (pull to get this)
-
-- **No HTTPS in Development** — use `http://localhost:5001`
-- **PatternPro.Web** on port **5002** (no conflict with Pattern.Web)
-- **DbTool**: `sync`, `certify-factory`, `seed-style`
-- Factory workflow docs: [WORKFLOW.md](WORKFLOW.md), [POSTGRES_SYNC.md](POSTGRES_SYNC.md)
+Then open **http://localhost:5001**.
