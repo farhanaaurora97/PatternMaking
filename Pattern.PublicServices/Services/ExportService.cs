@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using PdfSharpCore.Drawing;
 using PdfSharpCore.Pdf;
@@ -13,7 +14,8 @@ namespace PatternPro.Business.Services;
 public class ExportService(
     IPatternDraftingService draftingService,
     IPieceService pieceService,
-    IPatternService patternService) : IExportService
+    IPatternService patternService,
+    IProductionCertificationService productionCertification) : IExportService
 {
     public IReadOnlyList<string> GetExportSteps(string format) =>
     [
@@ -28,11 +30,29 @@ public class ExportService(
         string style,
         string format,
         IReadOnlyList<string> sizes,
-        int patternId = 0)
+        int patternId = 0,
+        ExportPurpose purpose = ExportPurpose.Factory)
     {
         var safeFormat = string.IsNullOrWhiteSpace(format) ? "DXF" : format.Trim().ToUpperInvariant();
-        var pickedSizes = sizes.Count == 0 ? ["XS", "S", "M", "L", "XL", "XXL"] : sizes;
         var styleKey = NormalizeStyleKey(style);
+
+        if (purpose == ExportPurpose.Factory)
+        {
+            var report = productionCertification.ValidateForFactory(patternId, styleKey);
+            if (!report.CanExportToFactory)
+            {
+                var blockers = report.Issues.Select(i => i.Message).ToList();
+                throw new InvalidOperationException(
+                    "Factory export blocked: " + string.Join(" ", blockers));
+            }
+        }
+
+        var patternForSizes = patternId > 0
+            ? patternService.GetAll().FirstOrDefault(p => p.Id == patternId)
+            : null;
+        var pickedSizes = purpose == ExportPurpose.CloReview && patternForSizes is not null
+            ? [string.IsNullOrWhiteSpace(patternForSizes.BaseSize) ? "M" : patternForSizes.BaseSize]
+            : sizes.Count == 0 ? ["XS", "S", "M", "L", "XL", "XXL"] : sizes;
 
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
@@ -42,32 +62,42 @@ public class ExportService(
                 var canvasPieces = pieceService.GetPieceDefinitions(patternId, styleKey).ToList();
                 var pattern      = patternService.GetAll().FirstOrDefault(p => p.Id == patternId);
                 var baseSize     = string.IsNullOrWhiteSpace(pattern?.BaseSize) ? "M" : pattern.BaseSize;
-                AddZipReadmeForIllustrator(zip);
-                AddCanvasGeometryExport(zip, canvasPieces, safeFormat, styleKey, patternId, baseSize, pickedSizes);
-                AddTextEntry(zip, "manifest.txt",
-                    $"Source: saved canvas geometry, graded to each size (pattern id {patternId})\n" +
-                    $"Base size (edited master on canvas): {baseSize}\n" +
-                    $"Style: {styleKey}\nFormat: {safeFormat}\nSizes: {string.Join(",", pickedSizes)}\n" +
-                    "Grading: vertex deltas from the same auto-draft templates as Size chart / Block (per piece name).\n" +
-                    "Open in Illustrator: extract ZIP, then open a per-size .svg or .dxf (e.g. canvas/skinny_M.svg).\n" +
-                    "Coordinates are in canvas pixels (import scale as needed).\n" +
-                    $"GeneratedUtc: {DateTime.UtcNow:O}\n");
+                if (purpose == ExportPurpose.CloReview)
+                {
+                    AddCloReadme(zip);
+                    AddCanvasGeometryExport(zip, canvasPieces, safeFormat, styleKey, patternId, baseSize, pickedSizes);
+                }
+                else
+                {
+                    AddZipReadmeForIllustrator(zip);
+                    AddCanvasGeometryExport(zip, canvasPieces, safeFormat, styleKey, patternId, baseSize, pickedSizes);
+                }
+
+                AddTextEntry(zip, "manifest.txt", BuildCanvasManifest(patternId, styleKey, safeFormat, pickedSizes, baseSize, pattern, purpose));
+
+                if (purpose == ExportPurpose.Factory && pattern is not null)
+                {
+                    var certReport = productionCertification.ValidateForFactory(patternId, styleKey);
+                    AddTextEntry(zip, "certification.json", BuildCertificationJson(pattern, certReport));
+                }
             }
             else
             {
                 var drafted = draftingService.DraftGradedSet(styleKey, pickedSizes);
                 foreach (var (size, pieces) in drafted)
                 {
+                    var pieceList = pieces.ToList();
+                    NotchGrainResolver.ApplyAutomation(pieceList, styleKey);
                     switch (safeFormat)
                     {
                         case "DXF":
-                            AddTextEntry(zip, $"{styleKey}_{size}.dxf", BuildCombinedDxf(pieces, size));
+                            AddTextEntry(zip, $"{styleKey}_{size}.dxf", BuildCombinedDxf(pieceList, size));
                             break;
                         case "SVG":
-                            AddTextEntry(zip, $"{styleKey}_{size}.svg", BuildCombinedSvg(pieces, size));
+                            AddTextEntry(zip, $"{styleKey}_{size}.svg", BuildCombinedSvg(pieceList, size));
                             break;
                         case "PDF":
-                            foreach (var piece in pieces)
+                            foreach (var piece in pieceList)
                                 AddBinaryEntry(zip, $"{styleKey}/{size}/{piece.Name.Replace(' ', '_')}.pdf", BuildPdf(piece));
                             break;
                         default:
@@ -78,6 +108,8 @@ public class ExportService(
 
                 AddTextEntry(zip, "manifest.txt",
                     $"Source: drafted from size chart (not canvas edits)\nStyle: {styleKey}\nFormat: {safeFormat}\nSizes: {string.Join(",", pickedSizes)}\n" +
+                    "Pipeline: each size from DraftGradedSet, then NotchGrainResolver.ApplyAutomation (snap notches, grain if missing, catalog rule notches).\n" +
+                    "Notches: rule-based from style assembly catalog plus drafted piece notches; grain line auto if missing. DXF layers: CUT, SA, GRAIN, NOTCH.\n" +
                     $"Illustrator: use .svg inside this ZIP (File > Open). DXF also supported.\nGeneratedUtc: {DateTime.UtcNow:O}\n");
             }
         }
@@ -86,10 +118,58 @@ public class ExportService(
         if (bytes.Length == 0)
             throw new InvalidOperationException("Export ZIP generation produced zero bytes.");
 
+        var purposeTag = purpose switch
+        {
+            ExportPurpose.CloReview => "clo-review",
+            ExportPurpose.Draft => "draft",
+            _ => "factory",
+        };
         var fileStem = patternId > 0
-            ? $"pattern-{patternId}-{styleKey}-{safeFormat.ToLowerInvariant()}-canvas"
-            : $"pattern-export-{styleKey}-{safeFormat.ToLowerInvariant()}";
+            ? $"pattern-{patternId}-{styleKey}-{safeFormat.ToLowerInvariant()}-{purposeTag}"
+            : $"pattern-export-{styleKey}-{safeFormat.ToLowerInvariant()}-{purposeTag}";
         return (bytes, "application/zip", $"{fileStem}.zip");
+    }
+
+    private static void AddCloReadme(ZipArchive zip)
+    {
+        const string readme =
+            "CLO3D REVIEW PACKAGE\r\n" +
+            "1) Extract this ZIP.\r\n" +
+            "2) In CLO: File > Import > DXF (or SVG) — use the base-size file in canvas/.\r\n" +
+            "3) This package is for drape/fit review only. Do not send to the cutting room.\r\n" +
+            "4) After approval, export the factory-certified package from PatternPro Export.\r\n";
+        AddTextEntry(zip, "README-CLO.txt", readme);
+    }
+
+    private static string BuildCanvasManifest(
+        int patternId,
+        string styleKey,
+        string safeFormat,
+        IReadOnlyList<string> pickedSizes,
+        string baseSize,
+        Pattern.Core.Model.Pattern? pattern,
+        ExportPurpose purpose)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Source: saved canvas geometry (pattern id {patternId})");
+        sb.AppendLine($"Export purpose: {purpose}");
+        sb.AppendLine($"Base size (canvas master): {baseSize}");
+        sb.AppendLine($"Style: {styleKey}");
+        sb.AppendLine($"Format: {safeFormat}");
+        sb.AppendLine($"Sizes: {string.Join(",", pickedSizes)}");
+        if (pattern is not null && purpose == ExportPurpose.Factory)
+        {
+            sb.AppendLine($"Production certified: yes");
+            sb.AppendLine($"Approved for cutting: {pattern.ApprovedForCutting} by {pattern.ApprovedBy} at {pattern.ApprovedAt:O}");
+            sb.AppendLine($"Cutter test passed: {pattern.CutterTestPassed} by {pattern.CutterTestedBy} at {pattern.CutterTestedAt:O}");
+            if (!string.IsNullOrWhiteSpace(pattern.CutterTestNotes))
+                sb.AppendLine($"Cutter notes: {pattern.CutterTestNotes}");
+            if (pattern.ShrinkagePercent > 0)
+                sb.AppendLine($"Shrinkage allowance: {pattern.ShrinkagePercent}%");
+        }
+        sb.AppendLine("DXF layers: CUT, SA, GRAIN, NOTCH.");
+        sb.AppendLine($"GeneratedUtc: {DateTime.UtcNow:O}");
+        return sb.ToString();
     }
 
     private static string NormalizeStyleKey(string style)
@@ -139,7 +219,9 @@ public class ExportService(
 
         foreach (var size in sizes)
         {
-            var graded = draftingService.GradeCanvasPiecesForSize(pieces, styleKey, patternBaseSize, size);
+            var gradedList = draftingService.GradeCanvasPiecesForSize(pieces, styleKey, patternBaseSize, size).ToList();
+            NotchGrainResolver.ApplyAutomation(gradedList, styleKey);
+            var graded = gradedList;
             switch (safeFormat)
             {
                 case "DXF":
@@ -231,6 +313,33 @@ public class ExportService(
                           "font-family=\"Arial,Helvetica,sans-serif\" font-size=\"11\" fill=\"#333333\">" +
                           $"{Escape(p.Name)}</text>");
             sb.AppendLine($"    <path d=\"{pathD}\" fill=\"none\" stroke=\"#000000\" stroke-width=\"1\"/>");
+
+            if (p.SeamAllowance > 0.0001)
+            {
+                var basePts = p.Points.Select(pt => new SeamAllowanceOffset.Pt(
+                    pt[0] + p.OffsetX + dx,
+                    pt[1] + p.OffsetY + dy)).ToList();
+
+                var saPts = SeamAllowanceOffset.OffsetClosed(
+                    basePts,
+                    p.SeamAllowance,
+                    SeamAllowanceOffset.ParseJoin(p.SeamAllowanceJoin));
+
+                if (saPts.Count >= 3)
+                {
+                    var saD = string.Join(" ",
+                        saPts.Select((pt, vi) =>
+                        {
+                            var cmd = vi == 0 ? "M" : "L";
+                            return $"{cmd}{pt.X.ToString(CultureInfo.InvariantCulture)},{pt.Y.ToString(CultureInfo.InvariantCulture)}";
+                        })) + " Z";
+
+                    sb.AppendLine($"    <path d=\"{saD}\" fill=\"none\" stroke=\"#b91c1c\" stroke-width=\"1\" stroke-dasharray=\"6 4\" opacity=\"0.85\"/>");
+                }
+            }
+
+            ExportAnnotations.AppendGrainSvg(sb, p, dx, dy);
+            ExportAnnotations.AppendNotchesSvg(sb, p, dx, dy);
             sb.AppendLine($"  </g>");
 
             curX += b.w + gap;
@@ -261,10 +370,11 @@ public class ExportService(
     private static string BuildCombinedDxf(IReadOnlyList<PieceDefinition> pieces, string _sizeName)
     {
         const double gap = 40;
+        const double mmScale = 10.0 / SeamGeometry.PixelsPerCm;
         var nl = "\r\n";
         var sb = new StringBuilder();
 
-        sb.Append($"0{nl}SECTION{nl}2{nl}HEADER{nl}9{nl}$ACADVER{nl}1{nl}AC1009{nl}0{nl}ENDSEC{nl}");
+        sb.Append($"0{nl}SECTION{nl}2{nl}HEADER{nl}9{nl}$ACADVER{nl}1{nl}AC1009{nl}9{nl}$INSUNITS{nl}70{nl}4{nl}0{nl}ENDSEC{nl}");
         sb.Append($"0{nl}SECTION{nl}2{nl}TABLES{nl}0{nl}ENDSEC{nl}");
         sb.Append($"0{nl}SECTION{nl}2{nl}ENTITIES{nl}");
 
@@ -285,18 +395,48 @@ public class ExportService(
             for (var i = 0; i < n; i++)
             {
                 var j = (i + 1) % n;
-                var x1 = p.Points[i][0] + p.OffsetX + dx;
-                var y1 = p.Points[i][1] + p.OffsetY + dy;
-                var x2 = p.Points[j][0] + p.OffsetX + dx;
-                var y2 = p.Points[j][1] + p.OffsetY + dy;
-                sb.Append($"0{nl}LINE{nl}8{nl}0{nl}");
+                var x1 = (p.Points[i][0] + p.OffsetX + dx) * mmScale;
+                var y1 = (p.Points[i][1] + p.OffsetY + dy) * mmScale;
+                var x2 = (p.Points[j][0] + p.OffsetX + dx) * mmScale;
+                var y2 = (p.Points[j][1] + p.OffsetY + dy) * mmScale;
+                sb.Append($"0{nl}LINE{nl}8{nl}CUT{nl}");
                 sb.Append($"10{nl}{x1.ToString(CultureInfo.InvariantCulture)}{nl}");
                 sb.Append($"20{nl}{y1.ToString(CultureInfo.InvariantCulture)}{nl}");
                 sb.Append($"11{nl}{x2.ToString(CultureInfo.InvariantCulture)}{nl}");
                 sb.Append($"21{nl}{y2.ToString(CultureInfo.InvariantCulture)}{nl}");
             }
 
-            curX += w + gap;
+            if (p.SeamAllowance > 0.0001)
+            {
+                var basePts = p.Points.Select(pt => new SeamAllowanceOffset.Pt(
+                    pt[0] + p.OffsetX + dx,
+                    pt[1] + p.OffsetY + dy)).ToList();
+
+                var saPts = SeamAllowanceOffset.OffsetClosed(
+                    basePts,
+                    p.SeamAllowance,
+                    SeamAllowanceOffset.ParseJoin(p.SeamAllowanceJoin));
+
+                if (saPts.Count >= 3)
+                {
+                    for (var i = 0; i < saPts.Count; i++)
+                    {
+                        var j = (i + 1) % saPts.Count;
+                        var a = saPts[i];
+                        var b = saPts[j];
+                        sb.Append($"0{nl}LINE{nl}8{nl}SA{nl}");
+                        sb.Append($"10{nl}{(a.X * mmScale).ToString(CultureInfo.InvariantCulture)}{nl}");
+                        sb.Append($"20{nl}{(a.Y * mmScale).ToString(CultureInfo.InvariantCulture)}{nl}");
+                        sb.Append($"11{nl}{(b.X * mmScale).ToString(CultureInfo.InvariantCulture)}{nl}");
+                        sb.Append($"21{nl}{(b.Y * mmScale).ToString(CultureInfo.InvariantCulture)}{nl}");
+                    }
+                }
+            }
+
+            ExportAnnotations.AppendGrainDxf(sb, p, dx, dy, mmScale);
+            ExportAnnotations.AppendNotchesDxf(sb, p, dx, dy, mmScale);
+
+            curX += (w + gap) * mmScale;
         }
 
         sb.Append($"0{nl}ENDSEC{nl}0{nl}EOF{nl}");
@@ -335,6 +475,33 @@ public class ExportService(
                 gfx.DrawPath(new XPen(XColors.Black, 1.2), XBrushes.Transparent, path);
             }
 
+            if (piece.SeamAllowance > 0.0001)
+            {
+                var basePts = piece.Points.Select(p => new SeamAllowanceOffset.Pt(
+                    (p[0] + piece.OffsetX - minX) + margin,
+                    (p[1] + piece.OffsetY - minY) + margin + 20)).ToList();
+
+                var saPts = SeamAllowanceOffset.OffsetClosed(
+                    basePts,
+                    piece.SeamAllowance,
+                    SeamAllowanceOffset.ParseJoin(piece.SeamAllowanceJoin));
+
+                if (saPts.Count >= 3)
+                {
+                    var saPath = new XGraphicsPath();
+                    saPath.AddLines(saPts.Select(pt => new XPoint(pt.X, pt.Y)).ToArray());
+                    saPath.CloseFigure();
+                    var pen = new XPen(XColors.DarkRed, 0.8)
+                    {
+                        DashStyle = XDashStyle.Dash,
+                    };
+                    gfx.DrawPath(pen, XBrushes.Transparent, saPath);
+                }
+            }
+
+            ExportAnnotations.DrawGrainPdf(gfx, piece, minX, minY, margin, 20);
+            ExportAnnotations.DrawNotchesPdf(gfx, piece, minX, minY, margin, 20);
+
             var font = new XFont("Arial", 10, XFontStyle.Regular);
             gfx.DrawString(piece.Name, font, XBrushes.Black, new XPoint(margin, margin));
         }
@@ -343,6 +510,27 @@ public class ExportService(
         doc.Save(ms, false);
         return ms.ToArray();
     }
+
+    private static string BuildCertificationJson(Pattern.Core.Model.Pattern pattern, ProductionValidationReport report) =>
+        JsonSerializer.Serialize(new
+        {
+            patternId = pattern.Id,
+            code = pattern.Code,
+            revision = pattern.Revision,
+            season = pattern.Season,
+            lifecycle = pattern.LifecycleStatus,
+            approvedForCutting = pattern.ApprovedForCutting,
+            approvedAt = pattern.ApprovedAt,
+            approvedBy = pattern.ApprovedBy,
+            cutterTestPassed = pattern.CutterTestPassed,
+            cutterTestedAt = pattern.CutterTestedAt,
+            cutterTestedBy = pattern.CutterTestedBy,
+            shrinkagePercent = pattern.ShrinkagePercent,
+            canExportToFactory = report.CanExportToFactory,
+            issues = report.Issues,
+            warnings = report.Warnings,
+            exportedUtc = DateTime.UtcNow,
+        }, new JsonSerializerOptions { WriteIndented = true });
 
     private static string Escape(string text) =>
         text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");

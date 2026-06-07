@@ -49,6 +49,8 @@ public class ExportService(
                     $"Base size (edited master on canvas): {baseSize}\n" +
                     $"Style: {styleKey}\nFormat: {safeFormat}\nSizes: {string.Join(",", pickedSizes)}\n" +
                     "Grading: vertex deltas from the same auto-draft templates as Size chart / Block (per piece name).\n" +
+                    "Pipeline: GradeCanvasPiecesForSize per size, then NotchGrainResolver.ApplyAutomation.\n" +
+                    "Notches: rule-based from style assembly catalog plus your canvas notches; grain line auto if missing. DXF layers: CUT, SA, GRAIN, NOTCH.\n" +
                     "Open in Illustrator: extract ZIP, then open a per-size .svg or .dxf (e.g. canvas/skinny_M.svg).\n" +
                     "Coordinates are in canvas pixels (import scale as needed).\n" +
                     $"GeneratedUtc: {DateTime.UtcNow:O}\n");
@@ -58,16 +60,18 @@ public class ExportService(
                 var drafted = draftingService.DraftGradedSet(styleKey, pickedSizes);
                 foreach (var (size, pieces) in drafted)
                 {
+                    var pieceList = pieces.ToList();
+                    NotchGrainResolver.ApplyAutomation(pieceList, styleKey);
                     switch (safeFormat)
                     {
                         case "DXF":
-                            AddTextEntry(zip, $"{styleKey}_{size}.dxf", BuildCombinedDxf(pieces, size));
+                            AddTextEntry(zip, $"{styleKey}_{size}.dxf", BuildCombinedDxf(pieceList, size));
                             break;
                         case "SVG":
-                            AddTextEntry(zip, $"{styleKey}_{size}.svg", BuildCombinedSvg(pieces, size));
+                            AddTextEntry(zip, $"{styleKey}_{size}.svg", BuildCombinedSvg(pieceList, size));
                             break;
                         case "PDF":
-                            foreach (var piece in pieces)
+                            foreach (var piece in pieceList)
                                 AddBinaryEntry(zip, $"{styleKey}/{size}/{piece.Name.Replace(' ', '_')}.pdf", BuildPdf(piece));
                             break;
                         default:
@@ -78,6 +82,8 @@ public class ExportService(
 
                 AddTextEntry(zip, "manifest.txt",
                     $"Source: drafted from size chart (not canvas edits)\nStyle: {styleKey}\nFormat: {safeFormat}\nSizes: {string.Join(",", pickedSizes)}\n" +
+                    "Pipeline: each size from DraftGradedSet, then NotchGrainResolver.ApplyAutomation (snap notches, grain if missing, catalog rule notches).\n" +
+                    "Notches: rule-based from style assembly catalog plus drafted piece notches; grain line auto if missing. DXF layers: CUT, SA, GRAIN, NOTCH.\n" +
                     $"Illustrator: use .svg inside this ZIP (File > Open). DXF also supported.\nGeneratedUtc: {DateTime.UtcNow:O}\n");
             }
         }
@@ -139,7 +145,9 @@ public class ExportService(
 
         foreach (var size in sizes)
         {
-            var graded = draftingService.GradeCanvasPiecesForSize(pieces, styleKey, patternBaseSize, size);
+            var gradedList = draftingService.GradeCanvasPiecesForSize(pieces, styleKey, patternBaseSize, size).ToList();
+            NotchGrainResolver.ApplyAutomation(gradedList, styleKey);
+            var graded = gradedList;
             switch (safeFormat)
             {
                 case "DXF":
@@ -231,6 +239,33 @@ public class ExportService(
                           "font-family=\"Arial,Helvetica,sans-serif\" font-size=\"11\" fill=\"#333333\">" +
                           $"{Escape(p.Name)}</text>");
             sb.AppendLine($"    <path d=\"{pathD}\" fill=\"none\" stroke=\"#000000\" stroke-width=\"1\"/>");
+
+            if (p.SeamAllowance > 0.0001)
+            {
+                var basePts = p.Points.Select(pt => new SeamAllowanceOffset.Pt(
+                    pt[0] + p.OffsetX + dx,
+                    pt[1] + p.OffsetY + dy)).ToList();
+
+                var saPts = SeamAllowanceOffset.OffsetClosed(
+                    basePts,
+                    p.SeamAllowance,
+                    SeamAllowanceOffset.ParseJoin(p.SeamAllowanceJoin));
+
+                if (saPts.Count >= 3)
+                {
+                    var saD = string.Join(" ",
+                        saPts.Select((pt, vi) =>
+                        {
+                            var cmd = vi == 0 ? "M" : "L";
+                            return $"{cmd}{pt.X.ToString(CultureInfo.InvariantCulture)},{pt.Y.ToString(CultureInfo.InvariantCulture)}";
+                        })) + " Z";
+
+                    sb.AppendLine($"    <path d=\"{saD}\" fill=\"none\" stroke=\"#b91c1c\" stroke-width=\"1\" stroke-dasharray=\"6 4\" opacity=\"0.85\"/>");
+                }
+            }
+
+            ExportAnnotations.AppendGrainSvg(sb, p, dx, dy);
+            ExportAnnotations.AppendNotchesSvg(sb, p, dx, dy);
             sb.AppendLine($"  </g>");
 
             curX += b.w + gap;
@@ -289,12 +324,42 @@ public class ExportService(
                 var y1 = p.Points[i][1] + p.OffsetY + dy;
                 var x2 = p.Points[j][0] + p.OffsetX + dx;
                 var y2 = p.Points[j][1] + p.OffsetY + dy;
-                sb.Append($"0{nl}LINE{nl}8{nl}0{nl}");
+                sb.Append($"0{nl}LINE{nl}8{nl}CUT{nl}");
                 sb.Append($"10{nl}{x1.ToString(CultureInfo.InvariantCulture)}{nl}");
                 sb.Append($"20{nl}{y1.ToString(CultureInfo.InvariantCulture)}{nl}");
                 sb.Append($"11{nl}{x2.ToString(CultureInfo.InvariantCulture)}{nl}");
                 sb.Append($"21{nl}{y2.ToString(CultureInfo.InvariantCulture)}{nl}");
             }
+
+            if (p.SeamAllowance > 0.0001)
+            {
+                var basePts = p.Points.Select(pt => new SeamAllowanceOffset.Pt(
+                    pt[0] + p.OffsetX + dx,
+                    pt[1] + p.OffsetY + dy)).ToList();
+
+                var saPts = SeamAllowanceOffset.OffsetClosed(
+                    basePts,
+                    p.SeamAllowance,
+                    SeamAllowanceOffset.ParseJoin(p.SeamAllowanceJoin));
+
+                if (saPts.Count >= 3)
+                {
+                    for (var i = 0; i < saPts.Count; i++)
+                    {
+                        var j = (i + 1) % saPts.Count;
+                        var a = saPts[i];
+                        var b = saPts[j];
+                        sb.Append($"0{nl}LINE{nl}8{nl}SA{nl}");
+                        sb.Append($"10{nl}{a.X.ToString(CultureInfo.InvariantCulture)}{nl}");
+                        sb.Append($"20{nl}{a.Y.ToString(CultureInfo.InvariantCulture)}{nl}");
+                        sb.Append($"11{nl}{b.X.ToString(CultureInfo.InvariantCulture)}{nl}");
+                        sb.Append($"21{nl}{b.Y.ToString(CultureInfo.InvariantCulture)}{nl}");
+                    }
+                }
+            }
+
+            ExportAnnotations.AppendGrainDxf(sb, p, dx, dy);
+            ExportAnnotations.AppendNotchesDxf(sb, p, dx, dy);
 
             curX += w + gap;
         }
@@ -334,6 +399,33 @@ public class ExportService(
                 path.CloseFigure();
                 gfx.DrawPath(new XPen(XColors.Black, 1.2), XBrushes.Transparent, path);
             }
+
+            if (piece.SeamAllowance > 0.0001)
+            {
+                var basePts = piece.Points.Select(p => new SeamAllowanceOffset.Pt(
+                    (p[0] + piece.OffsetX - minX) + margin,
+                    (p[1] + piece.OffsetY - minY) + margin + 20)).ToList();
+
+                var saPts = SeamAllowanceOffset.OffsetClosed(
+                    basePts,
+                    piece.SeamAllowance,
+                    SeamAllowanceOffset.ParseJoin(piece.SeamAllowanceJoin));
+
+                if (saPts.Count >= 3)
+                {
+                    var saPath = new XGraphicsPath();
+                    saPath.AddLines(saPts.Select(pt => new XPoint(pt.X, pt.Y)).ToArray());
+                    saPath.CloseFigure();
+                    var pen = new XPen(XColors.DarkRed, 0.8)
+                    {
+                        DashStyle = XDashStyle.Dash,
+                    };
+                    gfx.DrawPath(pen, XBrushes.Transparent, saPath);
+                }
+            }
+
+            ExportAnnotations.DrawGrainPdf(gfx, piece, minX, minY, margin, 20);
+            ExportAnnotations.DrawNotchesPdf(gfx, piece, minX, minY, margin, 20);
 
             var font = new XFont("Arial", 10, XFontStyle.Regular);
             gfx.DrawString(piece.Name, font, XBrushes.Black, new XPoint(margin, margin));

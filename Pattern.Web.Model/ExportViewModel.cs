@@ -14,6 +14,13 @@ public class ExportViewModel
     /// <summary>When set, canvas ZIP exports one graded file per size using this pattern row base size as the edited master.</summary>
     public string? CanvasGradeBaseSize { get; set; }
 
+    public bool ApprovedForCutting { get; set; }
+    public bool CutterTestPassed { get; set; }
+    public bool CanExportToFactory { get; set; }
+    public string? ApprovedBy { get; set; }
+    public string? CutterTestedBy { get; set; }
+    public decimal ShrinkagePercent { get; set; }
+
     public static IReadOnlyList<ExportFormatViewModel> Formats =>
     [
         new("DXF", "📐", "Industry standard CAD format. Compatible with Gerber, Lectra, Optitex & all major CAM systems.", true),

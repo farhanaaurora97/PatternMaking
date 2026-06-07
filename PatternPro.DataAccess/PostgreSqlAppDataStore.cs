@@ -1,0 +1,527 @@
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Pattern.Core.Model;
+using PatternPro.Core.Persistence;
+using PatternPro.DataAccess.Mapping;
+using PatternPro.DataAccess.Persistence;
+
+namespace PatternPro.DataAccess;
+
+/// <summary>
+/// PostgreSQL-backed store with the same behavior as file-based <c>JsonDataStore</c>.
+/// Uses table <c>patterns</c> plus <c>app_kv</c> for next id and pieces JSON.
+/// </summary>
+public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
+{
+    public const string KeyPieces = "pieces";
+    public const string KeyPatternNextId = "pattern_next_id";
+    public const string KeyMeasurementProfiles = "measurement_profiles";
+    public const string KeySizeChart = "size_chart";
+    public const string KeyGrading = "grading";
+    public const string KeyEaseOverrides = "ease_overrides";
+    private const string KindOutline = "outline";
+    private const string KindGrain = "grain";
+    private const string KindCf = "cf";
+    private const string KindNotch = "notch";
+
+    private readonly IDbContextFactory<PatternProDbContext> _factory;
+
+    public PostgreSqlAppDataStore(IDbContextFactory<PatternProDbContext> factory) =>
+        _factory = factory;
+
+    public PiecesStore LoadPieces()
+    {
+        using var db = _factory.CreateDbContext();
+        if (!db.Pieces.Any())
+            TryImportPiecesFromKv(db);
+
+        var pieces = db.Pieces
+            .Include(p => p.Vertices)
+            .AsNoTracking()
+            .OrderBy(p => p.PatternId.HasValue ? 1 : 0)
+            .ThenBy(p => p.StyleKey)
+            .ThenBy(p => p.PatternId)
+            .ThenBy(p => p.PieceOrder)
+            .ToList();
+
+        if (pieces.Count > 0)
+            return BuildPiecesStore(pieces);
+
+        return new PiecesStore();
+    }
+
+    /// <summary>
+    /// Moves legacy <c>app_kv.pieces</c> JSON into <c>pieces</c> / <c>piece_vertices</c> when relational tables are empty.
+    /// Called on startup and before the first <see cref="LoadPieces"/>.
+    /// </summary>
+    public void ImportLegacyAppKvIfNeeded()
+    {
+        using var db = _factory.CreateDbContext();
+        if (!db.Pieces.Any())
+            TryImportPiecesFromKv(db);
+    }
+
+    public void SavePieces(PiecesStore store)
+    {
+        using var db = _factory.CreateDbContext();
+        using var tx = db.Database.BeginTransaction();
+        try
+        {
+            db.PieceVertices.ExecuteDelete();
+            db.Pieces.ExecuteDelete();
+
+            var entities = BuildPieceEntities(store);
+            if (entities.Count > 0)
+                db.Pieces.AddRange(entities);
+
+            var legacyRow = db.AppKeyValues.FirstOrDefault(x => x.Key == KeyPieces);
+            if (legacyRow is not null)
+                db.AppKeyValues.Remove(legacyRow);
+
+            db.SaveChanges();
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    public PatternsStore? LoadPatternsStore()
+    {
+        using var db = _factory.CreateDbContext();
+        var patterns = db.Patterns.AsNoTracking().OrderBy(p => p.Id).ToList();
+        if (patterns.Count == 0)
+            return null;
+
+        var nextRow = db.AppKeyValues.AsNoTracking().FirstOrDefault(x => x.Key == KeyPatternNextId);
+        var nextId = 22;
+        if (nextRow is not null && int.TryParse(nextRow.Value, out var parsed))
+            nextId = parsed;
+        else if (patterns.Count > 0)
+            nextId = patterns.Max(p => p.Id) + 1;
+
+        return new PatternsStore { NextId = nextId, Patterns = patterns };
+    }
+
+    public IReadOnlyList<MeasurementProfile> LoadMeasurementProfiles()
+    {
+        using var db = _factory.CreateDbContext();
+        if (!db.MeasurementProfiles.Any())
+            TryImportMeasurementProfilesFromKv(db);
+
+        var profiles = db.MeasurementProfiles.AsNoTracking().OrderBy(p => p.Name).ToList();
+        if (profiles.Count == 0)
+            return [];
+
+        var values = db.MeasurementProfileValues.AsNoTracking().ToList();
+        return AppDataPersistenceMapper.ToProfiles(profiles, values);
+    }
+
+    public void SaveMeasurementProfiles(IEnumerable<MeasurementProfile> profiles)
+    {
+        using var db = _factory.CreateDbContext();
+        using var tx = db.Database.BeginTransaction();
+        try
+        {
+            AppDataPersistenceMapper.ApplyProfiles(db, profiles);
+            RemoveLegacyKv(db, KeyMeasurementProfiles);
+            db.SaveChanges();
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    public SizeChartStore LoadSizeChart()
+    {
+        using var db = _factory.CreateDbContext();
+        if (!db.SizeChartColumns.Any())
+            TryImportSizeChartFromKv(db);
+
+        if (!db.SizeChartColumns.Any())
+            return new SizeChartStore();
+
+        var columns = db.SizeChartColumns.AsNoTracking().ToList();
+        var rows = db.SizeChartRows.AsNoTracking().ToList();
+        var values = db.SizeChartValues.AsNoTracking().ToList();
+        return AppDataPersistenceMapper.ToSizeChartStore(columns, rows, values);
+    }
+
+    public void SaveSizeChart(SizeChartStore store)
+    {
+        using var db = _factory.CreateDbContext();
+        using var tx = db.Database.BeginTransaction();
+        try
+        {
+            AppDataPersistenceMapper.ApplySizeChart(db, store);
+            RemoveLegacyKv(db, KeySizeChart);
+            db.SaveChanges();
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    public GradingStore LoadGrading()
+    {
+        using var db = _factory.CreateDbContext();
+        if (!db.GradingStyles.Any())
+            TryImportGradingFromKv(db);
+
+        if (!db.GradingStyles.Any())
+            return new GradingStore();
+
+        var meta = db.GradingMeta.AsNoTracking().FirstOrDefault();
+        var columns = db.GradingColumns.AsNoTracking().ToList();
+        var styles = db.GradingStyles.AsNoTracking().ToList();
+        var rows = db.GradingRows.AsNoTracking().ToList();
+        var deltas = db.GradingDeltas.AsNoTracking().ToList();
+        return AppDataPersistenceMapper.ToGradingStore(meta, columns, styles, rows, deltas);
+    }
+
+    public void SaveGrading(GradingStore store)
+    {
+        using var db = _factory.CreateDbContext();
+        using var tx = db.Database.BeginTransaction();
+        try
+        {
+            AppDataPersistenceMapper.ApplyGrading(db, store);
+            RemoveLegacyKv(db, KeyGrading);
+            db.SaveChanges();
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    public EaseOverridesStore LoadEaseOverrides()
+    {
+        using var db = _factory.CreateDbContext();
+        if (!db.EaseOverrides.Any())
+            TryImportEaseFromKv(db);
+
+        var rows = db.EaseOverrides.AsNoTracking().ToList();
+        return rows.Count == 0
+            ? new EaseOverridesStore()
+            : AppDataPersistenceMapper.ToEaseStore(rows);
+    }
+
+    public void SaveEaseOverrides(EaseOverridesStore store)
+    {
+        using var db = _factory.CreateDbContext();
+        using var tx = db.Database.BeginTransaction();
+        try
+        {
+            AppDataPersistenceMapper.ApplyEaseOverrides(db, store);
+            RemoveLegacyKv(db, KeyEaseOverrides);
+            db.SaveChanges();
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    public void SavePatterns(IEnumerable<Pattern.Core.Model.Pattern> patterns, int nextId)
+    {
+        var list = patterns.Select(CloneForDatabase).ToList();
+        using var db = _factory.CreateDbContext();
+        using var tx = db.Database.BeginTransaction();
+        try
+        {
+            db.Patterns.ExecuteDelete();
+            if (list.Count > 0)
+                db.Patterns.AddRange(list);
+
+            var row = db.AppKeyValues.FirstOrDefault(x => x.Key == KeyPatternNextId);
+            var nextStr = nextId.ToString();
+            if (row is null)
+                db.AppKeyValues.Add(new AppKeyValue { Key = KeyPatternNextId, Value = nextStr });
+            else
+                row.Value = nextStr;
+
+            db.SaveChanges();
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    private static Pattern.Core.Model.Pattern CloneForDatabase(Pattern.Core.Model.Pattern p) =>
+        new()
+        {
+            Id = p.Id,
+            Code = p.Code,
+            Name = p.Name,
+            Style = p.Style,
+            BaseSize = p.BaseSize,
+            PieceCount = p.PieceCount,
+            Status = p.Status,
+            Date = p.Date,
+            Designer = p.Designer,
+            Category = p.Category,
+            CreatedAt = NormalizeUtc(p.CreatedAt),
+            DueDate = p.DueDate.HasValue ? NormalizeUtc(p.DueDate.Value) : null,
+            ApprovedForCutting = p.ApprovedForCutting,
+            ApprovedAt = p.ApprovedAt,
+            ApprovedBy = p.ApprovedBy,
+            CutterTestPassed = p.CutterTestPassed,
+            CutterTestedAt = p.CutterTestedAt,
+            CutterTestedBy = p.CutterTestedBy,
+            CutterTestNotes = p.CutterTestNotes,
+            CloReviewCompleted = p.CloReviewCompleted,
+            CloReviewNotes = p.CloReviewNotes,
+            ShrinkagePercent = p.ShrinkagePercent,
+        };
+
+    private static DateTime NormalizeUtc(DateTime value) =>
+        value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        };
+
+    private static PiecesStore BuildPiecesStore(IReadOnlyList<PieceEntity> pieces)
+    {
+        var store = new PiecesStore
+        {
+            StyleGeometry = new(StringComparer.OrdinalIgnoreCase),
+            PatternGeometry = new(),
+        };
+
+        foreach (var entity in pieces)
+        {
+            var piece = ToPieceDefinition(entity);
+            if (entity.PatternId.HasValue)
+            {
+                if (!store.PatternGeometry.TryGetValue(entity.PatternId.Value, out var list))
+                {
+                    list = [];
+                    store.PatternGeometry[entity.PatternId.Value] = list;
+                }
+
+                list.Add(piece);
+            }
+            else
+            {
+                var styleKey = entity.StyleKey ?? "skinny";
+                if (!store.StyleGeometry.TryGetValue(styleKey, out var list))
+                {
+                    list = [];
+                    store.StyleGeometry[styleKey] = list;
+                }
+
+                list.Add(piece);
+            }
+        }
+
+        return store;
+    }
+
+    private static PieceDefinition ToPieceDefinition(PieceEntity entity)
+    {
+        var vertices = entity.Vertices
+            .OrderBy(v => v.Kind, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(v => v.PointOrder)
+            .ToList();
+
+        return new PieceDefinition
+        {
+            Name = entity.Name,
+            PieceNumber = entity.PieceNumber,
+            Material = entity.Material,
+            OnFold = entity.OnFold,
+            Cut = entity.Cut,
+            Color = entity.Color,
+            Category = entity.Category,
+            GrainLine = entity.GrainLine,
+            Description = entity.Description,
+            Points = ToPoints(vertices, KindOutline),
+            Grain = ToOptionalPoints(vertices, KindGrain),
+            Cf = ToOptionalPoints(vertices, KindCf),
+            Notches = ToOptionalPoints(vertices, KindNotch),
+            OffsetX = entity.OffsetX,
+            OffsetY = entity.OffsetY,
+            SeamAllowance = entity.SeamAllowance,
+            SeamAllowanceJoin = entity.SeamAllowanceJoin,
+        };
+    }
+
+    private static List<PieceEntity> BuildPieceEntities(PiecesStore store)
+    {
+        var result = new List<PieceEntity>();
+
+        foreach (var kvp in store.StyleGeometry.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            for (var i = 0; i < kvp.Value.Count; i++)
+                result.Add(ToPieceEntity(kvp.Value[i], i, kvp.Key, null));
+        }
+
+        foreach (var kvp in store.PatternGeometry.OrderBy(k => k.Key))
+        {
+            for (var i = 0; i < kvp.Value.Count; i++)
+                result.Add(ToPieceEntity(kvp.Value[i], i, null, kvp.Key));
+        }
+
+        return result;
+    }
+
+    private static PieceEntity ToPieceEntity(PieceDefinition piece, int pieceOrder, string? styleKey, int? patternId)
+    {
+        var entity = new PieceEntity
+        {
+            PatternId = patternId,
+            StyleKey = styleKey,
+            PieceOrder = pieceOrder,
+            Name = piece.Name,
+            PieceNumber = piece.PieceNumber,
+            Material = piece.Material,
+            OnFold = piece.OnFold,
+            Cut = piece.Cut,
+            Color = piece.Color,
+            Category = piece.Category,
+            GrainLine = piece.GrainLine,
+            Description = piece.Description,
+            OffsetX = piece.OffsetX,
+            OffsetY = piece.OffsetY,
+            SeamAllowance = piece.SeamAllowance,
+            SeamAllowanceJoin = piece.SeamAllowanceJoin,
+        };
+
+        AddVertices(entity.Vertices, KindOutline, piece.Points);
+        AddVertices(entity.Vertices, KindGrain, piece.Grain);
+        AddVertices(entity.Vertices, KindCf, piece.Cf);
+        AddVertices(entity.Vertices, KindNotch, piece.Notches);
+        return entity;
+    }
+
+    private static void AddVertices(ICollection<PieceVertexEntity> target, string kind, List<int[]>? points)
+    {
+        if (points is null || points.Count == 0)
+            return;
+
+        for (var i = 0; i < points.Count; i++)
+        {
+            var p = points[i];
+            if (p.Length < 2)
+                continue;
+
+            target.Add(new PieceVertexEntity
+            {
+                Kind = kind,
+                PointOrder = i,
+                X = p[0],
+                Y = p[1],
+            });
+        }
+    }
+
+    private static List<int[]> ToPoints(IReadOnlyCollection<PieceVertexEntity> vertices, string kind) =>
+        vertices
+            .Where(v => v.Kind.Equals(kind, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(v => v.PointOrder)
+            .Select(v => new[] { v.X, v.Y })
+            .ToList();
+
+    private static List<int[]>? ToOptionalPoints(IReadOnlyCollection<PieceVertexEntity> vertices, string kind)
+    {
+        var list = ToPoints(vertices, kind);
+        return list.Count == 0 ? null : list;
+    }
+
+    private void TryImportPiecesFromKv(PatternProDbContext db)
+    {
+        var store = TryReadKv<PiecesStore>(db, KeyPieces);
+        if (store is null)
+            return;
+        if (store.StyleGeometry.Count == 0 && store.PatternGeometry.Count == 0)
+            return;
+
+        var entities = BuildPieceEntities(store);
+        if (entities.Count == 0)
+            return;
+
+        db.Pieces.AddRange(entities);
+        RemoveLegacyKv(db, KeyPieces);
+        db.SaveChanges();
+    }
+
+    private void TryImportSizeChartFromKv(PatternProDbContext db)
+    {
+        var store = TryReadKv<SizeChartStore>(db, KeySizeChart);
+        if (store is null || store.Rows.Count == 0)
+            return;
+        AppDataPersistenceMapper.ApplySizeChart(db, store);
+        RemoveLegacyKv(db, KeySizeChart);
+        db.SaveChanges();
+    }
+
+    private void TryImportGradingFromKv(PatternProDbContext db)
+    {
+        var store = TryReadKv<GradingStore>(db, KeyGrading);
+        if (store is null || store.Styles.Count == 0)
+            return;
+        AppDataPersistenceMapper.ApplyGrading(db, store);
+        RemoveLegacyKv(db, KeyGrading);
+        db.SaveChanges();
+    }
+
+    private void TryImportMeasurementProfilesFromKv(PatternProDbContext db)
+    {
+        var store = TryReadKv<MeasurementProfilesStore>(db, KeyMeasurementProfiles);
+        if (store is null || store.Profiles.Count == 0)
+            return;
+        AppDataPersistenceMapper.ApplyProfiles(db, store.Profiles);
+        RemoveLegacyKv(db, KeyMeasurementProfiles);
+        db.SaveChanges();
+    }
+
+    private void TryImportEaseFromKv(PatternProDbContext db)
+    {
+        var store = TryReadKv<EaseOverridesStore>(db, KeyEaseOverrides);
+        if (store is null || store.OverridesByStyle.Count == 0)
+            return;
+        AppDataPersistenceMapper.ApplyEaseOverrides(db, store);
+        RemoveLegacyKv(db, KeyEaseOverrides);
+        db.SaveChanges();
+    }
+
+    private static T? TryReadKv<T>(PatternProDbContext db, string key) where T : class
+    {
+        var row = db.AppKeyValues.FirstOrDefault(x => x.Key == key);
+        if (row is null || string.IsNullOrWhiteSpace(row.Value))
+            return null;
+        try
+        {
+            return JsonSerializer.Deserialize<T>(row.Value, PersistenceJson.CompactOptions);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void RemoveLegacyKv(PatternProDbContext db, string key)
+    {
+        var row = db.AppKeyValues.FirstOrDefault(x => x.Key == key);
+        if (row is not null)
+            db.AppKeyValues.Remove(row);
+    }
+}

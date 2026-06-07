@@ -64,6 +64,9 @@ public class DashboardViewModel
     // Pending/draft count for sidebar badge
     public int PendingCount { get; set; }
 
+    /// <summary>Patterns with design approval and cutter test passed (factory-ready).</summary>
+    public int ProductionCertifiedCount { get; set; }
+
     /// <summary>Category tab labels including leading "All".</summary>
     public IReadOnlyList<string> CategoryTabs { get; set; } = [];
 

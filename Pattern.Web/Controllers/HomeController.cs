@@ -38,19 +38,13 @@ public class HomeController(IPatternService patternService) : Controller
             CompletionPercent  = total == 0 ? 0
                 : (int)Math.Round(list.Count(p => p.Status is "Graded" or "Done") * 100.0 / total),
             PendingCount = list.Count(p => p.Status is "Pending" or "Draft"),
+            ProductionCertifiedCount = list.Count(p => p.ApprovedForCutting && p.CutterTestPassed),
             PatternsCreatedThisWeek = patternsThisWeek,
             PatternsCreatedLastWeek = patternsLastWeek,
             DueThisWeekCount = dueThisWeek,
             StyleProgress = BuildStyleProgress(list),
             CategoryTabs = ["All", .. patternVms.Select(p => p.Category).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c, StringComparer.OrdinalIgnoreCase)],
-            RecentActivity =
-            [
-                new("Graded", "badge-graded", "Skinny — XS to XXL grading complete",     "2h ago"),
-                new("Draft",  "badge-draft",  "Bootcut block generated from M base",      "5h ago"),
-                new("Export", "badge-export", "Slim DXF exported to PLM system",          "1d ago"),
-                new("Review", "badge-review", "Crotch curve adjustment needed — back leg","2d ago"),
-                new("Done",   "badge-done",   "Straight — seam allowance layer set",      "3d ago"),
-            ],
+            RecentActivity = BuildRecentActivity(list),
             CreateForm = new PatternCreateViewModel(),
             Charts           = BuildCharts(list),
         };
@@ -67,7 +61,9 @@ public class HomeController(IPatternService patternService) : Controller
         if (!ModelState.IsValid)
             return BadRequest(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 
-        var created = patternService.Create(form.Name, form.StyleKey, form.BaseSize, form.Designer, form.CategoryKey);
+        var created = patternService.Create(
+            form.Name, form.StyleKey, form.BaseSize, form.Designer, form.CategoryKey,
+            form.Season, form.Owner, form.LifecycleStatus);
         return Ok(created.ToViewModel());
     }
 
@@ -88,6 +84,25 @@ public class HomeController(IPatternService patternService) : Controller
     {
         var updated = patternService.SetStatus(body.Id, body.Status);
         if (updated is null) return BadRequest();
+        return Ok(updated.ToViewModel());
+    }
+
+    // ── AJAX: PLM lifecycle ───────────────────────────────────────
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult SetLifecycle([FromBody] SetLifecycleBody body)
+    {
+        var updated = patternService.SetLifecycleStatus(body.Id, body.LifecycleStatus);
+        if (updated is null) return BadRequest();
+        return Ok(updated.ToViewModel());
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult UpdateStyleSheet([FromBody] UpdateStyleSheetBody body)
+    {
+        var updated = patternService.UpdateStyleSheet(body.Id, body.Season, body.Owner, body.Designer);
+        if (updated is null) return NotFound();
         return Ok(updated.ToViewModel());
     }
 
@@ -192,13 +207,6 @@ public class HomeController(IPatternService patternService) : Controller
         return new DashboardChartsModel { Status = statusSlices, StylesByFit = stylesByFit, PantTypes = pantTypeBars };
     }
 
-    private static DateTime StartOfWeekMonday(DateTime date)
-    {
-        var d = date.Date;
-        var diff = d.DayOfWeek == DayOfWeek.Sunday ? -6 : DayOfWeek.Monday - d.DayOfWeek;
-        return d.AddDays(diff);
-    }
-
     private static Dictionary<string, int> BuildStyleProgress(IEnumerable<Pattern.Core.Model.Pattern> patterns)
     {
         var styles = new[] { "Skinny", "Slim", "Straight", "Bootcut", "Wide Leg" };
@@ -215,6 +223,41 @@ public class HomeController(IPatternService patternService) : Controller
         return result;
     }
 
+    private static DateTime StartOfWeekMonday(DateTime date)
+    {
+        var d = date.Date;
+        var diff = d.DayOfWeek == DayOfWeek.Sunday ? -6 : DayOfWeek.Monday - d.DayOfWeek;
+        return d.AddDays(diff);
+    }
+
+    private static IReadOnlyList<ActivityItem> BuildRecentActivity(IReadOnlyList<Pattern.Core.Model.Pattern> list)
+    {
+        static string BadgeCss(string status) => status switch
+        {
+            "Graded" => "badge-graded",
+            "Done" => "badge-done",
+            "InProgress" => "badge-review",
+            "Pending" => "badge-export",
+            _ => "badge-draft",
+        };
+
+        return list
+            .OrderByDescending(p => p.Date, StringComparer.Ordinal)
+            .ThenByDescending(p => p.Id)
+            .Take(6)
+            .Select(p =>
+            {
+                var life = string.IsNullOrWhiteSpace(p.LifecycleStatus) ? "" : $" · {p.LifecycleStatus}";
+                var cert = p.ApprovedForCutting && p.CutterTestPassed ? " · Factory ready" : "";
+                return new ActivityItem(
+                    p.Status,
+                    BadgeCss(p.Status),
+                    $"{p.Code} {p.Name}{life}{cert}",
+                    p.Date);
+            })
+            .ToList();
+    }
+
     private void SetLayoutData(string controller, string pageTitle, string style, int pendingCount) =>
         ViewData["Layout"] = new LayoutViewModel
         {
@@ -227,3 +270,5 @@ public class HomeController(IPatternService patternService) : Controller
 
 public sealed record SetStatusBody(int Id, string Status);
 public sealed record SetDueDateBody(int Id, string? Date);
+public sealed record SetLifecycleBody(int Id, string LifecycleStatus);
+public sealed record UpdateStyleSheetBody(int Id, string? Season, string? Owner, string? Designer);

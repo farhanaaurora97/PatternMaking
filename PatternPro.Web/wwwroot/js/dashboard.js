@@ -48,6 +48,10 @@
       tick();
     }
 
+    const statFactory = document.getElementById('stat-factory-ready');
+    const tFactory = parseInt(statFactory?.dataset.target || '0', 10);
+    if (statFactory) animateCount(statFactory, tFactory, '');
+
     const barActive = document.getElementById('bar-active');
     if (barActive) {
       const pct = parseInt(barActive.dataset.target || '0', 10);
@@ -58,6 +62,12 @@
     if (barCompletion) {
       const pct = parseInt(barCompletion.dataset.target || '0', 10);
       barCompletion.style.width = Math.min(100, Math.max(0, pct)) + '%';
+    }
+
+    const barFactory = document.getElementById('bar-factory-ready');
+    if (barFactory) {
+      const pct = parseInt(barFactory.dataset.target || '0', 10);
+      barFactory.style.width = Math.min(100, Math.max(0, pct)) + '%';
     }
 
     applyTrafficLight();
@@ -199,7 +209,7 @@
         sel.value = p.status;
         sel.dataset.prevStatus = p.status;
         const tds = row.querySelectorAll('td');
-        const dateEl = tds[6];
+        const dateEl = tds[9];
         if (dateEl) dateEl.textContent = p.date;
       }
       toast('Status updated', `${p.displayName} is now ${p.statusLabel}`, 'success', '🔄');
@@ -335,8 +345,11 @@
       tblCount.textContent = `${patterns.length} of ${patterns.length}`;
     }
     tbody.innerHTML = patterns.map((p) => `
-      <tr id="row-${p.id}" data-category="${escapeAttr(p.category || 'Denim')}" data-status="${escapeAttr(p.status)}">
-        <td class="td-bold">${escapeHtml(p.displayName)}</td>
+      <tr id="row-${p.id}" data-category="${escapeAttr(p.category || 'Denim')}" data-status="${escapeAttr(p.status)}" data-lifecycle="${escapeAttr(p.lifecycleStatus)}">
+        <td class="td-mono td-bold">${escapeHtml(p.code)}</td>
+        <td class="td-bold">${escapeHtml(p.name)}${productionBadgeHtml(p)}</td>
+        <td class="td-mono">${escapeHtml(p.season || '')}</td>
+        <td><span class="tag ${escapeAttr(p.lifecycleCssClass)}">${escapeHtml(p.lifecycleLabel || '')}</span></td>
         <td class="td-mono">${escapeHtml(p.style)}</td>
         <td class="td-mono">${escapeHtml(p.baseSize)}</td>
         <td class="td-mono">${p.pieceCount}</td>
@@ -348,18 +361,27 @@
         <td class="td-mono due-cell ${!p.dueDateIso ? 'due-cell--empty' : ''}">
           <input type="date" class="due-date-input" data-id="${p.id}"
                  value="${escapeAttr(p.dueDateIso || '')}" title="Click to set due date"
-                 aria-label="Due date for ${escapeAttr(p.displayName)}" />
+                 aria-label="Due date for ${escapeAttr(p.code)}" />
         </td>
         <td class="td-mono" style="color:#b0a898">${escapeHtml(p.date)}</td>
         <td>
           <div class="action-btns">
-            <a class="btn-open" href="/Canvas">Open</a>
+            <a class="btn-open" href="/Pieces?patternId=${p.id}&style=${encodeURIComponent(p.styleKey || 'skinny')}">Pieces</a>
+            <a class="btn-canvas-row" href="/Canvas?patternId=${p.id}&style=${encodeURIComponent(p.styleKey || 'skinny')}" title="Canvas editor">✏</a>
+            <a class="btn-dl" href="/Export?patternId=${p.id}&style=${encodeURIComponent(p.styleKey || 'skinny')}" title="Export">Export</a>
             <button type="button" class="btn-dup-row" data-action="duplicate-pattern" data-id="${p.id}" title="Duplicate pattern">⊕</button>
             <button type="button" class="btn-del" data-action="delete-pattern" data-id="${p.id}">×</button>
           </div>
         </td>
       </tr>`).join('');
     applyFilters();
+  }
+
+  function productionBadgeHtml(p) {
+    const label = p.productionBadgeLabel || '';
+    if (!label) return '';
+    const css = p.productionBadgeCss || 'tag-gold';
+    return ` <span class="tag ${escapeAttr(css)}" style="margin-left:6px;font-size:10px;vertical-align:middle" title="Production certification">${escapeHtml(label)}</span>`;
   }
 
   function escapeHtml(s) {

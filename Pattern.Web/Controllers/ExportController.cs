@@ -1,10 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
+using Pattern.Core.Model;
 using PatternPro.Core.IServices;
 using Pattern.Web.Model;
 
 namespace Pattern.Web.Controllers;
 
-public class ExportController(IExportService exportService, IPatternService patternService) : Controller
+public class ExportController(
+    IExportService exportService,
+    IPatternService patternService,
+    IPieceService pieceService,
+    IProductionCertificationService productionCertification) : Controller
 {
     public IActionResult Index(int patternId = 0, string style = "skinny", string? sizes = null, string? source = null)
     {
@@ -18,6 +23,17 @@ public class ExportController(IExportService exportService, IPatternService patt
             style = ToStyleKey(selectedPattern.Style);
         }
         var selectedSizes = ParseSizes(sizes);
+        var styleKey = ToStyleKey(style);
+
+        if (patternId > 0)
+            PreparePatternForFactoryExport(patternId, styleKey);
+
+        patterns = patternService.GetAll().ToList();
+        selectedPattern = patternId > 0
+            ? patterns.FirstOrDefault(p => p.Id == patternId)
+            : selectedPattern;
+
+        var validation = productionCertification.ValidateForFactory(patternId, styleKey);
 
         var vm = new ExportViewModel
         {
@@ -29,15 +45,148 @@ public class ExportController(IExportService exportService, IPatternService patt
             SizesCsv           = string.Join(",", selectedSizes),
             SelectedFormat     = "DXF",
             CanvasGradeBaseSize = selectedPattern is not null ? selectedPattern.BaseSize : null,
+            ApprovedForCutting = selectedPattern?.ApprovedForCutting ?? false,
+            CutterTestPassed   = selectedPattern?.CutterTestPassed ?? false,
+            CanExportToFactory = validation.CanExportToFactory,
+            ApprovedBy         = selectedPattern?.ApprovedBy,
+            CutterTestedBy     = selectedPattern?.CutterTestedBy,
+            ShrinkagePercent   = selectedPattern?.ShrinkagePercent ?? 0m,
         };
 
         ViewBag.ExportSource  = source ?? "standard";
         ViewBag.CurrentStyle  = style;
+        ViewBag.ValidationIssues = validation.Issues;
+        ViewBag.ValidationWarnings = validation.Warnings;
+        ViewBag.FactoryExportReady = validation.CanExportToFactory;
         SetLayout("Export", "Export / DXF", style, vm.PatternId > 0 ? vm.PatternId : null);
         return View(vm);
     }
 
-    // ── AJAX: Simulate export step progression ──────────────────────
+    /// <summary>Default SA on cut pieces; auto-certify when cutter test passed and geometry QC is clean.</summary>
+    private void PreparePatternForFactoryExport(int patternId, string styleKey)
+    {
+        pieceService.ApplyDefaultSeamAllowances(patternId, styleKey);
+
+        var pattern = patternService.GetAll().FirstOrDefault(p => p.Id == patternId);
+        if (pattern is null || pattern.ApprovedForCutting)
+            return;
+
+        var pre = productionCertification.ValidateForFactory(patternId, styleKey);
+        var geoErrors = pre.Issues.Where(i => i.Code is not "NOT_APPROVED" and not "CUTTER_TEST").ToList();
+        if (geoErrors.Count > 0)
+            return;
+
+        productionCertification.CompleteFactoryCertification(patternId, styleKey, "Pattern Designer");
+    }
+
+    [HttpGet]
+    public IActionResult ValidateFactory(int patternId, string style = "skinny")
+    {
+        var styleKey = ToStyleKey(style);
+        var report = productionCertification.ValidateForFactory(patternId, styleKey);
+        return Ok(new
+        {
+            report.CanExportToFactory,
+            report.ApprovedForCutting,
+            report.CutterTestPassed,
+            issues = report.Issues,
+            warnings = report.Warnings,
+        });
+    }
+
+    [HttpPost]
+    public IActionResult ApproveForCutting([FromBody] ProductionActionRequest req)
+    {
+        if (req.PatternId <= 0)
+            return BadRequest("Select a saved pattern first.");
+
+        var styleKey = ToStyleKey(req.Style ?? "skinny");
+        var pre = productionCertification.ValidateForFactory(req.PatternId, styleKey);
+        var qcErrors = pre.Issues.Where(i => i.Code is not "NOT_APPROVED" and not "CUTTER_TEST").ToList();
+        if (qcErrors.Count > 0)
+        {
+            return BadRequest(new
+            {
+                message = "QC must pass before approval.",
+                issues = qcErrors,
+            });
+        }
+
+        var pattern = productionCertification.ApproveForCutting(req.PatternId, req.Actor ?? "Pattern Designer");
+        if (pattern is null)
+            return BadRequest("Could not approve pattern.");
+
+        return Ok(new { pattern.ApprovedForCutting, pattern.ApprovedAt, pattern.ApprovedBy });
+    }
+
+    [HttpPost]
+    public IActionResult RevokeApproval([FromBody] ProductionActionRequest req)
+    {
+        if (req.PatternId <= 0) return BadRequest("Invalid pattern.");
+        var pattern = productionCertification.RevokeCuttingApproval(req.PatternId);
+        if (pattern is null) return NotFound();
+        return Ok(new { pattern.ApprovedForCutting });
+    }
+
+    [HttpPost]
+    public IActionResult RecordCutterTest([FromBody] CutterTestRequest req)
+    {
+        if (req.PatternId <= 0) return BadRequest("Invalid pattern.");
+        var pattern = productionCertification.RecordCutterTest(
+            req.PatternId, req.Passed, req.Actor ?? "Factory", req.Notes);
+        if (pattern is null) return NotFound();
+        return Ok(new
+        {
+            pattern.CutterTestPassed,
+            pattern.CutterTestedAt,
+            pattern.CutterTestedBy,
+            pattern.CutterTestNotes,
+        });
+    }
+
+    [HttpPost]
+    public IActionResult CompleteFactoryCertification([FromBody] ProductionActionRequest req)
+    {
+        if (req.PatternId <= 0)
+            return BadRequest("Select a saved pattern first.");
+
+        var styleKey = ToStyleKey(req.Style ?? "skinny");
+        var report = productionCertification.CompleteFactoryCertification(
+            req.PatternId, styleKey, req.Actor ?? "Pattern Designer");
+
+        if (!report.CanExportToFactory)
+        {
+            var blockers = report.Issues.Where(i => i.Code is not "NOT_APPROVED" and not "CUTTER_TEST").ToList();
+            if (blockers.Count > 0)
+            {
+                return BadRequest(new
+                {
+                    message = "Fix blocking QC issues on Canvas before factory certification.",
+                    issues = blockers,
+                    warnings = report.Warnings,
+                });
+            }
+        }
+
+        return Ok(new
+        {
+            report.CanExportToFactory,
+            report.ApprovedForCutting,
+            report.CutterTestPassed,
+            issues = report.Issues,
+            warnings = report.Warnings,
+        });
+    }
+
+    [HttpPost]
+    public IActionResult SetShrinkage([FromBody] ShrinkageRequest req)
+    {
+        if (req.PatternId <= 0) return BadRequest("Invalid pattern.");
+        var pattern = patternService.SetShrinkagePercent(req.PatternId, req.Percent);
+        if (pattern is null) return NotFound();
+        return Ok(new { pattern.ShrinkagePercent });
+    }
+
     [HttpPost]
     public IActionResult StartExport([FromBody] ExportRequest req)
     {
@@ -45,7 +194,6 @@ public class ExportController(IExportService exportService, IPatternService patt
         return Ok(steps.Select((s, i) => new { step = i, label = s }));
     }
 
-    // ── AJAX: Return piece names for canvas preview ──────────────────
     [HttpGet]
     public IActionResult PreviewPieces(string style = "skinny")
     {
@@ -53,10 +201,14 @@ public class ExportController(IExportService exportService, IPatternService patt
         return Ok(pieces);
     }
 
-    /// <summary>ZIP download for Export page — GET must stay callable via fetch (same-origin credentials).</summary>
     [HttpGet]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-    public IActionResult DownloadPackage(int patternId = 0, string style = "skinny", string format = "DXF", string? sizes = null)
+    public IActionResult DownloadPackage(
+        int patternId = 0,
+        string style = "skinny",
+        string format = "DXF",
+        string? sizes = null,
+        string purpose = "factory")
     {
         var patterns = patternService.GetAll().ToList();
         var pattern = patternId > 0
@@ -67,13 +219,16 @@ public class ExportController(IExportService exportService, IPatternService patt
             patternId = pattern.Id;
             style = ToStyleKey(pattern.Style);
         }
+
+        var exportPurpose = ParsePurpose(purpose);
         var selectedSizes = ParseSizes(sizes);
         byte[] bytes;
         string contentType;
         string fileName;
         try
         {
-            (bytes, contentType, fileName) = exportService.BuildExportPackage(style, format, selectedSizes, patternId);
+            (bytes, contentType, fileName) = exportService.BuildExportPackage(
+                style, format, selectedSizes, patternId, exportPurpose);
         }
         catch (InvalidOperationException ex)
         {
@@ -83,14 +238,19 @@ public class ExportController(IExportService exportService, IPatternService patt
         if (bytes.Length == 0)
             return BadRequest("Export produced no data.");
 
-        // Avoid stale or stripped bodies from intermediaries when downloading ZIP (DXF/SVG/PDF inside).
         Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private";
         Response.Headers["Pragma"] = "no-cache";
 
-        // Stream-based FileResult plays nicer with fetch().blob() than raw byte[] on some hosts.
         var ms = new MemoryStream(bytes, writable: false);
         return File(ms, contentType, fileName);
     }
+
+    private static ExportPurpose ParsePurpose(string purpose) => purpose.Trim().ToLowerInvariant() switch
+    {
+        "clo" or "clo-review" or "cloreview" => ExportPurpose.CloReview,
+        "draft" => ExportPurpose.Draft,
+        _ => ExportPurpose.Factory,
+    };
 
     private static List<string> ParseSizes(string? sizes)
     {
@@ -123,3 +283,9 @@ public class ExportController(IExportService exportService, IPatternService patt
 }
 
 public record ExportRequest(string Format);
+
+public record ProductionActionRequest(int PatternId, string? Style, string? Actor);
+
+public record CutterTestRequest(int PatternId, bool Passed, string? Actor, string? Notes);
+
+public record ShrinkageRequest(int PatternId, decimal Percent);

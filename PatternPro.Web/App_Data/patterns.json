@@ -22,10 +22,18 @@
       "baseSize": "XS",
       "pieceCount": 9,
       "status": "Done",
-      "date": "2026-05-02",
+      "date": "2026-05-19",
       "designer": "Pattern Designer",
       "category": "Denim",
-      "createdAt": "2026-05-02T12:03:36.2313027+06:00"
+      "createdAt": "2026-05-02T12:03:36.2313027+06:00",
+      "approvedForCutting": true,
+      "approvedAt": "2026-05-19T12:00:00Z",
+      "approvedBy": "Pattern Designer",
+      "cutterTestPassed": true,
+      "cutterTestedAt": "2026-05-19T12:05:00Z",
+      "cutterTestedBy": "Factory",
+      "cutterTestNotes": "Trial cut on factory plotter — dimensions OK",
+      "shrinkagePercent": 0
     },
     {
       "id": 22,

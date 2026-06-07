@@ -1,0 +1,97 @@
+@model StyleSheetViewModel
+@{ ViewData["Title"] = "Style Sheet"; }
+
+<div class="patternpro-dashboard style-sheet-page">
+  <div class="page-hdr">
+    <div class="ph-left">
+      <div class="page-title">Style Sheet</div>
+      <div class="page-sub">PLM register — style code, season, designer, owner, lifecycle (not pattern geometry)</div>
+    </div>
+    <div class="ph-right">
+      <a class="btn-canvas" asp-controller="Home" asp-action="Index">← Pattern dashboard</a>
+      <button type="button" class="add-btn" id="ss-btn-add">+ New style</button>
+    </div>
+  </div>
+
+  <div class="style-sheet-legend card" style="margin-bottom:16px;padding:12px 16px">
+    <strong>Lifecycle</strong> (merchandising / production gate):
+    <span class="tag lc-Idea">Idea</span> concept &nbsp;
+    <span class="tag lc-Sampling">Sampling</span> proto &amp; fit &nbsp;
+    <span class="tag lc-Bulk">Bulk</span> production &nbsp;
+    <span class="tag lc-Cancelled">Cancelled</span> dropped
+    <span style="margin-left:12px;color:#888">·</span>
+    <strong>Pattern status</strong> (pattern room): Pending → Draft → In Progress → Graded → Done
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-header">
+      <span class="tbl-label">All styles</span>
+      <div class="tbl-search">
+        <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4" stroke="#9ca3af" stroke-width="1.4"/><path d="M9 9l2.5 2.5" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <input type="search" id="ss-search" placeholder="Search code, name, season, owner…" autocomplete="off" />
+      </div>
+      <span class="tbl-count" id="ss-count" data-total="@Model.TotalCount">@Model.TotalCount of @Model.TotalCount</span>
+      <button type="button" class="status-filter-clear" id="ss-clear-lifecycle" hidden>All lifecycles</button>
+      <div class="cat-tabs" id="ss-lifecycle-tabs">
+        @foreach (var tab in Model.LifecycleTabs)
+        {
+          <button type="button" class="cat-tab @(tab == "All" ? "active" : "")" data-lifecycle="@tab">@tab</button>
+        }
+      </div>
+    </div>
+    <table class="style-sheet-table">
+      <thead>
+        <tr>
+          <th data-sort="code">Style code <span class="sort-icon">↕</span></th>
+          <th data-sort="name">Style name <span class="sort-icon">↕</span></th>
+          <th data-sort="season">Season <span class="sort-icon">↕</span></th>
+          <th data-sort="designer">Designer <span class="sort-icon">↕</span></th>
+          <th data-sort="owner">Owner <span class="sort-icon">↕</span></th>
+          <th data-sort="lifecycle">Lifecycle <span class="sort-icon">↕</span></th>
+          <th data-sort="status">Pattern status <span class="sort-icon">↕</span></th>
+          <th data-sort="due">Due <span class="sort-icon">↕</span></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="ss-tbody">
+        @foreach (var p in Model.Rows)
+        {
+          <tr id="ss-row-@p.Id" data-lifecycle="@p.LifecycleStatus">
+            <td class="td-mono td-bold">@p.Code</td>
+            <td>@p.Name</td>
+            <td>
+              <input type="text" class="ss-inline season-input" data-id="@p.Id" value="@p.Season"
+                     maxlength="16" aria-label="Season for @p.Code" />
+            </td>
+            <td>
+              <input type="text" class="ss-inline designer-input" data-id="@p.Id" value="@p.Designer"
+                     maxlength="128" aria-label="Designer for @p.Code" />
+            </td>
+            <td>
+              <input type="text" class="ss-inline owner-input" data-id="@p.Id" value="@p.Owner"
+                     maxlength="128" aria-label="Owner for @p.Code" />
+            </td>
+            <td>
+              <select class="lifecycle-select @p.LifecycleCssClass" data-action="set-lifecycle" data-id="@p.Id"
+                      data-prev-lifecycle="@p.LifecycleStatus" aria-label="Lifecycle for @p.Code">
+                @foreach (var opt in StyleLifecycleOptions.All)
+                {
+                  <option value="@opt.Value" selected="@(p.LifecycleStatus == opt.Value)">@opt.Label</option>
+                }
+              </select>
+            </td>
+            <td><span class="tag st-@p.Status">@p.StatusLabel</span></td>
+            <td class="td-mono">@p.DueDateLabel</td>
+            <td>
+              <a class="btn-open" asp-controller="Pieces" asp-action="Index" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey">Pattern</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@section Scripts {
+  <script src="~/js/style-sheet.js" asp-append-version="true"></script>
+}

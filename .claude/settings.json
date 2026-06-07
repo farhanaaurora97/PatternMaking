@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Write(E:\\Code\\PatternMaking\\**)",
+      "Edit(E:\\Code\\PatternMaking\\**)",
+      "Bash(dotnet run *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet watch *)"
+    ]
+  }
+}

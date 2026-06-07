@@ -1,8 +1,8 @@
 @using Pattern.Web.Model
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
-    <div class="modal-title">New Pattern</div>
-    <div class="modal-sub">Create a new bottom-wear pattern draft — it will appear in the table</div>
+    <div class="modal-title">New style / pattern</div>
+    <div class="modal-sub">Creates a PLM style row (code, season, owner) and pattern draft on the dashboard</div>
     <div class="modal-error" id="modal-error">Please enter a pattern name.</div>
 
     <div class="form-row">
@@ -48,10 +48,34 @@
       </select>
     </div>
 
-    <div class="form-row" style="margin-top:16px">
-      <label class="form-label">Designer</label>
-      <input class="form-input" id="m-designer" type="text"
-             placeholder="e.g. Pattern Designer" value="Pattern Designer" />
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">Season</label>
+        <input class="form-input" id="m-season" type="text"
+               placeholder="@Pattern.Core.Model.StyleLifecycle.DefaultSeason()" />
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">PLM lifecycle</label>
+        <select class="form-input" id="m-lifecycle">
+          @foreach (var (value, label) in PatternCreateViewModel.LifecycleOptions)
+          {
+            <option value="@value">@label</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">Designer</label>
+        <input class="form-input" id="m-designer" type="text"
+               placeholder="e.g. Pattern Designer" value="Pattern Designer" />
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">Owner</label>
+        <input class="form-input" id="m-owner" type="text"
+               placeholder="Merchandiser / owner (optional)" />
+      </div>
     </div>
 
     <div class="modal-actions">

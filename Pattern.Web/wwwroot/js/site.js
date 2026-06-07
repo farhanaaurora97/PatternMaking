@@ -70,6 +70,9 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
     const styleKey   = document.getElementById('m-style')?.value;
     const base       = document.getElementById('m-base')?.value;
     const designer   = document.getElementById('m-designer')?.value.trim();
+    const season     = document.getElementById('m-season')?.value.trim() || null;
+    const owner      = document.getElementById('m-owner')?.value.trim() || null;
+    const lifecycleStatus = document.getElementById('m-lifecycle')?.value || 'Idea';
     if (!name) { errEl?.classList.add('show'); return; }
     errEl?.classList.remove('show');
 
@@ -81,7 +84,7 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
         'Accept': 'application/json',
         ...(token ? { 'RequestVerificationToken': token } : {}),
       },
-      body: JSON.stringify({ name, categoryKey, styleKey, baseSize: base, designer }),
+      body: JSON.stringify({ name, categoryKey, styleKey, baseSize: base, designer, season, owner, lifecycleStatus }),
     });
     if (!res.ok) {
       let msg = 'Check your connection and try again.';
@@ -116,7 +119,11 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
   if (!switcher) return;
   switcher.addEventListener('click', e => {
     const btn = e.target.closest('[data-style]');
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
+    if (switcher.dataset.lock === '1') {
+      toast('Fit locked', 'This pattern has a fixed fit. Open another pattern from the Dashboard.', 'info', 'ℹ️');
+      return;
+    }
     const style = btn.dataset.style;
     const url = new URL(window.location.href);
     url.searchParams.set('style', style);

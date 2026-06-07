@@ -1,5 +1,6 @@
 using Pattern.Core.Model;
 using PatternPro.Core.IServices;
+using PatternPro.Core.Persistence.Repositories;
 
 namespace PatternPro.Business.Services;
 
@@ -7,34 +8,29 @@ public class SizeChartService : ISizeChartService
 {
     private readonly object _lock = new();
     private readonly IGradingService _gradingService;
-    private readonly List<MeasurementProfile> _profiles = [];
-
+    private readonly ISizeChartRepository _sizeChart;
+    private readonly IMeasurementProfileRepository _profilesRepo;
+    private readonly List<MeasurementProfile> _profiles;
     private readonly List<string> _columns;
-
     private readonly List<SizeRow> _rows;
 
-    public SizeChartService(IGradingService gradingService)
+    public SizeChartService(
+        IGradingService gradingService,
+        ISizeChartRepository sizeChart,
+        IMeasurementProfileRepository profilesRepo)
     {
         _gradingService = gradingService;
+        _sizeChart      = sizeChart;
+        _profilesRepo   = profilesRepo;
+        _profiles       = profilesRepo.Load().Select(CloneProfile).ToList();
 
-        _columns =
-        [
-            "XS", "S", "M", "L", "XL", "XXL",
-        ];
+        var persisted = sizeChart.Load();
+        var source = persisted.Rows.Count > 0 ? persisted : AppDataDefaults.CreateDefaultSizeChart();
+        if (persisted.Rows.Count == 0)
+            sizeChart.Save(source);
 
-        _rows =
-        [
-            new() { MeasurementPoint = "Waist",        Values = [60, 64, 68, 72, 76, 80] },
-            new() { MeasurementPoint = "Hip",          Values = [84, 88, 92, 96, 100, 106] },
-            new() { MeasurementPoint = "Front Rise",   Values = [25, 25.5m, 26, 26.5m, 27, 27.5m] },
-            new() { MeasurementPoint = "Back Rise",    Values = [34, 35, 36, 37, 38, 39] },
-            new() { MeasurementPoint = "Crotch Depth", Values = [26, 27, 28, 29, 30, 31] },
-            new() { MeasurementPoint = "Thigh",        Values = [50, 53, 56, 59, 62, 66] },
-            new() { MeasurementPoint = "Knee",         Values = [34, 36, 38, 40, 42, 44] },
-            new() { MeasurementPoint = "Ankle",        Values = [29, 31, 33, 35, 37, 39] },
-            new() { MeasurementPoint = "Inseam",       Values = [77, 78, 79, 80, 80, 80] },
-            new() { MeasurementPoint = "Outseam",      Values = [103, 104.5m, 106, 107.5m, 109, 110] },
-        ];
+        _columns = [.. source.Columns];
+        _rows    = source.Rows.Select(CloneRow).ToList();
     }
 
     public IReadOnlyList<string> GetColumnLabels()
@@ -46,15 +42,7 @@ public class SizeChartService : ISizeChartService
     public IReadOnlyList<SizeRow> GetAll()
     {
         lock (_lock)
-        {
-            return _rows
-                .Select(r => new SizeRow
-                {
-                    MeasurementPoint = r.MeasurementPoint,
-                    Values = [.. r.Values],
-                })
-                .ToList();
-        }
+            return _rows.Select(CloneRow).ToList();
     }
 
     public string ExportCsv()
@@ -95,11 +83,10 @@ public class SizeChartService : ISizeChartService
             }
 
             _columns.Add(clean);
+            PersistSizeChart();
         }
 
-        // Keep grading tables in sync — call outside our lock to avoid lock ordering issues.
         _gradingService.AddColumn(clean);
-
         return (true, null);
     }
 
@@ -128,23 +115,48 @@ public class SizeChartService : ISizeChartService
                 MeasurementPoint = name,
                 Values = [.. source.Values],
             });
+
+            PersistSizeChart();
         }
 
         return (true, null);
     }
 
-    public IReadOnlyList<MeasurementProfile> GetMeasurementProfiles()
+    public (bool Ok, string? Error) TryUpdateCell(string measurementPoint, int columnIndex, decimal value)
     {
         lock (_lock)
         {
-            return _profiles
-                .Select(p => new MeasurementProfile
-                {
-                    Name = p.Name,
-                    Measurements = new Dictionary<string, decimal>(p.Measurements, StringComparer.OrdinalIgnoreCase),
-                })
-                .ToList();
+            var row = _rows.FirstOrDefault(r =>
+                r.MeasurementPoint.Equals(measurementPoint.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (row is null) return (false, "Measurement row not found.");
+            if (columnIndex < 0 || columnIndex >= row.Values.Count)
+                return (false, "Invalid size column.");
+
+            row.Values[columnIndex] = value;
+            PersistSizeChart();
+            return (true, null);
         }
+    }
+
+    public (bool Ok, string? Error) TryUpdateRowMeta(string measurementPoint, decimal toleranceCm, string? measurementMethod)
+    {
+        lock (_lock)
+        {
+            var row = _rows.FirstOrDefault(r =>
+                r.MeasurementPoint.Equals(measurementPoint.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (row is null) return (false, "Measurement row not found.");
+
+            row.ToleranceCm = Math.Max(0, toleranceCm);
+            row.MeasurementMethod = measurementMethod?.Trim() ?? string.Empty;
+            PersistSizeChart();
+            return (true, null);
+        }
+    }
+
+    public IReadOnlyList<MeasurementProfile> GetMeasurementProfiles()
+    {
+        lock (_lock)
+            return _profiles.Select(CloneProfile).ToList();
     }
 
     public (bool Ok, string? Error) SaveMeasurementProfile(string name, IReadOnlyDictionary<string, decimal> measurements)
@@ -170,8 +182,38 @@ public class SizeChartService : ISizeChartService
             {
                 existing.Measurements = new Dictionary<string, decimal>(measurements, StringComparer.OrdinalIgnoreCase);
             }
+
+            PersistProfiles();
         }
 
         return (true, null);
     }
+
+    private void PersistSizeChart()
+    {
+        _sizeChart.Save(new SizeChartStore
+        {
+            Columns = [.. _columns],
+            Rows    = _rows.Select(CloneRow).ToList(),
+        });
+    }
+
+    private void PersistProfiles() =>
+        _profilesRepo.Save(_profiles.Select(CloneProfile));
+
+    private static SizeRow CloneRow(SizeRow r) =>
+        new()
+        {
+            MeasurementPoint = r.MeasurementPoint,
+            ToleranceCm = r.ToleranceCm,
+            MeasurementMethod = r.MeasurementMethod,
+            Values = [.. r.Values],
+        };
+
+    private static MeasurementProfile CloneProfile(MeasurementProfile p) =>
+        new()
+        {
+            Name = p.Name,
+            Measurements = new Dictionary<string, decimal>(p.Measurements, StringComparer.OrdinalIgnoreCase),
+        };
 }

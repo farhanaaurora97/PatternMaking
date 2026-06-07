@@ -18,6 +18,11 @@
   <div class="cv-header-actions">
     <button class="btn btn-outline btn-sm" id="btn-undo" title="Undo (Ctrl+Z)">↺ Undo</button>
     <button class="btn btn-outline btn-sm" id="btn-clear-canvas" title="Clear canvas">✕ Clear</button>
+    @if (Model.PatternId > 0)
+    {
+      <button class="btn btn-outline btn-sm" id="btn-reset-from-style" type="button"
+              title="Load real @Model.StyleKey template pieces (replaces placeholder blocks)">↺ Style template</button>
+    }
     <button class="btn btn-outline btn-sm" id="btn-save-all" title="Save all (Ctrl+S)">⬆ Save All</button>
     <button class="btn btn-outline btn-sm" id="btn-fit-all" title="Fit all (Space)">⊞ Fit All</button>
     <div class="cv-sep"></div>
@@ -119,13 +124,25 @@
       <div id="cp-edges" style="font-size:10.5px;line-height:2;color:var(--ink3);font-family:var(--font-mono)">—</div>
     </div>
 
-    <!-- Seam allowance values -->
-    <div class="cp-section">
+    <!-- Seam allowance (per piece) -->
+    <div class="cp-section cp-section--sa">
       <div class="cp-label">Seam Allowance</div>
-      <div class="sa-row"><span class="sa-label">Side seam</span><span class="sa-value">1.0 cm</span></div>
-      <div class="sa-row"><span class="sa-label">Waist</span><span class="sa-value">1.5 cm</span></div>
-      <div class="sa-row"><span class="sa-label">Crotch</span><span class="sa-value">1.5 cm</span></div>
-      <div class="sa-row"><span class="sa-label">Hem</span><span class="sa-value">3.0 cm</span></div>
+      <div class="sa-stack">
+        <div>
+          <label class="sa-field-label" for="sa-value">Distance (px)</label>
+          <input id="sa-value" class="cp-input sa-input-lg" type="number" min="0" step="0.5"
+                 inputmode="decimal" autocomplete="off" placeholder="0" />
+        </div>
+        <div>
+          <label class="sa-field-label" for="sa-join">Corner join</label>
+          <select id="sa-join" class="cp-input sa-select-lg">
+            <option value="miter">Miter</option>
+            <option value="bevel">Bevel</option>
+            <option value="round">Round</option>
+          </select>
+        </div>
+      </div>
+      <p class="sa-help">Uses <b>canvas pixels</b> (export uses the same units). Use <b>0</b> to hide SA.</p>
     </div>
 
     <!-- New piece form (shown while drawing) -->
@@ -156,7 +173,7 @@
       <div class="cp-label">Auto-Draft Sizes</div>
       <div style="font-size:10.5px;color:var(--ink4);margin-bottom:8px;line-height:1.55">Generate pieces from size chart.</div>
 
-      <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:8px;cursor:pointer;color:var(--ink2)">
+      <label class="cp-check-lg" for="use-custom-measurements">
         <input type="checkbox" id="use-custom-measurements"> My body measurements
       </label>
 
@@ -198,13 +215,13 @@
         </div>
       </div>
 
-      <div id="draft-size-checks" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="XS"> XS</label>
-        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="S"> S</label>
-        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="M" checked> M</label>
-        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="L" checked> L</label>
-        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="XL" checked> XL</label>
-        <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="size-cb" value="XXL" checked> XXL</label>
+      <div id="draft-size-checks" class="draft-size-grid" role="group" aria-label="Sizes to draft">
+        <label class="size-cb-label"><input type="checkbox" class="size-cb" value="XS"> <span>XS</span></label>
+        <label class="size-cb-label"><input type="checkbox" class="size-cb" value="S"> <span>S</span></label>
+        <label class="size-cb-label"><input type="checkbox" class="size-cb" value="M" checked> <span>M</span></label>
+        <label class="size-cb-label"><input type="checkbox" class="size-cb" value="L" checked> <span>L</span></label>
+        <label class="size-cb-label"><input type="checkbox" class="size-cb" value="XL" checked> <span>XL</span></label>
+        <label class="size-cb-label"><input type="checkbox" class="size-cb" value="XXL" checked> <span>XXL</span></label>
       </div>
 
       <div id="auto-size-pill" style="display:none;margin-bottom:7px;font-size:10.5px;color:#075985;background:#e0f2fe;border:1px solid #bae6fd;border-radius:999px;padding:4px 10px">
@@ -252,6 +269,7 @@
     window.RECOMMEND_SIZE_URL  = '@Url.Action("RecommendSize",          "Canvas")';
     window.SAVE_PROFILE_URL    = '@Url.Action("SaveMeasurementProfile", "Canvas")';
     window.PROFILES_URL        = '@Url.Action("MeasurementProfiles",    "Canvas")';
+    window.RESET_FROM_STYLE_URL = '@Url.Action("ResetFromStyle",       "Canvas")';
   </script>
   <script src="~/js/canvas.js" asp-append-version="true"></script>
 }

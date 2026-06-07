@@ -5262,7 +5262,7 @@
         "name": "Front Leg",
         "cut": "Cut 2",
         "color": "#a78bfa",
-        "category": "Hardware \u0026 Details",
+        "category": "Body Panels",
         "grainLine": "Straight",
         "description": "",
         "points": [
@@ -5283,14 +5283,26 @@
             400
           ]
         ],
+        "grain": [
+          [
+            150,
+            60
+          ],
+          [
+            150,
+            390
+          ]
+        ],
         "offsetX": 0,
-        "offsetY": 0
+        "offsetY": 0,
+        "seamAllowance": 3,
+        "seamAllowanceJoin": "miter"
       },
       {
         "name": "Back Leg",
         "cut": "Cut 2",
         "color": "#60a5fa",
-        "category": "Hardware \u0026 Details",
+        "category": "Body Panels",
         "grainLine": "Straight",
         "description": "",
         "points": [
@@ -5311,14 +5323,26 @@
             400
           ]
         ],
+        "grain": [
+          [
+            150,
+            60
+          ],
+          [
+            150,
+            390
+          ]
+        ],
         "offsetX": 0,
-        "offsetY": 0
+        "offsetY": 0,
+        "seamAllowance": 3,
+        "seamAllowanceJoin": "miter"
       },
       {
         "name": "Waistband",
         "cut": "Cut 2",
         "color": "#34d399",
-        "category": "Hardware \u0026 Details",
+        "category": "Body Panels",
         "grainLine": "Straight",
         "description": "",
         "points": [
@@ -5339,8 +5363,20 @@
             400
           ]
         ],
+        "grain": [
+          [
+            150,
+            60
+          ],
+          [
+            150,
+            390
+          ]
+        ],
         "offsetX": 0,
-        "offsetY": 0
+        "offsetY": 0,
+        "seamAllowance": 3,
+        "seamAllowanceJoin": "miter"
       },
       {
         "name": "Fly Facing",

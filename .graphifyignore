@@ -1,0 +1,58 @@
+# PatternMaking — Graphify skip list (gitignore-style patterns)
+# Rebuild after edits:  python -m graphify update . --force
+
+# --- .NET build & IDE ---
+**/bin/
+**/obj/
+**/.vs/
+**/packages/
+**/TestResults/
+**/*.user
+**/*.suo
+**/*.cache
+
+# --- Runtime / local data (not source) ---
+**/App_Data/
+
+# --- Export & scratch output (repo root) ---
+check-pdf/
+check-pdf.zip
+tmp-export-*/
+tmp-export-dxf/
+tmp-export-pdf/
+tmp-export-svg/
+
+# --- Graphify own outputs (avoid indexing the map) ---
+graphify-out/
+
+# --- AI / editor config (not app code) ---
+.cursor/
+.claude/
+
+# --- Secrets (never index credentials) ---
+**/secrets.json
+**/*secrets*.json
+**/appsettings.*.local.json
+
+# --- Vendor / deps ---
+**/node_modules/
+
+# --- Large binaries & generated assets ---
+**/*.dll
+**/*.exe
+**/*.pdb
+**/*.zip
+**/*.pdf
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.ico
+**/*.woff
+**/*.woff2
+
+# --- Duplicate mirrors (canonical sources kept for the graph) ---
+# Business compiles Pattern.PublicServices → PatternPro.Business (see PatternPro.Business.csproj)
+PatternPro.PublicServices/
+# Pattern.Web and PatternPro.Web share the same app source set
+PatternPro.Web/

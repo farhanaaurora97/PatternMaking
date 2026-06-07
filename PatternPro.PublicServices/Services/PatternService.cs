@@ -1,5 +1,6 @@
 using Pattern.Core.Model;
 using PatternPro.Core.IServices;
+using PatternPro.Core.Persistence;
 
 namespace PatternPro.Business.Services;
 
@@ -48,13 +49,13 @@ public class PatternService : IPatternService
         new() { Id = 21, Code = "DN-005", Name = "Wide Leg Comfort",  Style = "Wide Leg", BaseSize = "M", PieceCount = 8, Status = "Pending",    Date = "2025-01-05", Designer = "Pattern Designer", Category = "Denim",      CreatedAt = new DateTime(2026, 3, 27, 9, 0, 0), DueDate = new DateTime(2026, 4, 4) },
     ];
 
-    private readonly JsonDataStore _store;
+    private readonly IAppDataStore _store;
     private readonly List<Pattern.Core.Model.Pattern> _patterns;
     private int _nextId;
 
     private static readonly string[] _statusCycle = ["Pending", "Draft", "InProgress", "Graded", "Done"];
 
-    public PatternService(JsonDataStore store)
+    public PatternService(IAppDataStore store)
     {
         _store = store;
         var saved = store.LoadPatternsStore();

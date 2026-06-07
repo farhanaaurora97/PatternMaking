@@ -1,5 +1,6 @@
 using Pattern.Core.Model;
 using PatternPro.Core.IServices;
+using PatternPro.Core.Persistence;
 
 namespace PatternPro.Business.Services;
 
@@ -30,11 +31,11 @@ public class PieceService : IPieceService
 
     private static readonly int[][] _basePiecePoints = [[100, 50], [300, 50], [300, 400], [100, 400]];
 
-    private readonly JsonDataStore _store;
+    private readonly IAppDataStore _store;
     private readonly Dictionary<string, List<PieceDefinition>> _defsPerStyle;
     private readonly Dictionary<int,    List<PieceDefinition>> _defsPerPattern;
 
-    public PieceService(JsonDataStore store)
+    public PieceService(IAppDataStore store)
     {
         _store = store;
         var saved = store.LoadPieces();
@@ -180,7 +181,8 @@ public class PieceService : IPieceService
     public (bool Ok, string? Error) UpdatePieceGeometry(
         string styleKey, string pieceName,
         List<int[]> points, int offsetX, int offsetY,
-        List<int[]>? grain, List<int[]>? cf, List<int[]>? notches)
+        List<int[]>? grain, List<int[]>? cf, List<int[]>? notches,
+        double seamAllowance = 0, string? seamAllowanceJoin = null)
     {
         if (!_defsPerStyle.TryGetValue(styleKey, out var list))
             return (false, $"Style '{styleKey}' not found.");
@@ -195,6 +197,9 @@ public class PieceService : IPieceService
         if (grain   is not null) piece.Grain   = grain;
         if (cf      is not null) piece.Cf      = cf;
         if (notches is not null) piece.Notches = notches;
+        piece.SeamAllowance = seamAllowance;
+        if (!string.IsNullOrWhiteSpace(seamAllowanceJoin))
+            piece.SeamAllowanceJoin = seamAllowanceJoin.Trim().ToLowerInvariant();
         Persist();
         return (true, null);
     }
@@ -202,7 +207,8 @@ public class PieceService : IPieceService
     public (bool Ok, string? Error) UpdatePatternPieceGeometry(
         int patternId, string styleKey, string pieceName,
         List<int[]> points, int offsetX, int offsetY,
-        List<int[]>? grain, List<int[]>? cf, List<int[]>? notches)
+        List<int[]>? grain, List<int[]>? cf, List<int[]>? notches,
+        double seamAllowance = 0, string? seamAllowanceJoin = null)
     {
         if (!_defsPerPattern.ContainsKey(patternId))
             _ = GetPieceDefinitions(patternId, styleKey);
@@ -218,6 +224,9 @@ public class PieceService : IPieceService
         if (grain   is not null) piece.Grain   = grain;
         if (cf      is not null) piece.Cf      = cf;
         if (notches is not null) piece.Notches = notches;
+        piece.SeamAllowance = seamAllowance;
+        if (!string.IsNullOrWhiteSpace(seamAllowanceJoin))
+            piece.SeamAllowanceJoin = seamAllowanceJoin.Trim().ToLowerInvariant();
         Persist();
         return (true, null);
     }
@@ -356,6 +365,8 @@ public class PieceService : IPieceService
         Notches     = d.Notches is null ? null : [.. d.Notches],
         OffsetX     = d.OffsetX,
         OffsetY     = d.OffsetY,
+        SeamAllowance = d.SeamAllowance,
+        SeamAllowanceJoin = d.SeamAllowanceJoin,
     };
 
     private static string DefaultColor(int index) => (index % 6) switch

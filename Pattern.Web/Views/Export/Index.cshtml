@@ -1,4 +1,5 @@
 @model ExportViewModel
+@using Pattern.Core.Model
 @{ ViewData["Title"] = "Export / DXF"; }
 
 <div class="page-hdr">
@@ -8,6 +9,12 @@
     @if (string.Equals((string?)ViewBag.ExportSource, "draft", StringComparison.OrdinalIgnoreCase))
     {
       <div class="tag tag-purple" style="margin-top:6px;display:inline-flex">Draft sizes from canvas loaded</div>
+    }
+    @if (Model.PatternId > 0)
+    {
+      <div class="tag tag-purple" style="margin-top:6px;display:inline-flex;margin-left:6px" title="One fit per factory ZIP — use Dashboard to export other styles">
+        @Model.PatternDisplayName · @Model.StyleLabel
+      </div>
     }
   </div>
 </div>
@@ -26,6 +33,100 @@
       }
     </div>
   }
+</div>
+
+<div class="card" id="production-qc-card" style="margin-bottom:20px">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <span>Production QC — Factory floor</span>
+    <span class="tag @(Model.CanExportToFactory ? "tag-green" : "tag-gold")" id="qc-status-tag">
+      @(Model.CanExportToFactory ? "Ready for factory" : "Not production certified")
+    </span>
+  </div>
+  @if (Model.CanExportToFactory)
+  {
+    <p style="margin:10px 0 0;font-size:13px;color:#166534;font-weight:600">
+      Factory ZIP is ready — scroll down and click <strong>↓ Factory export</strong> to download for the cutting room.
+    </p>
+  }
+  <p style="font-size:12.5px;color:var(--ink3);margin:0 0 14px">
+    Factory CAM export requires QC pass, design approval, and a recorded cutter/plotter test on real equipment.
+  </p>
+  <div class="grid-2" style="gap:16px;margin-bottom:14px">
+    <div>
+      <div class="cp-row" style="margin-bottom:8px">
+        <span style="font-size:13px;color:var(--ink3)">Design approval</span>
+        <span class="tag @(Model.ApprovedForCutting ? "tag-green" : "tag-purple")" id="qc-approved-tag">
+          @(Model.ApprovedForCutting ? "Approved" : "Pending")
+        </span>
+      </div>
+      @if (!string.IsNullOrWhiteSpace(Model.ApprovedBy))
+      {
+        <div style="font-size:12px;color:var(--ink3)" id="qc-approved-by">By @Model.ApprovedBy</div>
+      }
+      <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn-gold btn-sm" id="btn-approve-cutting" @(Model.PatternId <= 0 ? "disabled" : null)>Approve for cutting</button>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-revoke-approval" @(Model.PatternId <= 0 || !Model.ApprovedForCutting ? "disabled" : null)>Revoke</button>
+      </div>
+    </div>
+    <div>
+      <div class="cp-row" style="margin-bottom:8px">
+        <span style="font-size:13px;color:var(--ink3)">Cutter / plotter test</span>
+        <span class="tag @(Model.CutterTestPassed ? "tag-green" : "tag-purple")" id="qc-cutter-tag">
+          @(Model.CutterTestPassed ? "Passed" : "Not recorded")
+        </span>
+      </div>
+      @if (!string.IsNullOrWhiteSpace(Model.CutterTestedBy))
+      {
+        <div style="font-size:12px;color:var(--ink3)" id="qc-cutter-by">By @Model.CutterTestedBy</div>
+      }
+      <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn-gold btn-sm" id="btn-cutter-pass" @(Model.PatternId <= 0 ? "disabled" : null)>Record pass</button>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-cutter-fail" @(Model.PatternId <= 0 ? "disabled" : null)>Record fail</button>
+      </div>
+    </div>
+  </div>
+  <div class="cp-row" style="margin-bottom:12px;max-width:360px;gap:10px">
+    <label for="shrinkage-pct" style="font-size:13px;color:var(--ink2);font-weight:500">Shrinkage %</label>
+    <input type="number" id="shrinkage-pct" min="0" max="15" step="0.5" value="@Model.ShrinkagePercent.ToString("0.#")"
+           style="width:72px;border:1px solid var(--bdr2);border-radius:var(--r);padding:5px 8px;font-size:12.5px" />
+    <button type="button" class="btn btn-outline btn-sm" id="btn-save-shrinkage">Save</button>
+  </div>
+  <div class="row" style="gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <button type="button" class="btn btn-gold" id="btn-complete-certification" @(Model.PatternId <= 0 ? "disabled" : null)
+            title="Apply 1 cm seam allowance on cut pieces, approve for cutting, and confirm cutter test">
+      Prepare &amp; certify for factory
+    </button>
+  </div>
+  <div id="qc-issues-list" style="font-size:12.5px">
+    @{
+      var issues = ViewBag.ValidationIssues as IReadOnlyList<ProductionValidationIssue>;
+      var warnings = ViewBag.ValidationWarnings as IReadOnlyList<ProductionValidationIssue>;
+    }
+    @if (issues is { Count: > 0 })
+    {
+      <div style="color:#b91c1c;margin-bottom:8px;font-weight:600">Blocking issues</div>
+      <ul style="margin:0;padding-left:18px;color:#b91c1c" id="qc-errors-ul">
+        @foreach (var i in issues)
+        {
+          <li>@i.Message @if (!string.IsNullOrWhiteSpace(i.Detail)) { <span style="color:var(--ink3)">— @i.Detail</span> }</li>
+        }
+      </ul>
+    }
+    @if (warnings is { Count: > 0 })
+    {
+      <div style="color:var(--ink2);margin-top:10px;font-weight:600">Warnings</div>
+      <ul style="margin:4px 0 0;padding-left:18px;color:var(--ink3)" id="qc-warnings-ul">
+        @foreach (var w in warnings)
+        {
+          <li>@w.Message</li>
+        }
+      </ul>
+    }
+    @if ((issues is null || issues.Count == 0) && (warnings is null || warnings.Count == 0) && Model.PatternId > 0)
+    {
+      <div style="color:var(--ink3)">No geometry QC issues — complete approval and cutter test to enable factory download.</div>
+    }
+  </div>
 </div>
 
 <div class="grid-2">
@@ -91,20 +192,24 @@
     </div>
 
     <hr>
-    <div class="row" style="justify-content:flex-end">
+    <div class="row" style="justify-content:flex-end;flex-wrap:wrap;gap:8px">
       <button class="btn btn-outline" id="btn-preview">Preview</button>
+      <button class="btn btn-outline" id="btn-download-clo" @(Model.PatternId <= 0 ? "disabled" : null)>CLO review ZIP</button>
+      <button class="btn btn-outline" id="btn-download-draft" @(Model.PatternId <= 0 ? "disabled" : null)>Draft ZIP</button>
       <button class="btn btn-gold" style="padding:9px 22px;font-size:13px"
-              id="btn-download-export">↓ Download Export</button>
+              id="btn-download-export"
+              @(Model.PatternId > 0 && !Model.CanExportToFactory ? "disabled" : null)
+              title="@(Model.CanExportToFactory ? "Production-certified factory export" : "Complete QC, approval, and cutter test first")">
+        ↓ Factory export
+      </button>
     </div>
   </div>
 </div>
 
-@* Hidden target for GET download — avoids Chrome/Edge "File wasn't available on site" with fetch/blob or <a download> on live URLs. *@
 <iframe name="pp-export-dl" id="pp-export-dl" title="Export download"
         style="position:absolute;width:0;height:0;border:0;left:-9999px;visibility:hidden"
         aria-hidden="true"></iframe>
 
-@* ── Export Preview Modal ─────────────────────────────────────────── *@
 <div class="modal-overlay" id="preview-modal-overlay">
   <div class="modal modal-wide">
     <div class="modal-title">Export Preview</div>
@@ -125,6 +230,13 @@
     window.EXPORT_PATTERN_ID = @Model.PatternId;
     window.EXPORT_SIZES_CSV = '@Model.SizesCsv';
     window.DOWNLOAD_PACKAGE_URL = '@Url.Action("DownloadPackage", "Export")';
+    window.VALIDATE_FACTORY_URL = '@Url.Action("ValidateFactory", "Export")';
+    window.APPROVE_CUTTING_URL = '@Url.Action("ApproveForCutting", "Export")';
+    window.REVOKE_APPROVAL_URL = '@Url.Action("RevokeApproval", "Export")';
+    window.RECORD_CUTTER_URL = '@Url.Action("RecordCutterTest", "Export")';
+    window.SET_SHRINKAGE_URL = '@Url.Action("SetShrinkage", "Export")';
+    window.COMPLETE_CERTIFICATION_URL = '@Url.Action("CompleteFactoryCertification", "Export")';
+    window.CAN_EXPORT_FACTORY = @(Model.CanExportToFactory ? "true" : "false");
   </script>
   <script src="~/js/export.js" asp-append-version="true"></script>
 }

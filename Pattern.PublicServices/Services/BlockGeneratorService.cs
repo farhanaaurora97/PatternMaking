@@ -1,11 +1,22 @@
 using Pattern.Core.Model;
 using PatternPro.Core.IServices;
+using PatternPro.Core.Persistence.Repositories;
 
 namespace PatternPro.Business.Services;
 
 public class BlockGeneratorService : IBlockGeneratorService
 {
-    private readonly Dictionary<string, Dictionary<string, decimal>> _overrides = new(StringComparer.OrdinalIgnoreCase);
+    private readonly IEaseOverridesRepository _ease;
+    private readonly Dictionary<string, Dictionary<string, decimal>> _overrides;
+
+    public BlockGeneratorService(IEaseOverridesRepository ease)
+    {
+        _ease = ease;
+        var persisted = ease.Load();
+        _overrides = persisted.OverridesByStyle.Count > 0
+            ? CloneOverrides(persisted.OverridesByStyle)
+            : new Dictionary<string, Dictionary<string, decimal>>(StringComparer.OrdinalIgnoreCase);
+    }
 
     private static readonly Dictionary<string, BlockDefinition> _defs =
         new(StringComparer.OrdinalIgnoreCase)
@@ -115,10 +126,31 @@ public class BlockGeneratorService : IBlockGeneratorService
         if (!_overrides.ContainsKey(styleKey))
             _overrides[styleKey] = new(StringComparer.OrdinalIgnoreCase);
         _overrides[styleKey][key] = value;
+        PersistOverrides();
     }
 
-    public void ResetEase(string styleKey) =>
+    public void ResetEase(string styleKey)
+    {
         _overrides.Remove(styleKey);
+        PersistOverrides();
+    }
+
+    private void PersistOverrides()
+    {
+        _ease.Save(new EaseOverridesStore
+        {
+            OverridesByStyle = CloneOverrides(_overrides),
+        });
+    }
+
+    private static Dictionary<string, Dictionary<string, decimal>> CloneOverrides(
+        Dictionary<string, Dictionary<string, decimal>> source)
+    {
+        var result = new Dictionary<string, Dictionary<string, decimal>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (style, map) in source)
+            result[style] = new Dictionary<string, decimal>(map, StringComparer.OrdinalIgnoreCase);
+        return result;
+    }
 
     public GeneratedBlock GenerateBlock(string styleKey)
     {

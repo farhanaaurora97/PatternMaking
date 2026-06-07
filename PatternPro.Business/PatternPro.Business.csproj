@@ -18,7 +18,6 @@
   <ItemGroup>
     <!-- Phase 1: compile implementations from their original location, but under PatternPro.Business namespaces. -->
     <Compile Include="..\Pattern.PublicServices\Services\*.cs"
-             Exclude="..\Pattern.PublicServices\Services\JsonDataStore.cs"
              Link="Services\%(Filename)%(Extension)" />
   </ItemGroup>
 

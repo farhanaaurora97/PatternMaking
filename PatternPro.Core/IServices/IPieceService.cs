@@ -35,16 +35,24 @@ public interface IPieceService
     (bool Ok, string? Error) UpdatePieceGeometry(
         string styleKey, string pieceName,
         List<int[]> points, int offsetX, int offsetY,
-        List<int[]>? grain, List<int[]>? cf, List<int[]>? notches);
+        List<int[]>? grain, List<int[]>? cf, List<int[]>? notches,
+        double seamAllowance = 0, string? seamAllowanceJoin = null);
     (bool Ok, string? Error) UpdatePatternPieceGeometry(
         int patternId, string styleKey, string pieceName,
         List<int[]> points, int offsetX, int offsetY,
-        List<int[]>? grain, List<int[]>? cf, List<int[]>? notches);
+        List<int[]>? grain, List<int[]>? cf, List<int[]>? notches,
+        double seamAllowance = 0, string? seamAllowanceJoin = null);
 
     /// <summary>Replaces all pieces for a specific pattern with a freshly drafted set.</summary>
     void ReplacePatternPieces(int patternId, IEnumerable<PieceDefinition> pieces);
 
     /// <summary>Returns IDs of all patterns that have canvas geometry saved.</summary>
     IReadOnlySet<int> GetSavedPatternIds();
+
+    /// <summary>Sets default seam allowance (cm) on cut pieces that have none; returns count updated.</summary>
+    int ApplyDefaultSeamAllowances(int patternId, string styleKey, double seamAllowanceCm = 1.0);
+
+    /// <summary>Replaces pattern-owned geometry with a fresh copy from the style template (designer reset).</summary>
+    void ResetPatternFromStyle(int patternId, string styleKey);
 }
 

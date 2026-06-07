@@ -51,6 +51,8 @@ public class CanvasController(
             Notches = d.Notches,
             Ox      = d.OffsetX,
             Oy      = d.OffsetY,
+            Sa      = d.SeamAllowance,
+            SaJoin  = d.SeamAllowanceJoin,
         });
         return Ok(dtos);
     }
@@ -68,10 +70,12 @@ public class CanvasController(
         var (ok, error) = req.PatternId > 0
             ? pieceService.UpdatePatternPieceGeometry(
                 req.PatternId, styleKey, req.Name,
-                req.Pts, req.Ox, req.Oy, req.Grain, req.Cf, req.Notches)
+                req.Pts, req.Ox, req.Oy, req.Grain, req.Cf, req.Notches,
+                req.Sa, req.SaJoin)
             : pieceService.UpdatePieceGeometry(
                 styleKey, req.Name,
-                req.Pts, req.Ox, req.Oy, req.Grain, req.Cf, req.Notches);
+                req.Pts, req.Ox, req.Oy, req.Grain, req.Cf, req.Notches,
+                req.Sa, req.SaJoin);
 
         return ok ? Ok() : BadRequest(new { error });
     }
@@ -90,9 +94,11 @@ public class CanvasController(
             if (p.Pts is null || p.Pts.Count < 3) { errors.Add($"{p.Name}: need ≥ 3 points"); continue; }
             var (ok, err) = req.PatternId > 0
                 ? pieceService.UpdatePatternPieceGeometry(
-                    req.PatternId, styleKey, p.Name, p.Pts, p.Ox, p.Oy, p.Grain, p.Cf, p.Notches)
+                    req.PatternId, styleKey, p.Name, p.Pts, p.Ox, p.Oy, p.Grain, p.Cf, p.Notches,
+                    p.Sa, p.SaJoin)
                 : pieceService.UpdatePieceGeometry(
-                    styleKey, p.Name, p.Pts, p.Ox, p.Oy, p.Grain, p.Cf, p.Notches);
+                    styleKey, p.Name, p.Pts, p.Ox, p.Oy, p.Grain, p.Cf, p.Notches,
+                    p.Sa, p.SaJoin);
             if (!ok) errors.Add($"{p.Name}: {err}");
         }
         return errors.Count == 0
@@ -181,6 +187,8 @@ public class CanvasController(
             Notches = piece.Notches ?? [],
             Ox      = piece.OffsetX,
             Oy      = piece.OffsetY,
+            Sa      = piece.SeamAllowance,
+            SaJoin  = piece.SeamAllowanceJoin,
         });
     }
 
@@ -307,6 +315,33 @@ public class CanvasController(
         var (ok, error) = sizeChartService.SaveMeasurementProfile(req.Name, measurements);
         if (!ok) return BadRequest(new { error });
         return Ok(new { saved = true });
+    }
+
+    /// <summary>Replace pattern geometry with the style template (real leg shapes, not placeholder blocks).</summary>
+    [HttpPost]
+    public IActionResult ResetFromStyle([FromBody] ResetFromStyleRequest? req)
+    {
+        if (req is null || req.PatternId <= 0)
+            return BadRequest(new { error = "patternId is required." });
+
+        var styleKey = FitStyleKeys.Normalize(req.Style ?? "skinny");
+        pieceService.ResetPatternFromStyle(req.PatternId, styleKey);
+        var defs = pieceService.GetPieceDefinitions(req.PatternId, styleKey);
+        var dtos = defs.Select(d => new CanvasPieceDto
+        {
+            Name    = d.Name,
+            Cut     = d.Cut,
+            Col     = d.Color,
+            Pts     = d.Points,
+            Grain   = d.Grain,
+            Cf      = d.Cf,
+            Notches = d.Notches ?? [],
+            Ox      = d.OffsetX,
+            Oy      = d.OffsetY,
+            Sa      = d.SeamAllowance,
+            SaJoin  = d.SeamAllowanceJoin,
+        }).ToList();
+        return Ok(new { reset = true, pieceCount = dtos.Count, pieces = dtos });
     }
 
     private static Dictionary<string, decimal> ToMeasurementsDictionary(

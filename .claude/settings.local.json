@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd.exe:*)",
+      "Write(**)",
+      "Edit(**)",
+      "PowerShell(Stop-Process *)"
+    ]
+  }
+}

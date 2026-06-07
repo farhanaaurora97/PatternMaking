@@ -54,10 +54,10 @@
       <div class="stat-bar"><div class="stat-bar-fill" style="width:70%"></div></div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Completion</div>
-      <div class="stat-val" id="stat-completion" data-target="@Model.CompletionPercent">0<span class="stat-unit">%</span></div>
-      <div class="stat-delta delta-up">↑ Grading done</div>
-      <div class="stat-bar"><div class="stat-bar-fill" id="bar-completion" data-target="@Model.CompletionPercent" style="width:0%"></div></div>
+      <div class="stat-label">Factory ready</div>
+      <div class="stat-val" id="stat-factory-ready" data-target="@Model.ProductionCertifiedCount">@Model.ProductionCertifiedCount</div>
+      <div class="stat-delta">Export: approve + cutter pass (not download alone)</div>
+      <div class="stat-bar"><div class="stat-bar-fill" id="bar-factory-ready" data-target="@(Model.TotalPatternCount == 0 ? 0 : (int)Math.Round(Model.ProductionCertifiedCount * 100.0 / Model.TotalPatternCount))" style="width:0%"></div></div>
     </div>
   </div>
 
@@ -140,13 +140,17 @@
         }
       </div>
       <div class="tbl-spacer" style="flex:1"></div>
+      <a class="btn-dup" asp-controller="StyleSheet" asp-action="Index" style="margin-right:8px">Style Sheet</a>
       <button type="button" class="add-btn" id="btn-add-table">+ Add</button>
     </div>
     <table>
       <thead>
         <tr>
+          <th data-sort="code">Code <span class="sort-icon">↕</span></th>
           <th data-sort="name">Pattern Name <span class="sort-icon">↕</span></th>
-          <th data-sort="style">Style <span class="sort-icon">↕</span></th>
+          <th data-sort="season">Season <span class="sort-icon">↕</span></th>
+          <th data-sort="lifecycle">Lifecycle <span class="sort-icon">↕</span></th>
+          <th data-sort="style">Fit <span class="sort-icon">↕</span></th>
           <th data-sort="base">Base Size <span class="sort-icon">↕</span></th>
           <th data-sort="pieces">Pieces <span class="sort-icon">↕</span></th>
           <th data-sort="status">Status <span class="sort-icon">↕</span></th>
@@ -158,8 +162,17 @@
       <tbody id="patterns-tbody">
         @foreach (var p in Model.Patterns)
         {
-          <tr id="row-@p.Id" data-category="@p.Category" data-status="@p.Status">
-            <td class="td-bold">@p.DisplayName</td>
+          <tr id="row-@p.Id" data-category="@p.Category" data-status="@p.Status" data-lifecycle="@p.LifecycleStatus">
+            <td class="td-mono td-bold">@p.Code</td>
+            <td class="td-bold">
+              @p.Name
+              @if (!string.IsNullOrEmpty(p.ProductionBadgeLabel))
+              {
+                <span class="tag @p.ProductionBadgeCss" style="margin-left:6px;font-size:10px;vertical-align:middle" title="Production certification">@p.ProductionBadgeLabel</span>
+              }
+            </td>
+            <td class="td-mono">@p.Season</td>
+            <td><span class="tag @p.LifecycleCssClass">@p.LifecycleLabel</span></td>
             <td class="td-mono">@p.Style</td>
             <td class="td-mono">@p.BaseSize</td>
             <td class="td-mono">@p.PieceCount</td>
@@ -181,7 +194,7 @@
               <div class="action-btns">
                 <a class="btn-open" asp-controller="Pieces" asp-action="Index" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey">Open</a>
                 <a class="btn-canvas-row" asp-controller="Canvas" asp-action="Index" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey" title="Open in Canvas editor">✏ Canvas</a>
-                <a class="btn-dl" asp-controller="Export" asp-action="DownloadPackage" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey" asp-route-format="DXF" title="Download DXF">↓ DXF</a>
+                <a class="btn-dl" asp-controller="Export" asp-action="Index" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey" title="Export (factory certification)">Export</a>
                 <button type="button" class="btn-dup-row" data-action="duplicate-pattern" data-id="@p.Id" title="Duplicate pattern">⊕</button>
                 <button type="button" class="btn-del" data-action="delete-pattern" data-id="@p.Id">×</button>
               </div>

@@ -178,7 +178,8 @@ public class PatternDraftingService : IPatternDraftingService
         p.Points  = MorphClosedPolyline(user.Points, bRef.Points, tRef.Points);
         p.Grain   = MorphOptionalPolyline(user.Grain, bRef.Grain, tRef.Grain);
         p.Cf      = MorphOptionalPolyline(user.Cf, bRef.Cf, tRef.Cf);
-        p.Notches = MorphOptionalPolyline(user.Notches, bRef.Notches, tRef.Notches);
+        // Notches are open point sets (not a closed ring) — same delta/bbox logic as polylines but explicit.
+        p.Notches = MorphScatteredPoints(user.Notches, bRef.Notches, tRef.Notches);
         return p;
     }
 
@@ -197,6 +198,8 @@ public class PatternDraftingService : IPatternDraftingService
             Notches     = p.Notches?.Select(pt => new[] { pt[0], pt[1] }).ToList(),
             OffsetX     = p.OffsetX,
             OffsetY     = p.OffsetY,
+            SeamAllowance = p.SeamAllowance,
+            SeamAllowanceJoin = p.SeamAllowanceJoin,
         };
 
     private static List<int[]> MorphClosedPolyline(List<int[]> user, List<int[]> bBase, List<int[]> bTarget)
@@ -218,6 +221,26 @@ public class PatternDraftingService : IPatternDraftingService
         if (user is null || user.Count == 0) return user;
         if (bBase is null || bTarget is null || bBase.Count == 0 || bTarget.Count == 0) return user;
         return MorphClosedPolyline(user, bBase, bTarget);
+    }
+
+    /// <summary>
+    /// Morphs notch/cf-style scattered points: per-point delta when counts match templates, else bbox map.
+    /// (Do not treat as a closed polygon loop.)
+    /// </summary>
+    private static List<int[]>? MorphScatteredPoints(List<int[]>? user, List<int[]>? bBase, List<int[]>? bTarget)
+    {
+        if (user is null || user.Count == 0) return user;
+        if (bBase is null || bTarget is null || bBase.Count == 0 || bTarget.Count == 0) return user;
+        if (user.Count == bBase.Count && bBase.Count == bTarget.Count)
+        {
+            return user.Select((pt, i) => new[]
+            {
+                pt[0] + bTarget[i][0] - bBase[i][0],
+                pt[1] + bTarget[i][1] - bBase[i][1],
+            }).ToList();
+        }
+
+        return MorphPointsByBBox(user, bBase, bTarget);
     }
 
     /// <summary>

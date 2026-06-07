@@ -11,7 +11,16 @@
   <ItemGroup>
     <ProjectReference Include="..\Pattern.Web.Model\Pattern.Web.Model.csproj" />
     <ProjectReference Include="..\PatternPro.Business\PatternPro.Business.csproj" />
+    <ProjectReference Include="..\PatternPro.DataAccess\PatternPro.DataAccess.csproj" />
     <ProjectReference Include="..\Pattern.Core.Model\Pattern.Core.Model.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

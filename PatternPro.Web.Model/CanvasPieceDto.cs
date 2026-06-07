@@ -11,6 +11,8 @@ public class CanvasPieceDto
     public List<int[]>? Notches { get; set; }
     public int          Ox      { get; set; }
     public int          Oy      { get; set; }
+    public double       Sa      { get; set; }
+    public string       SaJoin  { get; set; } = "miter";
 }
 
 public class SavePieceRequest
@@ -24,6 +26,8 @@ public class SavePieceRequest
     public List<int[]>? Grain   { get; set; }
     public List<int[]>? Cf      { get; set; }
     public List<int[]>? Notches { get; set; }
+    public double       Sa      { get; set; }
+    public string       SaJoin  { get; set; } = "miter";
 }
 
 public class SaveAllPiecesRequest
@@ -95,4 +99,10 @@ public class SaveMeasurementProfileRequest
     public decimal Knee { get; set; }
     public decimal Ankle { get; set; }
     public decimal Inseam { get; set; }
+}
+
+public class ResetFromStyleRequest
+{
+    public int PatternId { get; set; }
+    public string? Style { get; set; }
 }
