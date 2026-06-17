@@ -10,7 +10,7 @@ How PatternPro maps to garment-industry steps and what was built for each.
 | 4 | Piece breakdown | **Pattern Pieces** | Piece list, auto-draft, piece #, material, on-fold flags |
 | 5 | Hand edit outlines | **Canvas** | Move points, grain, notches; **Validate factory** QC from canvas |
 | 6 | Multi-size grading | **Grading** + export | Delta table (editable); canvas master graded on export |
-| 7 | Cutter files | **Export** | DXF in **millimeters** ($INSUNITS=4), layers CUT/SA/GRAIN/NOTCH |
+| 7 | Cutter files | **Export** | DXF (mm), HPGL, PLT — layers/pens CUT/SA/GRAIN/NOTCH |
 | 8 | Factory gate | **Export** QC | QC → approve → **manual** cutter test → factory ZIP + `certification.json` |
 
 ## 1 — Style register (PLM)
@@ -50,8 +50,8 @@ How PatternPro maps to garment-industry steps and what was built for each.
 
 ## 7 — Export / CAM
 
-- ZIP: DXF, SVG, PDF per size
-- **DXF coordinates in mm** (not canvas pixels) for plotter/cutter software
+- ZIP: **DXF**, **HPGL**, or **PLT** per size (select on Export page)
+- **DXF coordinates in mm** (`$INSUNITS=4`); HPGL/PLT in standard plotter units (1016/in)
 - Factory ZIP includes **`certification.json`** (approver, cutter test, QC issues)
 
 ## 8 — Controlled factory release

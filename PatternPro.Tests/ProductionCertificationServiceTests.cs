@@ -121,6 +121,40 @@ public class ProductionCertificationServiceTests
         Assert.True(report.CutterTestPassed);
     }
 
+    [Fact]
+    public void CompleteFactoryCertification_WhenCutterTestPending_ApprovesButStillBlocked()
+    {
+        var pattern = new Pattern.Core.Model.Pattern
+        {
+            Id = 1,
+            Style = "Skinny",
+            CutterTestPassed = false,
+        };
+        var pieceList = TestPieceFactory.MinimalFactorySet().Select(ClonePiece).ToList();
+
+        var patternService = new Mock<IPatternService>();
+        patternService.Setup(s => s.GetAll()).Returns(() => new[] { pattern });
+        patternService.Setup(s => s.ApproveForCutting(1, "Designer"))
+            .Callback(() => pattern.ApprovedForCutting = true)
+            .Returns(() => pattern);
+
+        var pieceService = new Mock<IPieceService>();
+        pieceService.Setup(s => s.GetPieceDefinitions(1, It.IsAny<string>())).Returns(pieceList);
+        pieceService.Setup(s => s.ApplyDefaultSeamAllowances(1, It.IsAny<string>(), 1.0)).Returns(3);
+
+        var sut = new ProductionCertificationService(
+            patternService.Object,
+            pieceService.Object,
+            new SeamValidationService());
+
+        var report = sut.CompleteFactoryCertification(1, "skinny", "Designer");
+
+        Assert.True(report.ApprovedForCutting);
+        Assert.False(report.CutterTestPassed);
+        Assert.False(report.CanExportToFactory);
+        Assert.Contains(report.Issues, i => i.Code == "CUTTER_TEST");
+    }
+
     private static PieceDefinition ClonePiece(PieceDefinition p) => new()
     {
         Name = p.Name,

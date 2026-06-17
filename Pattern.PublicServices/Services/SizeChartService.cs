@@ -28,6 +28,11 @@ public class SizeChartService : ISizeChartService
         var source = persisted.Rows.Count > 0 ? persisted : AppDataDefaults.CreateDefaultSizeChart();
         if (persisted.Rows.Count == 0)
             sizeChart.Save(source);
+        else if (AppDataDefaults.IsLegacyDefaultSizeChart(persisted))
+        {
+            source = AppDataDefaults.CreateDefaultSizeChart();
+            sizeChart.Save(source);
+        }
 
         _columns = [.. source.Columns];
         _rows    = source.Rows.Select(CloneRow).ToList();

@@ -5,6 +5,9 @@ namespace PatternPro.Core.IServices;
 public interface IPatternDraftingService
 {
     IReadOnlyList<PieceDefinition> DraftPieces(string styleKey, string baseSize);
+
+    /// <summary>Drafts bottom-wear pieces and auto-refines for production (seams, SA, notches).</summary>
+    IReadOnlyList<PieceDefinition> DraftProductionPieces(string styleKey, string baseSize);
     Dictionary<string, IReadOnlyList<PieceDefinition>> DraftGradedSet(string styleKey, IEnumerable<string> sizes);
     Dictionary<string, IReadOnlyList<PieceDefinition>> DraftGradedSetFromMeasurements(
         string styleKey,

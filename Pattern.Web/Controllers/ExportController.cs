@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pattern.Core.Model;
 using PatternPro.Core.IServices;
@@ -5,6 +6,7 @@ using Pattern.Web.Model;
 
 namespace Pattern.Web.Controllers;
 
+[Authorize]
 public class ExportController(
     IExportService exportService,
     IPatternService patternService,
@@ -62,22 +64,9 @@ public class ExportController(
         return View(vm);
     }
 
-    /// <summary>Default SA on cut pieces; auto-certify when cutter test passed and geometry QC is clean.</summary>
-    private void PreparePatternForFactoryExport(int patternId, string styleKey)
-    {
+    /// <summary>Apply default seam allowances before QC display. Certification stays explicit (approve + cutter test).</summary>
+    private void PreparePatternForFactoryExport(int patternId, string styleKey) =>
         pieceService.ApplyDefaultSeamAllowances(patternId, styleKey);
-
-        var pattern = patternService.GetAll().FirstOrDefault(p => p.Id == patternId);
-        if (pattern is null || pattern.ApprovedForCutting)
-            return;
-
-        var pre = productionCertification.ValidateForFactory(patternId, styleKey);
-        var geoErrors = pre.Issues.Where(i => i.Code is not "NOT_APPROVED" and not "CUTTER_TEST").ToList();
-        if (geoErrors.Count > 0)
-            return;
-
-        productionCertification.CompleteFactoryCertification(patternId, styleKey, "Pattern Designer");
-    }
 
     [HttpGet]
     public IActionResult ValidateFactory(int patternId, string style = "skinny")
@@ -221,6 +210,13 @@ public class ExportController(
         }
 
         var exportPurpose = ParsePurpose(purpose);
+        if (exportPurpose == ExportPurpose.Factory
+            && !User.IsInRole(AppRoles.Admin)
+            && !User.IsInRole(AppRoles.Designer))
+        {
+            return Forbid();
+        }
+
         var selectedSizes = ParseSizes(sizes);
         byte[] bytes;
         string contentType;

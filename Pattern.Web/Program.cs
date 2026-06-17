@@ -1,8 +1,10 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using PatternPro.Business.Services;
 using PatternPro.Core.IServices;
 using PatternPro.DataAccess;
+using Pattern.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,9 +15,11 @@ var mvc = builder.Services.AddControllersWithViews()
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         o.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
+mvc.AddPatternProGlobalAuth();
 if (builder.Environment.IsDevelopment())
     mvc.AddRazorRuntimeCompilation();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddPatternProAuth(builder.Environment);
 
 var dataDir = Path.Combine(builder.Environment.ContentRootPath, "App_Data");
 builder.Services.AddPatternProDataAccess(builder.Configuration, dataDir);
@@ -30,19 +34,27 @@ builder.Services.AddSingleton<IExportService, ExportService>();
 builder.Services.AddSingleton<IPatternDraftingService, PatternDraftingService>();
 builder.Services.AddSingleton<ISeamValidationService, SeamValidationService>();
 builder.Services.AddSingleton<IProductionCertificationService, ProductionCertificationService>();
+builder.Services.AddSingleton<IUserService, UserService>();
 
 var app = builder.Build();
 
 app.Services.MigratePatternProDatabase();
+app.SeedAdminUser();
+app.LogProductionReadinessWarnings();
 
 if (!app.Environment.IsDevelopment())
 {
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    });
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
     app.UseHttpsRedirection();
 }
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

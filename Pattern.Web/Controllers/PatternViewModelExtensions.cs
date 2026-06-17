@@ -72,7 +72,7 @@ internal static class PatternViewModelExtensions
         Date             = p.Date,
         Season           = string.IsNullOrWhiteSpace(p.Season) ? Pattern.Core.Model.StyleLifecycle.DefaultSeason() : p.Season,
         Owner            = string.IsNullOrWhiteSpace(p.Owner) ? (p.Designer ?? "Unassigned") : p.Owner,
-        Designer         = p.Designer,
+        Designer         = p.Designer ?? string.Empty,
         LifecycleStatus  = lifecycle,
         LifecycleLabel   = _lifecycleLabels.GetValueOrDefault(lifecycle, lifecycle),
         Revision         = string.IsNullOrWhiteSpace(p.Revision) ? "Proto-1" : p.Revision,

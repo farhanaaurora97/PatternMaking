@@ -44,7 +44,6 @@ public class PatternCreateViewModel
         ("shorts", "Shorts"),
         ("sweatpants", "Sweatpants"),
         ("corduroy", "Corduroy"),
-        ("dress", "Dress pants"),
         ("workwear", "Workwear"),
     ];
 

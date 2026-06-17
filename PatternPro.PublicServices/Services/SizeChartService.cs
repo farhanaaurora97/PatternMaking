@@ -22,19 +22,14 @@ public class SizeChartService : ISizeChartService
             "XS", "S", "M", "L", "XL", "XXL",
         ];
 
-        _rows =
-        [
-            new() { MeasurementPoint = "Waist",        Values = [60, 64, 68, 72, 76, 80] },
-            new() { MeasurementPoint = "Hip",          Values = [84, 88, 92, 96, 100, 106] },
-            new() { MeasurementPoint = "Front Rise",   Values = [25, 25.5m, 26, 26.5m, 27, 27.5m] },
-            new() { MeasurementPoint = "Back Rise",    Values = [34, 35, 36, 37, 38, 39] },
-            new() { MeasurementPoint = "Crotch Depth", Values = [26, 27, 28, 29, 30, 31] },
-            new() { MeasurementPoint = "Thigh",        Values = [50, 53, 56, 59, 62, 66] },
-            new() { MeasurementPoint = "Knee",         Values = [34, 36, 38, 40, 42, 44] },
-            new() { MeasurementPoint = "Ankle",        Values = [29, 31, 33, 35, 37, 39] },
-            new() { MeasurementPoint = "Inseam",       Values = [77, 78, 79, 80, 80, 80] },
-            new() { MeasurementPoint = "Outseam",      Values = [103, 104.5m, 106, 107.5m, 109, 110] },
-        ];
+        var defaults = AppDataDefaults.CreateDefaultSizeChart();
+        _rows = defaults.Rows.Select(r => new SizeRow
+        {
+            MeasurementPoint = r.MeasurementPoint,
+            ToleranceCm = r.ToleranceCm,
+            MeasurementMethod = r.MeasurementMethod,
+            Values = [.. r.Values],
+        }).ToList();
     }
 
     public IReadOnlyList<string> GetColumnLabels()

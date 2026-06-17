@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Pattern.Core.Model;
+using PatternPro.Business.Services;
 using PatternPro.Core.IServices;
 using Pattern.Web.Model;
-using Pattern.Core.Model;
 
 namespace Pattern.Web.Controllers;
 
@@ -47,16 +48,26 @@ public class PiecesController(
     [HttpPost]
     public IActionResult DraftPieces(int patternId, string style)
     {
-        var baseSize = patternService.GetAll()
-            .FirstOrDefault(p => p.Id == patternId)?.BaseSize ?? "M";
-
-        var pieces = draftingService.DraftPieces(style, baseSize);
-        pieceService.ReplacePatternPieces(patternId, pieces);
-
         var pattern = patternService.GetAll().FirstOrDefault(p => p.Id == patternId);
+        var baseSize = pattern?.BaseSize ?? "M";
+
+        var pieces = draftingService.DraftProductionPieces(style, baseSize);
+        pieceService.ReplacePatternPieces(patternId, pieces);
         if (pattern is not null)
             pattern.PieceCount = pieces.Count;
 
+        SetLayout("Pieces", "Pattern Pieces", style, patternId);
+        return RedirectToAction("Index", new { patternId, style });
+    }
+
+    [HttpPost]
+    public IActionResult RefinePieces(int patternId, string style)
+    {
+        var defs = pieceService.GetPieceDefinitions(patternId, style)
+            .Select(PatternAutoRefineService.Clone)
+            .ToList();
+        PatternAutoRefineService.Refine(defs, style);
+        pieceService.ReplacePatternPieces(patternId, defs);
         SetLayout("Pieces", "Pattern Pieces", style, patternId);
         return RedirectToAction("Index", new { patternId, style });
     }

@@ -96,11 +96,10 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
             return null;
 
         var nextRow = db.AppKeyValues.AsNoTracking().FirstOrDefault(x => x.Key == KeyPatternNextId);
-        var nextId = 22;
-        if (nextRow is not null && int.TryParse(nextRow.Value, out var parsed))
+        var maxId = patterns.Max(p => p.Id);
+        var nextId = maxId + 1;
+        if (nextRow is not null && int.TryParse(nextRow.Value, out var parsed) && parsed > maxId)
             nextId = parsed;
-        else if (patterns.Count > 0)
-            nextId = patterns.Max(p => p.Id) + 1;
 
         return new PatternsStore { NextId = nextId, Patterns = patterns };
     }
@@ -243,6 +242,7 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
         try
         {
             db.Patterns.ExecuteDelete();
+            db.ChangeTracker.Clear();
             if (list.Count > 0)
                 db.Patterns.AddRange(list);
 

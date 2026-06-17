@@ -69,10 +69,6 @@ public class ProductionCertificationService(
         if (!pre.ApprovedForCutting)
             ApproveForCutting(patternId, approvedBy);
 
-        var pattern = patternService.GetAll().FirstOrDefault(p => p.Id == patternId);
-        if (pattern is not null && !pattern.CutterTestPassed)
-            return pre;
-
         return ValidateForFactory(patternId, style);
     }
 

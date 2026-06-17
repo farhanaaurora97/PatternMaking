@@ -24,8 +24,9 @@ public class ExportViewModel
     public static IReadOnlyList<ExportFormatViewModel> Formats =>
     [
         new("DXF", "📐", "Industry standard CAD format. Compatible with Gerber, Lectra, Optitex & all major CAM systems.", true),
-        new("PDF", "📄", "Print-ready PDF at 1:1 scale. Multiple page sizes supported. Good for sampling & approval.", false),
-        new("SVG", "🎨", "Vector format for digital use. Edit in Illustrator, Inkscape or any vector editor.", false),
+        new("HPGL", "🖨", "Hewlett-Packard Graphics Language for plotters and many CAM cutters. Pen layers: CUT, SA, GRAIN, NOTCH.", false),
+        new("PLT", "✂", "HPGL command stream with .plt extension for legacy plotter and cutter drivers.", false),
+        new("PDF", "🖨", "One PDF per piece — print paper patterns (mm scale). Open in Reader and print at 100%.", false),
     ];
 }
 

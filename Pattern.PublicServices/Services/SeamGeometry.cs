@@ -27,6 +27,6 @@ internal static class SeamGeometry
 
     public static double ToCm(double pixels) => pixels / PixelsPerCm;
 
-    public static PieceDefinition? FindPiece(IReadOnlyList<PieceDefinition> pieces, string name) =>
+    public static PieceDefinition? FindPiece(IEnumerable<PieceDefinition> pieces, string name) =>
         pieces.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 }

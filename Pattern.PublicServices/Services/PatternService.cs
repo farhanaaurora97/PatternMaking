@@ -20,7 +20,6 @@ public class PatternService : IPatternService
             ["shorts"] = ("SH", "Shorts"),
             ["sweatpants"] = ("SW", "Sweatpants"),
             ["corduroy"] = ("CD", "Corduroy"),
-            ["dress"] = ("DR", "Dress"),
             ["workwear"] = ("WK", "Workwear"),
         };
 
@@ -63,6 +62,9 @@ public class PatternService : IPatternService
         {
             _patterns = saved.Patterns;
             _nextId   = saved.NextId;
+            var maxId = _patterns.Max(p => p.Id);
+            if (_nextId <= maxId)
+                _nextId = maxId + 1;
             NormalizeStyleSheetFields(_patterns);
         }
         else

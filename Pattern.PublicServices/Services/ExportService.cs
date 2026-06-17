@@ -17,6 +17,11 @@ public class ExportService(
     IPatternService patternService,
     IProductionCertificationService productionCertification) : IExportService
 {
+    private static readonly HashSet<string> SupportedFormats = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "DXF", "HPGL", "PLT", "PDF",
+    };
+
     public IReadOnlyList<string> GetExportSteps(string format) =>
     [
         "Collecting pattern pieces",
@@ -33,7 +38,7 @@ public class ExportService(
         int patternId = 0,
         ExportPurpose purpose = ExportPurpose.Factory)
     {
-        var safeFormat = string.IsNullOrWhiteSpace(format) ? "DXF" : format.Trim().ToUpperInvariant();
+        var safeFormat = NormalizeFormat(format);
         var styleKey = NormalizeStyleKey(style);
 
         if (purpose == ExportPurpose.Factory)
@@ -69,7 +74,10 @@ public class ExportService(
                 }
                 else
                 {
-                    AddZipReadmeForIllustrator(zip);
+                    if (string.Equals(safeFormat, "PDF", StringComparison.OrdinalIgnoreCase))
+                        AddZipReadmeForPrint(zip);
+                    else
+                        AddZipReadmeForPlotter(zip);
                     AddCanvasGeometryExport(zip, canvasPieces, safeFormat, styleKey, patternId, baseSize, pickedSizes);
                 }
 
@@ -88,29 +96,24 @@ public class ExportService(
                 {
                     var pieceList = pieces.ToList();
                     NotchGrainResolver.ApplyAutomation(pieceList, styleKey);
-                    switch (safeFormat)
+                    if (safeFormat == "PDF")
                     {
-                        case "DXF":
-                            AddTextEntry(zip, $"{styleKey}_{size}.dxf", BuildCombinedDxf(pieceList, size));
-                            break;
-                        case "SVG":
-                            AddTextEntry(zip, $"{styleKey}_{size}.svg", BuildCombinedSvg(pieceList, size));
-                            break;
-                        case "PDF":
-                            foreach (var piece in pieceList)
-                                AddBinaryEntry(zip, $"{styleKey}/{size}/{piece.Name.Replace(' ', '_')}.pdf", BuildPdf(piece));
-                            break;
-                        default:
-                            AddTextEntry(zip, $"{styleKey}_{size}.txt", $"Unsupported format '{safeFormat}'.");
-                            break;
+                        foreach (var piece in pieceList)
+                            AddBinaryEntry(zip,
+                                $"{styleKey}/{size}/{SanitizeFileSegment(piece.Name)}.pdf",
+                                BuildPdf(piece, size));
+                    }
+                    else
+                    {
+                        AddGeometryEntry(zip, $"{styleKey}_{size}{FileExtension(safeFormat)}", safeFormat, pieceList, size);
                     }
                 }
 
                 AddTextEntry(zip, "manifest.txt",
                     $"Source: drafted from size chart (not canvas edits)\nStyle: {styleKey}\nFormat: {safeFormat}\nSizes: {string.Join(",", pickedSizes)}\n" +
                     "Pipeline: each size from DraftGradedSet, then NotchGrainResolver.ApplyAutomation (snap notches, grain if missing, catalog rule notches).\n" +
-                    "Notches: rule-based from style assembly catalog plus drafted piece notches; grain line auto if missing. DXF layers: CUT, SA, GRAIN, NOTCH.\n" +
-                    $"Illustrator: use .svg inside this ZIP (File > Open). DXF also supported.\nGeneratedUtc: {DateTime.UtcNow:O}\n");
+                    FormatLayerNote(safeFormat) + "\n" +
+                    $"GeneratedUtc: {DateTime.UtcNow:O}\n");
             }
         }
 
@@ -130,12 +133,32 @@ public class ExportService(
         return (bytes, "application/zip", $"{fileStem}.zip");
     }
 
+    private static string NormalizeFormat(string format)
+    {
+        var f = string.IsNullOrWhiteSpace(format) ? "DXF" : format.Trim().ToUpperInvariant();
+        return SupportedFormats.Contains(f) ? f : "DXF";
+    }
+
+    private static string FileExtension(string format) => format switch
+    {
+        "HPGL" => ".hpgl",
+        "PLT" => ".plt",
+        _ => ".dxf",
+    };
+
+    private static string FormatLayerNote(string format) => format switch
+    {
+        "HPGL" or "PLT" => "Plotter pens: SP1=CUT, SP2=SA, SP3=GRAIN, SP4=NOTCH. Coordinates in standard HPGL units (1016/in).",
+        "PDF" => "One PDF per piece per size (mm scale). Open and print from Adobe Reader or any PDF viewer.",
+        _ => "Notches: rule-based from style assembly catalog plus drafted piece notches; grain line auto if missing. DXF layers: CUT, SA, GRAIN, NOTCH.",
+    };
+
     private static void AddCloReadme(ZipArchive zip)
     {
         const string readme =
             "CLO3D REVIEW PACKAGE\r\n" +
             "1) Extract this ZIP.\r\n" +
-            "2) In CLO: File > Import > DXF (or SVG) — use the base-size file in canvas/.\r\n" +
+            "2) In CLO: File > Import > DXF — use the base-size file in canvas/.\r\n" +
             "3) This package is for drape/fit review only. Do not send to the cutting room.\r\n" +
             "4) After approval, export the factory-certified package from PatternPro Export.\r\n";
         AddTextEntry(zip, "README-CLO.txt", readme);
@@ -167,7 +190,7 @@ public class ExportService(
             if (pattern.ShrinkagePercent > 0)
                 sb.AppendLine($"Shrinkage allowance: {pattern.ShrinkagePercent}%");
         }
-        sb.AppendLine("DXF layers: CUT, SA, GRAIN, NOTCH.");
+        sb.AppendLine(FormatLayerNote(safeFormat));
         sb.AppendLine($"GeneratedUtc: {DateTime.UtcNow:O}");
         return sb.ToString();
     }
@@ -189,16 +212,27 @@ public class ExportService(
         };
     }
 
-    private static void AddZipReadmeForIllustrator(ZipArchive zip)
+    private static void AddZipReadmeForPlotter(ZipArchive zip)
     {
         const string readme =
-            "HOW TO OPEN IN ADOBE ILLUSTRATOR\r\n" +
-            "1) Extract this ZIP (Illustrator does not open .zip as artwork).\r\n" +
-            "2) Double-click the .svg file, or in Illustrator: File > Open > choose the .svg\r\n" +
-            "   (Best compatibility — use canvas/*_all_pieces.svg if present.)\r\n" +
-            "3) For DXF: File > Open, pick the .dxf — set units if prompted (file uses canvas pixel units).\r\n" +
-            "4) PDF: open individual .pdf files if exported.\r\n";
-        AddTextEntry(zip, "README-Illustrator.txt", readme);
+            "PATTERN EXPORT — FACTORY / PLOTTER\r\n" +
+            "1) Extract this ZIP.\r\n" +
+            "2) DXF: open in Gerber, Lectra, Optitex, or AutoCAD-compatible CAM.\r\n" +
+            "3) HPGL / PLT: send to HPGL-compatible plotter or cutter (pen order: CUT, SA, GRAIN, NOTCH).\r\n" +
+            "4) Units: DXF in mm ($INSUNITS=4); HPGL/PLT in standard plotter units (1016 per inch).\r\n";
+        AddTextEntry(zip, "README-PLOTTER.txt", readme);
+    }
+
+    private static void AddZipReadmeForPrint(ZipArchive zip)
+    {
+        const string readme =
+            "PATTERN EXPORT — PRINT (PDF)\r\n" +
+            "1) Extract this ZIP.\r\n" +
+            "2) Open each .pdf in canvas/{size}/ (e.g. canvas/M/Front_Leg.pdf).\r\n" +
+            "3) Print from Adobe Reader, browser, or Windows Print to PDF.\r\n" +
+            "4) Scale: 100% / Actual size — geometry is in millimeters on the page.\r\n" +
+            "5) Black line = cut edge; dashed red = seam allowance; green dashed = grain.\r\n";
+        AddTextEntry(zip, "README-PRINT.txt", readme);
     }
 
     private void AddCanvasGeometryExport(
@@ -221,26 +255,35 @@ public class ExportService(
         {
             var gradedList = draftingService.GradeCanvasPiecesForSize(pieces, styleKey, patternBaseSize, size).ToList();
             NotchGrainResolver.ApplyAutomation(gradedList, styleKey);
-            var graded = gradedList;
-            switch (safeFormat)
+            if (string.Equals(safeFormat, "PDF", StringComparison.OrdinalIgnoreCase))
             {
-                case "DXF":
-                    AddTextEntry(zip, $"canvas/{styleKey}_{size}.dxf", BuildCombinedDxf(graded, size));
-                    break;
-                case "SVG":
-                    AddTextEntry(zip, $"canvas/{styleKey}_{size}.svg", BuildCombinedSvg(graded, $"Pattern {patternId} {size}"));
-                    break;
-                case "PDF":
-                    foreach (var piece in graded)
-                        AddBinaryEntry(zip,
-                            $"canvas/{size}/{SanitizeFileSegment(piece.Name)}.pdf",
-                            BuildPdf(piece));
-                    break;
-                default:
-                    AddTextEntry(zip, $"canvas/note-{size}.txt", $"Unsupported format '{safeFormat}'.");
-                    break;
+                foreach (var piece in gradedList)
+                    AddBinaryEntry(zip,
+                        $"canvas/{size}/{SanitizeFileSegment(piece.Name)}.pdf",
+                        BuildPdf(piece, size));
+            }
+            else
+            {
+                AddGeometryEntry(zip, $"canvas/{styleKey}_{size}{FileExtension(safeFormat)}", safeFormat, gradedList, $"Pattern {patternId} {size}");
             }
         }
+    }
+
+    private static void AddGeometryEntry(
+        ZipArchive zip,
+        string path,
+        string safeFormat,
+        IReadOnlyList<PieceDefinition> pieces,
+        string sizeLabel)
+    {
+        var content = safeFormat switch
+        {
+            "DXF" => BuildCombinedDxf(pieces, sizeLabel),
+            "HPGL" => BuildCombinedHpgl(pieces, sizeLabel),
+            "PLT" => BuildCombinedPlt(pieces, sizeLabel),
+            _ => $"Unsupported format '{safeFormat}'.",
+        };
+        AddTextEntry(zip, path, content);
     }
 
     private static string SanitizeFileSegment(string name)
@@ -252,7 +295,6 @@ public class ExportService(
     private static void AddTextEntry(ZipArchive zip, string path, string content)
     {
         var entry = zip.CreateEntry(path, CompressionLevel.Fastest);
-        // UTF-8 without BOM — BOM breaks some SVG/XML imports (e.g. strict Illustrator / parsers).
         using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false));
         writer.Write(content);
     }
@@ -264,108 +306,92 @@ public class ExportService(
         stream.Write(content, 0, content.Length);
     }
 
-    private static string BuildCombinedSvg(IReadOnlyList<PieceDefinition> pieces, string sizeName)
+    /// <summary>One piece per PDF page, coordinates in millimeters (for paper printing).</summary>
+    private static byte[] BuildPdf(PieceDefinition piece, string sizeLabel)
     {
-        const double gap = 40;
-        const double labelH = 18;
-        const double margin = 20;
+        const double mmScale = 10.0 / SeamGeometry.PixelsPerCm;
+        const double ptPerMm = 72.0 / 25.4;
+        const double marginMm = 12;
+        const double labelMm = 10;
 
-        var bboxes = pieces.Select(p =>
+        if (piece.Points.Count < 2)
         {
-            var xs = p.Points.Select(pt => pt[0] + p.OffsetX).ToArray();
-            var ys = p.Points.Select(pt => pt[1] + p.OffsetY).ToArray();
-            return (minX: xs.Min(), minY: ys.Min(), w: xs.Max() - xs.Min(), h: ys.Max() - ys.Min());
-        }).ToList();
+            var empty = new PdfDocument();
+            var p = empty.AddPage();
+            p.Width = 200;
+            p.Height = 100;
+            using var g = XGraphics.FromPdfPage(p);
+            g.DrawString($"{piece.Name} ({sizeLabel}) — no geometry", new XFont("Arial", 10), XBrushes.Gray, new XPoint(20, 40));
+            using var ms = new MemoryStream();
+            empty.Save(ms, false);
+            return ms.ToArray();
+        }
 
-        var totalW = bboxes.Sum(b => b.w) + gap * (pieces.Count - 1) + margin * 2;
-        var totalH = (bboxes.Count > 0 ? bboxes.Max(b => b.h) : 100) + labelH + margin * 2;
+        var minX = piece.Points.Min(pt => pt[0] + piece.OffsetX);
+        var minY = piece.Points.Min(pt => pt[1] + piece.OffsetY);
+        var maxX = piece.Points.Max(pt => pt[0] + piece.OffsetX);
+        var maxY = piece.Points.Max(pt => pt[1] + piece.OffsetY);
 
-        var sb = new StringBuilder();
-        sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        // Minimal SVG 1.1 for Illustrator: no unused xlink; ASCII title; path > polygon for import quirks.
-        sb.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" " +
-                      $"width=\"{totalW:F1}\" height=\"{totalH:F1}\" " +
-                      $"viewBox=\"0 0 {totalW:F1} {totalH:F1}\" preserveAspectRatio=\"xMidYMid meet\">");
-        sb.AppendLine($"  <title>{Escape(AsciiTitle(sizeName))} - All Pieces</title>");
+        double PtX(double canvasX) => ((canvasX - minX) * mmScale + marginMm) * ptPerMm;
+        double PtY(double canvasY) => ((canvasY - minY) * mmScale + marginMm + labelMm) * ptPerMm;
 
-        double curX = margin;
-        for (int i = 0; i < pieces.Count; i++)
+        var widthPt = Math.Max(120, ((maxX - minX) * mmScale + marginMm * 2) * ptPerMm);
+        var heightPt = Math.Max(120, ((maxY - minY) * mmScale + marginMm * 2 + labelMm) * ptPerMm);
+
+        var doc = new PdfDocument();
+        var page = doc.AddPage();
+        page.Width = widthPt;
+        page.Height = heightPt;
+
+        using (var gfx = XGraphics.FromPdfPage(page))
         {
-            var p = pieces[i];
-            var b = bboxes[i];
-            var dx = curX - b.minX;
-            var dy = margin + labelH - b.minY;
+            var outline = piece.Points
+                .Select(pt => new XPoint(PtX(pt[0] + piece.OffsetX), PtY(pt[1] + piece.OffsetY)))
+                .ToArray();
 
-            var labelX = curX + b.w / 2;
-            var gid = SanitizeSvgId(p.Name, i);
-
-            var pathD = string.Join(" ",
-                p.Points.Select((pt, vi) =>
-                {
-                    var x = pt[0] + p.OffsetX + dx;
-                    var y = pt[1] + p.OffsetY + dy;
-                    var cmd = vi == 0 ? "M" : "L";
-                    return $"{cmd}{x.ToString(CultureInfo.InvariantCulture)},{y.ToString(CultureInfo.InvariantCulture)}";
-                })) + " Z";
-
-            sb.AppendLine($"  <g id=\"{gid}\">");
-            sb.AppendLine($"    <text x=\"{labelX:F1}\" y=\"{margin + labelH - 4:F1}\" text-anchor=\"middle\" " +
-                          "font-family=\"Arial,Helvetica,sans-serif\" font-size=\"11\" fill=\"#333333\">" +
-                          $"{Escape(p.Name)}</text>");
-            sb.AppendLine($"    <path d=\"{pathD}\" fill=\"none\" stroke=\"#000000\" stroke-width=\"1\"/>");
-
-            if (p.SeamAllowance > 0.0001)
+            if (outline.Length >= 2)
             {
-                var basePts = p.Points.Select(pt => new SeamAllowanceOffset.Pt(
-                    pt[0] + p.OffsetX + dx,
-                    pt[1] + p.OffsetY + dy)).ToList();
+                var path = new XGraphicsPath();
+                path.AddLines(outline);
+                path.CloseFigure();
+                gfx.DrawPath(new XPen(XColors.Black, 1.2), XBrushes.Transparent, path);
+            }
+
+            if (piece.SeamAllowance > 0.0001)
+            {
+                var basePts = piece.Points.Select(pt => new SeamAllowanceOffset.Pt(
+                    pt[0] + piece.OffsetX,
+                    pt[1] + piece.OffsetY)).ToList();
 
                 var saPts = SeamAllowanceOffset.OffsetClosed(
                     basePts,
-                    p.SeamAllowance,
-                    SeamAllowanceOffset.ParseJoin(p.SeamAllowanceJoin));
+                    piece.SeamAllowance,
+                    SeamAllowanceOffset.ParseJoin(piece.SeamAllowanceJoin));
 
                 if (saPts.Count >= 3)
                 {
-                    var saD = string.Join(" ",
-                        saPts.Select((pt, vi) =>
-                        {
-                            var cmd = vi == 0 ? "M" : "L";
-                            return $"{cmd}{pt.X.ToString(CultureInfo.InvariantCulture)},{pt.Y.ToString(CultureInfo.InvariantCulture)}";
-                        })) + " Z";
-
-                    sb.AppendLine($"    <path d=\"{saD}\" fill=\"none\" stroke=\"#b91c1c\" stroke-width=\"1\" stroke-dasharray=\"6 4\" opacity=\"0.85\"/>");
+                    var saPath = new XGraphicsPath();
+                    saPath.AddLines(saPts.Select(pt => new XPoint(PtX(pt.X), PtY(pt.Y))).ToArray());
+                    saPath.CloseFigure();
+                    var pen = new XPen(XColors.DarkRed, 0.8) { DashStyle = XDashStyle.Dash };
+                    gfx.DrawPath(pen, XBrushes.Transparent, saPath);
                 }
             }
 
-            ExportAnnotations.AppendGrainSvg(sb, p, dx, dy);
-            ExportAnnotations.AppendNotchesSvg(sb, p, dx, dy);
-            sb.AppendLine($"  </g>");
+            ExportAnnotations.DrawGrainPdf(gfx, piece, minX, minY, mmScale, marginMm, labelMm, ptPerMm);
+            ExportAnnotations.DrawNotchesPdf(gfx, piece, minX, minY, mmScale, marginMm, labelMm, ptPerMm);
 
-            curX += b.w + gap;
+            var title = $"{piece.Name} — {sizeLabel}";
+            gfx.DrawString(title, new XFont("Arial", 10, XFontStyle.Bold), XBrushes.Black, new XPoint(marginMm * ptPerMm, marginMm * ptPerMm));
         }
 
-        sb.AppendLine("</svg>");
-        return sb.ToString();
-    }
-
-    /// <summary>Strip non-ASCII from SVG title to avoid strict-parser issues in some Illustrator versions.</summary>
-    private static string AsciiTitle(string s)
-    {
-        if (string.IsNullOrEmpty(s)) return "Export";
-        var sb = new StringBuilder(s.Length);
-        foreach (var c in s)
-        {
-            if (c is >= ' ' and <= '~') sb.Append(c);
-            else sb.Append(' ');
-        }
-        return sb.ToString().Trim();
+        using var pdfMs = new MemoryStream();
+        doc.Save(pdfMs, false);
+        return pdfMs.ToArray();
     }
 
     /// <summary>
-    /// AutoCAD R12-style ASCII DXF using only LINE entities on layer 0.
-    /// Illustrator 2022+ often returns error [2067] on LWPOLYLINE/AC1015 DXF from third-party tools;
-    /// R12 LINE format is the common workaround (Adobe community / EXDXF-Pro notes).
+    /// AutoCAD R12-style ASCII DXF using only LINE entities.
     /// </summary>
     private static string BuildCombinedDxf(IReadOnlyList<PieceDefinition> pieces, string _sizeName)
     {
@@ -443,72 +469,78 @@ public class ExportService(
         return sb.ToString();
     }
 
-    private static byte[] BuildPdf(PieceDefinition piece)
+    /// <summary>HPGL plotter file — standard 1016 units/inch, pens SP1–SP4 for CUT/SA/GRAIN/NOTCH.</summary>
+    private static string BuildCombinedHpgl(IReadOnlyList<PieceDefinition> pieces, string _sizeName) =>
+        BuildCombinedPlotter(pieces, includePltHeader: false);
+
+    /// <summary>PLT uses the same HPGL command stream; some cutters expect a .plt extension only.</summary>
+    private static string BuildCombinedPlt(IReadOnlyList<PieceDefinition> pieces, string _sizeName) =>
+        BuildCombinedPlotter(pieces, includePltHeader: true);
+
+    private static string BuildCombinedPlotter(IReadOnlyList<PieceDefinition> pieces, bool includePltHeader)
     {
-        var minX = piece.Points.Min(p => p[0] + piece.OffsetX);
-        var minY = piece.Points.Min(p => p[1] + piece.OffsetY);
-        var maxX = piece.Points.Max(p => p[0] + piece.OffsetX);
-        var maxY = piece.Points.Max(p => p[1] + piece.OffsetY);
+        const double gap = 40;
+        var scale = HpglHelpers.CanvasToPlotterScale;
+        var mmScale = 10.0 / SeamGeometry.PixelsPerCm;
+        var sb = new StringBuilder();
 
-        const double margin = 24d;
-        var width = Math.Max(200d, (maxX - minX) + margin * 2);
-        var height = Math.Max(200d, (maxY - minY) + margin * 2 + 24d);
+        if (includePltHeader)
+            sb.AppendLine("; PatternPro PLT export — HPGL command stream");
 
-        var doc = new PdfDocument();
-        var page = doc.AddPage();
-        page.Width = width;
-        page.Height = height;
+        sb.AppendLine("IN;");
 
-        using (var gfx = XGraphics.FromPdfPage(page))
+        double curX = 0;
+        foreach (var p in pieces)
         {
-            var points = piece.Points
-                .Select(p => new XPoint(
-                    (p[0] + piece.OffsetX - minX) + margin,
-                    (p[1] + piece.OffsetY - minY) + margin + 20))
-                .ToArray();
+            var xs = p.Points.Select(pt => pt[0] + p.OffsetX).ToArray();
+            var ys = p.Points.Select(pt => pt[1] + p.OffsetY).ToArray();
+            if (xs.Length == 0) continue;
 
-            if (points.Length >= 2)
+            var minX = xs.Min();
+            var minY = ys.Min();
+            var w = xs.Max() - minX;
+            var dx = curX - minX;
+            var dy = -minY;
+
+            if (p.Points.Count >= 2)
             {
-                var path = new XGraphicsPath();
-                path.AddLines(points);
-                path.CloseFigure();
-                gfx.DrawPath(new XPen(XColors.Black, 1.2), XBrushes.Transparent, path);
+                sb.Append("SP1;");
+                var cutPts = p.Points
+                    .Select(pt => (
+                        (pt[0] + p.OffsetX + dx) * scale,
+                        (pt[1] + p.OffsetY + dy) * scale))
+                    .ToList();
+                HpglHelpers.ClosedPolygon(sb, cutPts);
             }
 
-            if (piece.SeamAllowance > 0.0001)
+            if (p.SeamAllowance > 0.0001)
             {
-                var basePts = piece.Points.Select(p => new SeamAllowanceOffset.Pt(
-                    (p[0] + piece.OffsetX - minX) + margin,
-                    (p[1] + piece.OffsetY - minY) + margin + 20)).ToList();
+                var basePts = p.Points.Select(pt => new SeamAllowanceOffset.Pt(
+                    pt[0] + p.OffsetX + dx,
+                    pt[1] + p.OffsetY + dy)).ToList();
 
                 var saPts = SeamAllowanceOffset.OffsetClosed(
                     basePts,
-                    piece.SeamAllowance,
-                    SeamAllowanceOffset.ParseJoin(piece.SeamAllowanceJoin));
+                    p.SeamAllowance,
+                    SeamAllowanceOffset.ParseJoin(p.SeamAllowanceJoin));
 
                 if (saPts.Count >= 3)
                 {
-                    var saPath = new XGraphicsPath();
-                    saPath.AddLines(saPts.Select(pt => new XPoint(pt.X, pt.Y)).ToArray());
-                    saPath.CloseFigure();
-                    var pen = new XPen(XColors.DarkRed, 0.8)
-                    {
-                        DashStyle = XDashStyle.Dash,
-                    };
-                    gfx.DrawPath(pen, XBrushes.Transparent, saPath);
+                    sb.Append("SP2;");
+                    var plotSa = saPts.Select(pt => (pt.X * scale, pt.Y * scale)).ToList();
+                    HpglHelpers.ClosedPolygon(sb, plotSa);
                 }
             }
 
-            ExportAnnotations.DrawGrainPdf(gfx, piece, minX, minY, margin, 20);
-            ExportAnnotations.DrawNotchesPdf(gfx, piece, minX, minY, margin, 20);
+            ExportAnnotations.AppendGrainHpgl(sb, p, dx, dy, scale);
+            ExportAnnotations.AppendNotchesHpgl(sb, p, dx, dy, scale);
 
-            var font = new XFont("Arial", 10, XFontStyle.Regular);
-            gfx.DrawString(piece.Name, font, XBrushes.Black, new XPoint(margin, margin));
+            curX += (w + gap) * mmScale;
         }
 
-        using var ms = new MemoryStream();
-        doc.Save(ms, false);
-        return ms.ToArray();
+        sb.AppendLine("SP0;");
+        sb.AppendLine("PG;");
+        return sb.ToString();
     }
 
     private static string BuildCertificationJson(Pattern.Core.Model.Pattern pattern, ProductionValidationReport report) =>
@@ -531,15 +563,4 @@ public class ExportService(
             warnings = report.Warnings,
             exportedUtc = DateTime.UtcNow,
         }, new JsonSerializerOptions { WriteIndented = true });
-
-    private static string Escape(string text) =>
-        text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
-
-    private static string SanitizeSvgId(string name, int index)
-    {
-        var raw = Regex.Replace(name.Trim(), @"[^\w\-\.]", "_", RegexOptions.None, TimeSpan.FromSeconds(1));
-        if (string.IsNullOrEmpty(raw)) raw = "piece";
-        if (char.IsDigit(raw[0])) raw = "p_" + raw;
-        return $"{raw}_{index}";
-    }
 }

@@ -44,7 +44,7 @@ Technical pattern-making web application for bottom wear (denim, chinos, trouser
 | **Canvas Editor** | Draw/edit geometry, draft sizes, grain, notches, save to pattern |
 | **Graded Nest** | Graded size overlay |
 | **Library** | All patterns + geometry status |
-| **Export** | DXF / SVG / PDF ZIP — **factory export gated** by QC + approval + cutter test; CLO review & draft exports |
+| **Export** | DXF / HPGL / PLT ZIP — **factory export gated** by QC + approval + cutter test; CLO review & draft exports |
 
 ## Production certification (factory floor)
 
@@ -57,6 +57,14 @@ Factory CAM download requires:
 Until all pass, **Factory export** is disabled in the UI and on the server. **CLO review** (base size) and **Draft** ZIPs are **not** gated.
 
 **Dashboard “Factory ready”** counts patterns where **both** `ApprovedForCutting` and `CutterTestPassed` are true. Downloading a ZIP alone does not increment this count.
+
+**Full guide (start here for team / boss):** [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) — complete documentation first to last.
+
+**Users & permissions:** [docs/ADMIN_PANEL.md](docs/ADMIN_PANEL.md) — login, roles, admin panel.
+
+**Developer testing:** [docs/TESTING.md](docs/TESTING.md) — build, unit tests, full manual checklist.
+
+**Go live / production:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — publish, PostgreSQL, secrets, HTTPS, post-deploy checks.
 
 Details: [docs/PRODUCTION_CERTIFICATION.md](docs/PRODUCTION_CERTIFICATION.md)  
 Full step-by-step: [docs/WORKFLOW.md](docs/WORKFLOW.md)  
@@ -149,8 +157,16 @@ PatternMaking/
 ├── tools/
 │   └── PatternPro.DbTool/
 └── docs/
+    ├── PROJECT_GUIDE.md          # Complete guide (team / boss — start here)
+    ├── WORKFLOW.md
+    ├── INDUSTRY_WORKFLOW.md
     ├── PRODUCTION_CERTIFICATION.md
-    └── POSTGRES_SYNC.md
+    ├── STYLE_SHEET.md
+    ├── ADMIN_PANEL.md
+    ├── DEPLOYMENT.md
+    ├── TESTING.md
+    ├── POSTGRES_SYNC.md
+    └── OTHER_PC_SETUP.md
 ```
 
 ## Services (`Program.cs`)
@@ -217,11 +233,10 @@ Skinny, Slim, Straight, Bootcut, Wide Leg
 | Npgsql.EntityFrameworkCore.PostgreSQL | PostgreSQL |
 | Microsoft.EntityFrameworkCore.* | Migrations & design-time |
 
-## Typical workflow (one style)
-
+## Typical workflow (one style)                                                                                                                                                             
 1. **Dashboard** — create pattern (category, fit, base size)
 2. **Size chart** — body measurements
-3. **Block generator** / **Grading** — ease and size deltas```````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
+3. **Block generator** / **Grading** — ease and size deltas
 4. **Pattern pieces** — list and auto-draft
 5. **Canvas** — edit geometry, optional multi-size draft
 6. **Export** — QC → approve → cutter pass → **Factory export**

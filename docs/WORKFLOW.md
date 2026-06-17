@@ -1,5 +1,7 @@
 # PatternPro workflow (first to last)
 
+> **Full documentation:** [PROJECT_GUIDE.md](PROJECT_GUIDE.md) — complete guide for managers, designers, factory floor, and developers.
+
 One bottom-wear style (e.g. denim slim), from app start to factory ZIP.
 
 ## Before the app

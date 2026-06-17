@@ -14,10 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PdfSharpCore" Version="1.3.67" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!-- Phase 1: implementations live in PatternPro.Business; this project is kept for compatibility. -->
     <Compile Remove="Services\**\*.cs" />
   </ItemGroup>

@@ -1,4 +1,6 @@
 @using Pattern.Web.Model
+@using Pattern.Core.Model
+@using System.Security.Claims
 @{
     var layout  = ViewData["Layout"] as LayoutViewModel ?? new LayoutViewModel();
     var active  = layout.ActiveController;
@@ -8,6 +10,13 @@
         && active is "Export" or "Canvas" or "Pieces";
 
     string Nav(string ctrl) => active == ctrl ? "sb-item active" : "sb-item";
+    var displayName = global::Pattern.Web.AuthSetup.CurrentDisplayName(User) ?? "User";
+    var employeeId = User.FindFirst("EmployeeId")?.Value;
+    var roleLabel = User.IsInRole(AppRoles.Admin) ? "Administrator"
+        : User.IsInRole(AppRoles.Designer) ? "Pattern designer"
+        : User.IsInRole(AppRoles.Viewer) ? "View only" : "User";
+    var initials = global::Pattern.Web.AuthSetup.CurrentInitials(User);
+    var isAdmin = User.IsInRole(AppRoles.Admin);
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -129,13 +138,32 @@
       }
     </nav>
 
+    <div class="sb-divider"></div>
+    <div class="sb-section">Account</div>
+    <a class="@Nav("User")" asp-controller="User" asp-action="Index">
+      <svg viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 13c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      My account
+    </a>
+
+    @if (isAdmin)
+    {
+      <div class="sb-divider"></div>
+      <div class="sb-section">Admin</div>
+      <a class="@Nav("Admin")" asp-controller="Admin" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 13c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Admin panel
+      </a>
+    }
+
     <div class="sb-footer">
-      <div class="sb-avatar">PD</div>
-      <div style="flex:1;min-width:0">
-        <div class="sb-user-name">Pattern Designer</div>
-        <div class="sb-user-role">Bottom wear · Senior</div>
+      <div class="sb-avatar">@initials</div>
+      <div class="sb-footer-info">
+        <div class="sb-user-name">@displayName</div>
+        <div class="sb-user-role">@roleLabel@if (!string.IsNullOrWhiteSpace(employeeId)) { <text> · @employeeId</text> }</div>
+        <div class="sb-signout-wrap">
+          @await Html.PartialAsync("_SignOutForm")
+        </div>
       </div>
-      <div class="sb-status" title="Online"></div>
     </div>
   </div>
 
@@ -181,6 +209,7 @@
       </div>
 
       <div class="tb-actions">
+        @await Html.PartialAsync("_SignOutForm")
         <button class="btn btn-outline btn-sm" id="btn-import">↑ Import</button>
         <button class="btn btn-outline btn-sm" id="btn-library">⊞ Library</button>
         <button class="btn btn-gold btn-sm"    id="btn-new-pattern">＋ New Pattern</button>

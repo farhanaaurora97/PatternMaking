@@ -25,7 +25,12 @@
       const el = document.getElementById('exp-format');
       if (el) {
         el.textContent = selectedFormat;
-        el.className = 'tag ' + (selectedFormat === 'DXF' ? 'tag-green' : selectedFormat === 'PDF' ? 'tag-gold' : 'tag-purple');
+        el.className = 'tag ' + (
+          selectedFormat === 'DXF' ? 'tag-green'
+            : selectedFormat === 'HPGL' ? 'tag-gold'
+            : selectedFormat === 'PLT' ? 'tag-purple'
+            : selectedFormat === 'PDF' ? 'tag-blue'
+            : 'tag-purple');
       }
       toast('Format Selected', `${selectedFormat} selected as export format`, 'info', '📁');
     });
@@ -64,42 +69,16 @@
   }
 
   function triggerExportDownload(purpose) {
-    let frame = document.getElementById('pp-export-dl');
-    if (!frame) {
-      frame = document.createElement('iframe');
-      frame.id = 'pp-export-dl';
-      frame.name = 'pp-export-dl';
-      frame.title = 'Export download';
-      frame.setAttribute('aria-hidden', 'true');
-      frame.style.cssText = 'position:absolute;width:0;height:0;border:0;left:-9999px;visibility:hidden';
-      document.body.appendChild(frame);
-    }
-
-    const form = document.createElement('form');
-    form.method = 'GET';
-    form.action = exportDownloadFormAction();
-    form.target = 'pp-export-dl';
-    form.style.display = 'none';
-    form.setAttribute('aria-hidden', 'true');
-
-    const add = (name, value) => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = name;
-      input.value = String(value);
-      form.appendChild(input);
-    };
-
-    add('patternId', window.EXPORT_PATTERN_ID || 0);
-    add('style', window.EXPORT_STYLE || 'skinny');
-    add('format', selectedFormat);
-    add('sizes', window.EXPORT_SIZES_CSV || 'XS,S,M,L,XL,XXL');
-    add('purpose', purpose || 'factory');
-    add('_ts', Date.now());
-
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
+    const params = new URLSearchParams({
+      patternId: String(window.EXPORT_PATTERN_ID || 0),
+      style: window.EXPORT_STYLE || 'skinny',
+      format: selectedFormat,
+      sizes: window.EXPORT_SIZES_CSV || 'XS,S,M,L,XL,XXL',
+      purpose: purpose || 'factory',
+      _ts: String(Date.now()),
+    });
+    // Direct navigation is more reliable on Windows than a hidden iframe.
+    window.location.assign(`${exportDownloadFormAction()}?${params}`);
   }
 
   async function runExport(purpose) {

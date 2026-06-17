@@ -1,0 +1,11 @@
+@{
+    ViewData["Title"] = "Access denied";
+}
+<div class="page-header">
+  <div class="page-title">Access denied</div>
+  <div class="page-sub">You do not have permission for this action.</div>
+</div>
+<div class="card" style="padding:24px;max-width:520px">
+  <p style="margin:0 0 16px;color:var(--ink2)">Your account is signed in but this page or action requires a different role.</p>
+  <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Back to dashboard</a>
+</div>

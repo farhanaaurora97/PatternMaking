@@ -40,6 +40,11 @@ public static class DependencyInjection
         services.AddSingleton<IEaseOverridesRepository, EaseOverridesRepository>();
         services.AddSingleton<IMeasurementProfileRepository, MeasurementProfileRepository>();
 
+        if (!string.IsNullOrWhiteSpace(pgConn))
+            services.AddSingleton<IUserRepository, PostgresUserRepository>();
+        else
+            services.AddSingleton<IUserRepository>(_ => new JsonUserRepository(appDataDirectory));
+
         return services;
     }
 

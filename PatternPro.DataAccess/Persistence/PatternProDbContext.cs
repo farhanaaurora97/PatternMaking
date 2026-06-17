@@ -27,6 +27,7 @@ public class PatternProDbContext : DbContext
     public DbSet<MeasurementProfileValueEntity> MeasurementProfileValues => Set<MeasurementProfileValueEntity>();
 
     public DbSet<EaseOverrideEntity> EaseOverrides => Set<EaseOverrideEntity>();
+    public DbSet<AppUserEntity> AppUsers => Set<AppUserEntity>();
 
     public PatternProDbContext(DbContextOptions<PatternProDbContext> options)
         : base(options)
@@ -194,6 +195,19 @@ public class PatternProDbContext : DbContext
             entity.HasKey(e => new { e.StyleKey, e.MeasurementPoint });
             entity.Property(e => e.StyleKey).HasMaxLength(64);
             entity.Property(e => e.MeasurementPoint).HasMaxLength(128);
+        });
+
+        modelBuilder.Entity<AppUserEntity>(entity =>
+        {
+            entity.ToTable("app_users", SchemaName);
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EmployeeId).HasMaxLength(32);
+            entity.Property(e => e.UserName).HasMaxLength(64);
+            entity.Property(e => e.DisplayName).HasMaxLength(256);
+            entity.Property(e => e.Role).HasMaxLength(32);
+            entity.Property(e => e.PasswordHash).HasMaxLength(512);
+            entity.HasIndex(e => e.UserName).IsUnique();
+            entity.HasIndex(e => e.EmployeeId).IsUnique();
         });
     }
 }

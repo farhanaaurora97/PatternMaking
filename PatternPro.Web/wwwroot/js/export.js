@@ -25,7 +25,12 @@
       const el = document.getElementById('exp-format');
       if (el) {
         el.textContent = selectedFormat;
-        el.className = 'tag ' + (selectedFormat === 'DXF' ? 'tag-green' : selectedFormat === 'PDF' ? 'tag-gold' : 'tag-purple');
+        el.className = 'tag ' + (
+          selectedFormat === 'DXF' ? 'tag-green'
+            : selectedFormat === 'HPGL' ? 'tag-gold'
+            : selectedFormat === 'PLT' ? 'tag-purple'
+            : selectedFormat === 'PDF' ? 'tag-blue'
+            : 'tag-purple');
       }
       toast('Format Selected', `${selectedFormat} selected as export format`, 'info', '📁');
     });

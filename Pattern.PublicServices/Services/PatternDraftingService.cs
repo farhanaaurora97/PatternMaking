@@ -21,6 +21,13 @@ public class PatternDraftingService : IPatternDraftingService
         _blockGen  = blockGen;
     }
 
+    public IReadOnlyList<PieceDefinition> DraftProductionPieces(string styleKey, string baseSize)
+    {
+        var pieces = DraftPieces(styleKey, baseSize).Select(PatternAutoRefineService.Clone).ToList();
+        PatternAutoRefineService.Refine(pieces, styleKey);
+        return pieces.AsReadOnly();
+    }
+
     public IReadOnlyList<PieceDefinition> DraftPieces(string styleKey, string baseSize)
     {
         // ── 1. Body measurements for chosen size ───────────────────────────
