@@ -52,8 +52,3 @@ if ('IntersectionObserver' in window) {
   }, { threshold: 0.1 });
   bars.forEach(b => obs.observe(b));
 } 
-
-// ── Add Piece placeholder ─────────────────────────────────────────────────────
-document.getElementById('btn-add-piece')?.addEventListener('click', () => {
-  window.toast?.('Pattern Pieces', 'Custom piece editor coming soon.', 'info', '✂️');
-});

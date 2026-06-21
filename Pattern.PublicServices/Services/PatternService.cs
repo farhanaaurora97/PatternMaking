@@ -110,18 +110,28 @@ public class PatternService : IPatternService
         ["wideLeg"]  = "Wide Leg",
     };
 
-    public IReadOnlyList<Pattern.Core.Model.Pattern> GetAll()
+    private void ReloadFromStoreIfAvailable()
     {
-        // Reload from PostgreSQL / JSON so external updates (DbTool, Export QC) appear on the dashboard without restart.
         var saved = _patternRepo.Load();
         if (saved is not null && saved.Patterns.Count > 0)
         {
             _patterns.Clear();
             _patterns.AddRange(saved.Patterns);
             _nextId = saved.NextId;
+            var maxId = _patterns.Max(p => p.Id);
+            if (_nextId <= maxId)
+                _nextId = maxId + 1;
             NormalizeStyleSheetFields(_patterns);
         }
+    }
 
+    /// <summary>Reload from PostgreSQL/JSON before reads or writes so singleton cache cannot overwrite the store.</summary>
+    private void EnsureFresh() => ReloadFromStoreIfAvailable();
+
+    public IReadOnlyList<Pattern.Core.Model.Pattern> GetAll()
+    {
+        // Reload from PostgreSQL / JSON so external updates (DbTool, Export QC) appear on the dashboard without restart.
+        ReloadFromStoreIfAvailable();
         return _patterns.AsReadOnly();
     }
 
@@ -131,6 +141,7 @@ public class PatternService : IPatternService
     public Pattern.Core.Model.Pattern Create(string name, string styleKey, string baseSize, string designer, string categoryKey,
         string? season = null, string? owner = null, string? lifecycleStatus = null)
     {
+        EnsureFresh();
         var def        = GetStyleDefinition(styleKey);
         var styleLabel = _styleLabels.TryGetValue(styleKey, out var lbl) ? lbl : styleKey;
 
@@ -167,6 +178,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? CycleStatus(int id)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
 
@@ -179,6 +191,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? SetStatus(int id, string status)
     {
+        EnsureFresh();
         if (Array.IndexOf(_statusCycle, status) < 0) return null;
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
@@ -191,6 +204,7 @@ public class PatternService : IPatternService
 
     public bool Delete(int id)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return false;
         _patterns.Remove(pattern);
@@ -200,6 +214,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? Duplicate(int id)
     {
+        EnsureFresh();
         var source = _patterns.FirstOrDefault(p => p.Id == id);
         if (source is null) return null;
 
@@ -234,6 +249,7 @@ public class PatternService : IPatternService
 
     public IReadOnlyList<Pattern.Core.Model.Pattern> Search(string? query)
     {
+        EnsureFresh();
         if (string.IsNullOrWhiteSpace(query)) return _patterns.AsReadOnly();
 
         return _patterns
@@ -252,6 +268,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? SetDueDate(int id, DateTime? date)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
         pattern.DueDate = date;
@@ -283,6 +300,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? ApproveForCutting(int id, string approvedBy)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
         pattern.ApprovedForCutting = true;
@@ -297,6 +315,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? RevokeCuttingApproval(int id)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
         pattern.ApprovedForCutting = false;
@@ -308,6 +327,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? RecordCutterTest(int id, bool passed, string testedBy, string? notes)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
         pattern.CutterTestPassed = passed;
@@ -321,6 +341,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? SetCloReview(int id, bool completed, string? notes)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
         pattern.CloReviewCompleted = completed;
@@ -332,6 +353,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? SetShrinkagePercent(int id, decimal percent)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
         pattern.ShrinkagePercent = Math.Clamp(percent, 0m, 15m);
@@ -341,6 +363,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? SetLifecycleStatus(int id, string lifecycleStatus)
     {
+        EnsureFresh();
         if (!StyleLifecycle.IsValid(lifecycleStatus)) return null;
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
@@ -361,6 +384,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? SetRevision(int id, string revision)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null || string.IsNullOrWhiteSpace(revision)) return null;
         pattern.Revision = revision.Trim();
@@ -371,6 +395,7 @@ public class PatternService : IPatternService
 
     public Pattern.Core.Model.Pattern? UpdateStyleSheet(int id, string? season, string? owner, string? designer)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
         if (season is not null)

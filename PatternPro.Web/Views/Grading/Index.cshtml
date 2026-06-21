@@ -38,7 +38,7 @@
   <div class="tbl-header">
     <span class="tbl-title">Grade Rules — @Model.StyleLabel</span>
     <span class="spacer"></span>
-    <span style="font-size:10.5px;color:var(--ink4);font-family:'DM Mono',monospace;font-weight:600">DELTA FROM M BASE</span>
+    <span style="font-size:10.5px;color:var(--ink4);font-family:'DM Mono',monospace;font-weight:600">DELTA FROM M BASE · CLICK TO EDIT</span>
   </div>
   <table>
     <thead>
@@ -68,13 +68,14 @@
             {
               <td class="td-base">0</td>
             }
-            else if (row.Deltas[i] < 0)
-            {
-              <td class="td-dn">@row.FormatDelta(row.Deltas[i])</td>
-            }
             else
             {
-              <td class="td-up">@row.FormatDelta(row.Deltas[i])</td>
+              <td class="@(row.Deltas[i] < 0 ? "td-dn" : "td-up")">
+                <input type="number" class="gr-delta-input ss-inline" step="0.1"
+                       data-style="@Model.StyleKey" data-measurement="@row.MeasurementPoint" data-col="@i"
+                       value="@row.Deltas[i].ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                       aria-label="@row.MeasurementPoint @Model.ColumnLabels[i] delta cm" />
+              </td>
             }
           }
         </tr>
@@ -300,5 +301,38 @@
     errBox.classList.remove('show');
   }
 })();
+
+// ── Edit grade delta ─────────────────────────────────────
+document.querySelectorAll('.gr-delta-input').forEach((input) => {
+  input.addEventListener('focusin', () => { input.dataset.prevValue = input.value; });
+
+  input.addEventListener('change', async () => {
+    const styleKey = input.dataset.style ?? '';
+    const measurementPoint = input.dataset.measurement ?? '';
+    const columnIndex = parseInt(input.dataset.col ?? '-1', 10);
+    const delta = parseFloat(input.value);
+    const prev = input.dataset.prevValue ?? input.value;
+    if (!styleKey || !measurementPoint || columnIndex < 0 || Number.isNaN(delta)) return;
+
+    const res = await fetch('/Grading/UpdateDelta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ styleKey, measurementPoint, columnIndex, delta }),
+    });
+
+    if (res.ok) {
+      input.dataset.prevValue = String(delta);
+      window.toast?.('Grading saved', `${measurementPoint} updated`, 'success', '✓');
+    } else {
+      input.value = prev;
+      let msg = 'Could not save delta.';
+      try {
+        const data = await res.json();
+        if (data?.error) msg = data.error;
+      } catch { /* ignore */ }
+      window.toast?.('Save failed', msg, 'error', '⚠️');
+    }
+  });
+});
 </script>
 }

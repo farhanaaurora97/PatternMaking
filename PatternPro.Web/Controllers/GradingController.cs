@@ -75,6 +75,23 @@ public class GradingController(IGradingService gradingService) : Controller
             $"grading-{style}.csv");
     }
 
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult UpdateDelta([FromBody] UpdateGradingDeltaBody body)
+    {
+        var (ok, err) = gradingService.TryUpdateDelta(
+            body.StyleKey ?? "", body.MeasurementPoint ?? "", body.ColumnIndex, body.Delta);
+        if (!ok)
+            return BadRequest(new { error = err });
+        return Ok(new
+        {
+            styleKey = body.StyleKey,
+            measurementPoint = body.MeasurementPoint,
+            columnIndex = body.ColumnIndex,
+            delta = body.Delta,
+        });
+    }
+
     private void SetLayout(string controller, string title, string style) =>
         ViewData["Layout"] = new LayoutViewModel
         {
@@ -83,3 +100,5 @@ public class GradingController(IGradingService gradingService) : Controller
             CurrentStyle     = style,
         };
 }
+
+public sealed record UpdateGradingDeltaBody(string? StyleKey, string? MeasurementPoint, int ColumnIndex, double Delta);
