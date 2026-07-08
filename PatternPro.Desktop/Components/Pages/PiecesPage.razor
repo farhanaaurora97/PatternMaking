@@ -1,0 +1,617 @@
+@page "/module/pieces"
+@attribute [Authorize]
+@using CoreModel = Pattern.Core.Model
+@using Pattern.Web.Model
+@using PatternPro.Business.Services
+@using PatternPro.Desktop.Helpers
+@using PatternPro.Desktop.Services
+@inject IPieceService PieceService
+@inject IPatternService PatternService
+@inject IPatternDraftingService DraftingService
+@inject DesktopToastService Toast
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="pcs-page">
+    <div class="pcs-header">
+        <div class="pcs-header-left">
+            <div class="pcs-eyebrow">
+                <span class="pcs-eyebrow-rule"></span>
+                <span>Technical Pattern Sheet</span>
+            </div>
+            <h1 class="page-title" style="margin:0">Pattern Pieces</h1>
+            <p class="page-sub" style="margin:6px 0 0">
+                @if (_pattern is not null)
+                {
+                    <span class="page-sub-code">@_pattern.Code</span>
+                    <span>@_pattern.Name &nbsp;·&nbsp; </span>
+                }
+                @_styleLabel — @_cards.Count pieces &nbsp;·&nbsp; @_totalPanels total fabric panels cut
+            </p>
+            <span class="tag tag-navy" style="font-family:var(--font-mono);letter-spacing:.06em;margin-top:8px;display:inline-block">
+                ◈ @_styleLabel
+            </span>
+        </div>
+        <div class="pcs-header-right">
+            <div class="pcs-summary">
+                <div class="pcs-stat">
+                    <div class="pcs-stat-val">@_cards.Count</div>
+                    <div class="pcs-stat-label">Pieces</div>
+                </div>
+                <div class="pcs-stat-div"></div>
+                <div class="pcs-stat">
+                    <div class="pcs-stat-val">@_totalPanels</div>
+                    <div class="pcs-stat-label">Panels Cut</div>
+                </div>
+                <div class="pcs-stat-div"></div>
+                <div class="pcs-stat">
+                    <div class="pcs-stat-val">@_groups.Count()</div>
+                    <div class="pcs-stat-label">Groups</div>
+                </div>
+            </div>
+            <div class="pcs-header-actions">
+                <select class="status-select" @bind="_patternId" @bind:after="LoadData">
+                    <option value="0">— Select pattern —</option>
+                    @foreach (var p in _patterns)
+                    {
+                        <option value="@p.Id">@p.Code @p.Name</option>
+                    }
+                </select>
+                <select class="status-select" @bind="_styleKey" @bind:after="LoadData">
+                    @foreach (var opt in StyleOptions)
+                    {
+                        <option value="@opt.Key">@opt.Label</option>
+                    }
+                </select>
+                @if (_patternId > 0)
+                {
+                    <button type="button" class="btn btn-outline btn-sm" @onclick="DraftPieces" disabled="@_busy">⬡ Generate</button>
+                    <button type="button" class="btn btn-outline btn-sm" title="Balance seams, seam allowance, notches" @onclick="RefinePieces" disabled="@_busy">⚙ Auto-refine</button>
+                    <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddAsync">＋ Add Piece</button>
+                    <NavLink class="btn btn-gold btn-sm" href="@CanvasHref">Open All in Canvas</NavLink>
+                }
+                <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert-error" style="margin-bottom:12px">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <div class="pcs-success" style="margin-bottom:12px">@_success</div>
+    }
+
+    @if (_patternId <= 0)
+    {
+        <div class="pp-empty-hint">
+            <p class="page-sub">Pick a pattern from the dropdown above, or open a row’s <strong>Pieces</strong> link from the dashboard.</p>
+        </div>
+    }
+    else if (_cards.Count == 0)
+    {
+        <div class="pp-empty-hint">
+            <p class="page-sub">No pieces yet. Click <strong>⬡ Generate</strong> to draft a full pattern set from the style block.</p>
+        </div>
+    }
+    else
+    {
+        <div class="pcs-filter-bar">
+            <div class="pcs-filter-label">Filter:</div>
+            <button class="pcs-filter-btn @(_filter == "all" ? "active" : "")" @onclick='() => _filter = "all"'>All Pieces</button>
+            @foreach (var g in _groups)
+            {
+                var key = g.Key;
+                <button class="pcs-filter-btn @(_filter == key ? "active" : "")" @onclick="() => _filter = key">@key</button>
+            }
+            <div style="flex:1"></div>
+            <div class="pcs-view-toggle">
+                <button class="pvt-btn @(_view == "grid" ? "active" : "")" title="Grid view" @onclick='() => _view = "grid"'>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" fill="currentColor"/><rect x="8" y="1" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="8" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/><rect x="8" y="8" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/></svg>
+                </button>
+                <button class="pvt-btn @(_view == "list" ? "active" : "")" title="List view" @onclick='() => _view = "list"'>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="2" rx="1" fill="currentColor"/><rect x="1" y="6" width="12" height="2" rx="1" fill="currentColor" opacity=".6"/><rect x="1" y="10" width="12" height="2" rx="1" fill="currentColor" opacity=".4"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="pcs-body">
+            @foreach (var grp in _groups.Where(g => _filter == "all" || g.Key == _filter))
+            {
+                <div class="pcs-group">
+                    <div class="pcs-group-hdr">
+                        <div class="pcs-group-icon">@GroupIcon(grp.Key)</div>
+                        <div class="pcs-group-name">@grp.Key</div>
+                        <div class="pcs-group-count">@grp.Count() piece@(grp.Count() != 1 ? "s" : "")</div>
+                        <div class="pcs-group-line"></div>
+                    </div>
+                    <div class="pcs-grid @(_view == "list" ? "list-view" : "")">
+                        @foreach (var card in grp)
+                        {
+                            var col = card.Color;
+                            var cutNum = CutNumber(card.CutInstruction);
+                            <div class="pcs-card">
+                                <NavLink class="pcs-card-link" href="@CanvasPieceHref(card.Index)" title="@($"Open {card.Name} in Canvas Editor")">
+                                    <div class="pcs-card-rule" style="background:@col"></div>
+                                    <div class="pcs-card-preview">
+                                        <div class="pcs-card-grid-bg"></div>
+                                        <svg class="pcs-card-svg" viewBox="0 0 112 138" fill="none" style="color:@col">
+                                            @Schematic(card.Name)
+                                            <line x1="56" y1="30" x2="56" y2="108" stroke="@col" stroke-width="0.7" stroke-dasharray="2,2" opacity=".4" />
+                                            <polygon points="52,33 56,26 60,33" fill="@col" opacity=".45" />
+                                        </svg>
+                                        <div class="pcs-fold-mark" title="Grain line">
+                                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M2 3l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+                                            Grain
+                                        </div>
+                                    </div>
+                                    <div class="pcs-card-body">
+                                        <div class="pcs-card-top">
+                                            <div class="pcs-card-num" style="color:@col">#@(card.Index + 1)</div>
+                                            <div class="pcs-cut-badge">×@cutNum</div>
+                                        </div>
+                                        <div class="pcs-card-name">@card.Name</div>
+                                        <div class="pcs-card-meta">
+                                            <span class="pcs-meta-dot" style="background:@col"></span>
+                                            @PieceGroupHelper.GroupFor(card.Name)
+                                        </div>
+                                    </div>
+                                    <div class="pcs-card-arrow">
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                    </div>
+                                </NavLink>
+                                <button type="button" class="pcs-card-delete" title="Delete piece" @onclick="() => DeletePiece(card.Name)">
+                                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2l-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="pcs-cut-table-wrap">
+            <div class="pcs-cut-table-hdr">
+                <div class="pcs-cut-table-title">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L1 4v5l6 4 6-4V4L7 1z" stroke="currentColor" stroke-width="1.3" fill="none" /></svg>
+                    Fabric Cut Summary
+                </div>
+                <div class="pcs-cut-table-sub">@_styleLabel — all panels</div>
+            </div>
+            <div class="pcs-cut-rows">
+                @foreach (var card in _cards)
+                {
+                    var col = card.Color;
+                    var cutNum = CutNumber(card.CutInstruction);
+                    var cutInt = int.TryParse(cutNum, out var n) ? n : 2;
+                    <div class="pcs-cut-row">
+                        <div class="pcs-cut-swatch" style="background:@(col)22;border-color:@(col)44">
+                            <div class="pcs-cut-swatch-dot" style="background:@col"></div>
+                        </div>
+                        <div class="pcs-cut-num-label">#@(card.Index + 1)</div>
+                        <div class="pcs-cut-name">@card.Name</div>
+                        <div class="pcs-cut-bar-wrap">
+                            <div class="pcs-cut-bar-track">
+                                <div class="pcs-cut-bar-fill" style="width:@(cutInt * 12.5)%;background:@col"></div>
+                            </div>
+                        </div>
+                        <div class="pcs-cut-count">×@cutNum</div>
+                        <NavLink class="pcs-cut-open" href="@CanvasPieceHref(card.Index)" title="Open in canvas">
+                            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 5.5h9M6.5 2l3.5 3.5L6.5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        </NavLink>
+                    </div>
+                }
+            </div>
+            <div class="pcs-cut-footer">
+                <span>Total fabric panels: <strong>@_totalPanels</strong></span>
+                <span class="pcs-cut-footer-sep">·</span>
+                <span>Unique pieces: <strong>@_cards.Count</strong></span>
+            </div>
+        </div>
+    }
+</div>
+
+<dialog @ref="_addDialog" class="pp-create-dialog pp-create-dialog--wide" @oncancel="CloseAddAsync">
+    <div class="modal-header">
+        <div>
+            <div class="modal-title">Add New Piece</div>
+            <div class="modal-sub">@_styleLabel — new piece will appear in the pieces grid</div>
+        </div>
+        <button class="modal-close-btn" type="button" aria-label="Close" @onclick="CloseAddAsync">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+        </button>
+    </div>
+
+    <div class="modal-body-cols">
+        <div class="modal-form-col">
+            @if (_pattern is not null)
+            {
+                <div class="modal-pattern-badge">
+                    <span class="modal-pattern-code">@_pattern.Code</span>
+                    @_pattern.Name
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_addError))
+            {
+                <div class="modal-error show">@_addError</div>
+            }
+
+            <div class="form-field">
+                <label class="form-label">Piece Name <span class="req">*</span></label>
+                <input class="form-input" placeholder="e.g. Knee Patch" autocomplete="off" @bind="_add.Name" @bind:event="oninput" />
+            </div>
+
+            <div class="form-field">
+                <label class="form-label">Category</label>
+                <div class="chip-group">
+                    @foreach (var c in Categories)
+                    {
+                        <button type="button" class="chip @(_add.Category == c ? "chip--active" : "")" @onclick="() => _add.Category = c">@c</button>
+                    }
+                </div>
+            </div>
+
+            <div class="form-row-2">
+                <div class="form-field">
+                    <label class="form-label">Cut Quantity</label>
+                    <select class="form-input" @bind="_add.Cut">
+                        <option value="Cut 1">Cut 1 — Fold</option>
+                        <option value="Cut 2">Cut 2 — Pair</option>
+                        <option value="Cut 4">Cut 4</option>
+                        <option value="Cut 8">Cut 8 — Loops</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Grain Line</label>
+                    <select class="form-input" @bind="_add.GrainLine">
+                        <option value="Straight">Straight</option>
+                        <option value="Bias">Bias</option>
+                        <option value="Cross Grain">Cross Grain</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label class="form-label">Description <span class="form-opt">(optional)</span></label>
+                <input class="form-input" placeholder="e.g. Knee reinforcement panel" @bind="_add.Description" />
+            </div>
+
+            <div class="form-field">
+                <label class="form-label">Accent Colour</label>
+                <div class="color-picker-row">
+                    <input type="color" class="color-swatch-input" @bind="_add.Color" @bind:event="oninput" />
+                    <div class="color-presets">
+                        @foreach (var preset in ColorPresets)
+                        {
+                            <button type="button" class="color-preset" style="background:@preset" title="@preset" @onclick="() => _add.Color = preset"></button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-preview-col">
+            <div class="preview-label">Live Preview</div>
+            <div class="pcs-card pcs-card--preview">
+                <div class="pcs-card-rule" style="background:@_add.Color"></div>
+                <div class="pcs-card-preview">
+                    <div class="pcs-card-grid-bg"></div>
+                    <svg class="pcs-card-svg" viewBox="0 0 112 138" fill="none" style="color:@_add.Color">
+                        @SchematicForCategory(_add.Category, _add.Name)
+                        <line x1="56" y1="30" x2="56" y2="108" stroke="@_add.Color" stroke-width="0.7" stroke-dasharray="2,2" opacity=".4" />
+                        <polygon points="52,33 56,26 60,33" fill="@_add.Color" opacity=".45" />
+                    </svg>
+                    <div class="pcs-fold-mark">
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M2 3l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+                        @_add.GrainLine
+                    </div>
+                </div>
+                <div class="pcs-card-body">
+                    <div class="pcs-card-top">
+                        <div class="pcs-card-num" style="color:@_add.Color">#@(_cards.Count + 1)</div>
+                        <div class="pcs-cut-badge">×@CutNumber(_add.Cut)</div>
+                    </div>
+                    <div class="pcs-card-name">@(string.IsNullOrWhiteSpace(_add.Name) ? "New Piece" : _add.Name)</div>
+                    <div class="pcs-card-meta">
+                        <span class="pcs-meta-dot" style="background:@_add.Color"></span>
+                        @_add.Category
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-actions">
+        <button type="button" class="btn btn-outline btn-sm" @onclick="CloseAddAsync">Cancel</button>
+        <button type="button" class="btn btn-gold btn-sm" @onclick="AddPieceAsync" disabled="@_busy">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg>
+            @(_busy ? "Adding…" : "Add Piece")
+        </button>
+    </div>
+</dialog>
+
+@code {
+    private IReadOnlyList<CoreModel.Pattern> _patterns = [];
+    private CoreModel.Pattern? _pattern;
+    private List<PieceCardViewModel> _cards = [];
+    private IEnumerable<IGrouping<string, PieceCardViewModel>> _groups = [];
+    private ElementReference _addDialog;
+    private int _patternId;
+    private string _styleKey = "skinny";
+    private string _styleLabel = "";
+    private string? _message;
+    private string? _success;
+    private bool _busy;
+    private string? _addError;
+    private int _totalPanels;
+    private string _filter = "all";
+    private string _view = "grid";
+    private readonly AddPieceForm _add = new();
+
+    private static readonly string[] ColorPresets =
+        ["#1a1a6e", "#534AB7", "#0F6E56", "#854F0B", "#a78bfa", "#f87171"];
+
+    private static readonly (string Key, string Label)[] StyleOptions =
+    [
+        ("skinny", "Skinny"),
+        ("slim", "Slim"),
+        ("straight", "Straight"),
+        ("bootcut", "Bootcut"),
+        ("wideLeg", "Wide Leg"),
+    ];
+
+    private static readonly string[] Categories =
+        ["Body Panels", "Closures", "Pockets", "Hardware & Details"];
+
+    private string CanvasHref => $"module/canvas?patternId={_patternId}&style={Uri.EscapeDataString(_styleKey)}";
+
+    private string CanvasPieceHref(int piece) =>
+        $"module/canvas?patternId={_patternId}&piece={piece}&style={Uri.EscapeDataString(_styleKey)}";
+
+    private static string CutNumber(string cut) =>
+        cut.Replace("cut", "", StringComparison.OrdinalIgnoreCase).Trim();
+
+    private static int PanelsFor(string cut) =>
+        cut.Contains('1') ? 1 : cut.Contains('8') ? 8 : cut.Contains('4') ? 4 : 2;
+
+    private MarkupString GroupIcon(string group) => new(group switch
+    {
+        "Body Panels" =>
+            "<svg viewBox='0 0 20 20' fill='none'><rect x='3' y='2' width='6' height='16' rx='1.5' stroke='currentColor' stroke-width='1.5'/><rect x='11' y='2' width='6' height='16' rx='1.5' stroke='currentColor' stroke-width='1.5' opacity='.6'/></svg>",
+        "Closures" =>
+            "<svg viewBox='0 0 20 20' fill='none'><path d='M6 4h8v9a4 4 0 0 1-8 0V4z' stroke='currentColor' stroke-width='1.5'/><path d='M8 4V2m4 2V2' stroke='currentColor' stroke-width='1.5' stroke-linecap='round'/></svg>",
+        "Pockets" =>
+            "<svg viewBox='0 0 20 20' fill='none'><rect x='4' y='6' width='12' height='11' rx='2' stroke='currentColor' stroke-width='1.5'/><path d='M4 10h12' stroke='currentColor' stroke-width='1.5'/></svg>",
+        _ =>
+            "<svg viewBox='0 0 20 20' fill='none'><circle cx='10' cy='10' r='7' stroke='currentColor' stroke-width='1.5'/><path d='M10 7v3l2 2' stroke='currentColor' stroke-width='1.5' stroke-linecap='round'/></svg>",
+    });
+
+    private MarkupString Schematic(string name) =>
+        SchematicForCategory(PieceGroupHelper.GroupFor(name), name);
+
+    private MarkupString SchematicForCategory(string group, string name) => new(group switch
+    {
+        "Body Panels" when name.StartsWith("Front", StringComparison.OrdinalIgnoreCase) =>
+            "<polygon points='50,12 88,18 94,55 90,70 88,118 56,124 24,118 22,70 18,55 14,18' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/><line x1='56' y1='12' x2='56' y2='124' stroke='currentColor' stroke-width='.7' stroke-dasharray='3,2'/>",
+        "Body Panels" when name.StartsWith("Back", StringComparison.OrdinalIgnoreCase) =>
+            "<polygon points='44,12 96,12 104,25 108,55 100,72 98,118 56,126 14,118 12,72 4,55 8,25' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/><line x1='56' y1='12' x2='56' y2='126' stroke='currentColor' stroke-width='.7' stroke-dasharray='3,2'/>",
+        "Body Panels" when name.Contains("Waistband", StringComparison.OrdinalIgnoreCase) || name.Contains("Tab", StringComparison.OrdinalIgnoreCase) =>
+            "<rect x='14' y='50' width='84' height='38' rx='2' fill='none' stroke='currentColor' stroke-width='1.4'/><line x1='56' y1='50' x2='56' y2='88' stroke='currentColor' stroke-width='.7' stroke-dasharray='3,2'/>",
+        "Body Panels" =>
+            "<polygon points='30,15 82,15 94,55 90,118 56,128 22,118 18,55' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/>",
+        "Closures" =>
+            "<path d='M44,18 L72,18 L72,82 L58,90 L44,82 Z' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/><line x1='58' y1='18' x2='58' y2='90' stroke='currentColor' stroke-width='.7' stroke-dasharray='3,2'/>",
+        "Pockets" when name.Contains("Coin", StringComparison.OrdinalIgnoreCase) =>
+            "<path d='M36,40 L76,40 L76,74 L60,82 L44,74 L44,40' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/>",
+        "Pockets" =>
+            "<rect x='24' y='28' width='64' height='82' rx='2' fill='none' stroke='currentColor' stroke-width='1.4'/><line x1='24' y1='66' x2='88' y2='66' stroke='currentColor' stroke-width='.8' stroke-dasharray='3,2'/>",
+        _ =>
+            "<rect x='44' y='32' width='24' height='74' rx='2' fill='none' stroke='currentColor' stroke-width='1.4'/>",
+    });
+
+    protected override void OnInitialized()
+    {
+        _patterns = PatternService.GetAll();
+        ParseQuery();
+        LoadData();
+    }
+
+    private void ParseQuery()
+    {
+        var uri = Navigation.Uri;
+        var q = uri.IndexOf('?', StringComparison.Ordinal);
+        if (q < 0) return;
+        foreach (var part in uri[(q + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith("patternId=", StringComparison.Ordinal) &&
+                int.TryParse(part["patternId=".Length..], out var id))
+                _patternId = id;
+            if (part.StartsWith("style=", StringComparison.Ordinal))
+                _styleKey = FitStyleKeys.Normalize(Uri.UnescapeDataString(part["style=".Length..]));
+        }
+    }
+
+    private void LoadData()
+    {
+        _message = null;
+        _success = null;
+        _pattern = _patternId > 0
+            ? _patterns.FirstOrDefault(p => p.Id == _patternId)
+            : null;
+
+        if (_patternId <= 0)
+        {
+            _cards = [];
+            _groups = [];
+            return;
+        }
+
+        var styleDef = PieceService.GetStyleDefinition(_styleKey);
+        _styleLabel = styleDef.Label;
+
+        var defs = PieceService.GetPieceDefinitions(_patternId, _styleKey);
+        _cards = defs.Select((d, i) => new PieceCardViewModel
+        {
+            Index = i,
+            Name = d.Name,
+            CutInstruction = d.Cut,
+            Color = string.IsNullOrWhiteSpace(d.Color) ? PieceGroupHelper.DefaultColor(d.Name) : d.Color,
+            Category = d.Category,
+            GrainLine = d.GrainLine,
+            Description = d.Description,
+        }).ToList();
+
+        _groups = _cards
+            .GroupBy(c => PieceGroupHelper.GroupFor(c.Name))
+            .OrderBy(g => PieceGroupHelper.GroupOrder(g.Key));
+
+        _totalPanels = _cards.Sum(c => PanelsFor(c.CutInstruction));
+    }
+
+    private void DraftPieces()
+    {
+        if (_patternId <= 0) return;
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var baseSize = _pattern?.BaseSize ?? "M";
+            var pieces = DraftingService.DraftProductionPieces(_styleKey, baseSize);
+            PieceService.ReplacePatternPieces(_patternId, pieces);
+            _success = $"Generated {pieces.Count} pieces.";
+            Toast.Show("Pieces generated", $"{pieces.Count} pieces drafted for {_styleLabel}",
+                DesktopToastType.Success, "⬡");
+            LoadData();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            Toast.Show("Generate failed", ex.Message, DesktopToastType.Error, "⚠");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void RefinePieces()
+    {
+        if (_patternId <= 0) return;
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var defs = PieceService.GetPieceDefinitions(_patternId, _styleKey)
+                .Select(PatternAutoRefineService.Clone)
+                .ToList();
+            PatternAutoRefineService.Refine(defs, _styleKey);
+            PieceService.ReplacePatternPieces(_patternId, defs);
+            _success = "Auto-refine applied (seams, SA, notches).";
+            Toast.Show("Auto-refine complete", "Seams, seam allowance, and notches updated",
+                DesktopToastType.Success, "⚙");
+            LoadData();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            Toast.Show("Auto-refine failed", ex.Message, DesktopToastType.Error, "⚠");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task OpenAddAsync()
+    {
+        _add.Reset();
+        _addError = null;
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _addDialog);
+    }
+
+    private async Task CloseAddAsync()
+    {
+        _addError = null;
+        await JS.InvokeVoidAsync("patternPro.closeDialog", _addDialog);
+    }
+
+    private async Task AddPieceAsync()
+    {
+        if (_patternId <= 0) return;
+        if (string.IsNullOrWhiteSpace(_add.Name))
+        {
+            _addError = "Piece name is required.";
+            return;
+        }
+        _busy = true;
+        _addError = null;
+        _message = null;
+        try
+        {
+            var (ok, error, _) = PieceService.AddPiece(
+                _patternId, _styleKey, _add.Name, _add.Category,
+                _add.Cut, _add.GrainLine, _add.Color, _add.Description);
+            if (!ok)
+            {
+                _addError = error;
+                return;
+            }
+            _success = $"Added '{_add.Name.Trim()}'.";
+            Toast.Show("Piece added", _add.Name.Trim(), DesktopToastType.Success, "＋");
+            LoadData();
+            await CloseAddAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void DeletePiece(string name)
+    {
+        if (_patternId <= 0) return;
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var (ok, error) = PieceService.DeletePiece(_patternId, name);
+            if (!ok)
+            {
+                _message = error;
+                return;
+            }
+            _success = $"Deleted '{name}'.";
+            LoadData();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private sealed class AddPieceForm
+    {
+        public string Name { get; set; } = "";
+        public string Category { get; set; } = "Body Panels";
+        public string Cut { get; set; } = "Cut 2";
+        public string GrainLine { get; set; } = "Straight";
+        public string Color { get; set; } = "#a78bfa";
+        public string Description { get; set; } = "";
+
+        public void Reset()
+        {
+            Name = "";
+            Category = "Body Panels";
+            Cut = "Cut 2";
+            GrainLine = "Straight";
+            Color = "#a78bfa";
+            Description = "";
+        }
+    }
+}

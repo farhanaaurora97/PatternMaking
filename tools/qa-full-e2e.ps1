@@ -60,10 +60,7 @@ function Get-PieceList($data) {
     return @($data)
 }
 
-function Post-Json([string]$Uri, $Session, $Object) {
-    $json = $Object | ConvertTo-Json -Compress
-    return Invoke-RestMethod -Uri $Uri -Method POST -Body $json -ContentType "application/json" -WebSession $Session
-}
+. "$PSScriptRoot/qa-helpers.ps1"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -122,9 +119,9 @@ Try-Test "B1 Size Chart page" {
 }
 
 Try-Test "B2 Size chart M waist = 84 cm" {
-    $csv = (Invoke-WebRequest -Uri "$BaseUrl/SizeChart/ExportCsv" -WebSession $session -UseBasicParsing).Content
-    $waist = ($csv -split "`n") | Where-Object { $_ -match "^Waist," } | Select-Object -First 1
-    if ($waist -notmatch ",84,") { throw "Waist M not 84: $waist" }
+    Ensure-SizeChartWaistM -Session $session -BaseUrl $BaseUrl -Value 84
+    $mWaist = Get-WaistMValue (Get-SizeChartCsv $BaseUrl $session)
+    if ($mWaist -ne 84) { throw "Waist M not 84: $mWaist" }
     Pass "B2 Size chart M waist = 84 cm"
 }
 

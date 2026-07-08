@@ -23,9 +23,9 @@
 
 ---
 
-## 1. What is PatternPro?
+## 1.What is PatternPro?
 
-PatternPro is a **local web application** that replaces a scattered spreadsheet + CAD workflow with one connected system:
+PatternPro is a **local application** (Windows desktop pilot or browser) that replaces a scattered spreadsheet + CAD workflow with one connected system:
 
 | Without PatternPro | With PatternPro |
 |--------------------|-----------------|
@@ -35,7 +35,7 @@ PatternPro is a **local web application** that replaces a scattered spreadsheet 
 | “Is it ready for the cutter?” unclear | **Production QC** + approval + cutter test |
 | Files emailed as attachments | **Factory export** ZIP with certification |
 
-### What it makes
+### What it makSes
 
 - **Garment type:** Bottom wear only — skinny, slim, straight, bootcut, wide leg
 - **Sizes:** XS, S, M, L, XL, XXL (graded from a base size, usually M)
@@ -101,6 +101,17 @@ PatternPro is a **local web application** that replaces a scattered spreadsheet 
 
 ### Run the app
 
+**Option A — Desktop (Windows pilot, recommended for designers)**
+
+```powershell
+cd PatternMaking
+dotnet run --project PatternPro.Desktop\PatternPro.Desktop.csproj
+```
+
+A native window opens. Sign in with `admin` / `Admin@123` (local pilot). Export ZIPs save to **Downloads**; factory export shows a toast when complete.
+
+**Option B — Browser (Pattern.Web)**
+
 ```powershell
 cd PatternMaking\Pattern.Web
 dotnet run
@@ -146,8 +157,25 @@ This is the **complete path** for one bottom-wear style (e.g. DN-023 Slim Tapere
 | 0.1 | Install .NET 8 SDK |
 | 0.2 | Clone/copy the repo |
 | 0.3 | Optional: configure PostgreSQL (see [Section 8](#8-data-storage-and-team-setup)) |
-| 0.4 | Run `dotnet run` in `Pattern.Web` |
+| 0.4 | Run Desktop (`PatternPro.Desktop`) or `Pattern.Web` |
 | 0.5 | Confirm console data store message |
+
+**Screen routes (web vs desktop):**
+
+| Screen | Pattern.Web | PatternPro.Desktop |
+|--------|-------------|-------------------|
+| Dashboard | `/` | `/` |
+| Style Sheet | `/StyleSheet` | `/module/style-sheet` |
+| Size Chart | `/SizeChart` | `/module/size-chart` |
+| Block Generator | `/BlockGenerator` | `/module/block-generator` |
+| Grading | `/Grading` | `/module/grading` |
+| Pattern Pieces | `/Pieces` | `/module/pieces` |
+| Canvas | `/Canvas` | `/module/canvas` |
+| Graded Nest | `/Nest` | `/module/nest` |
+| Export | `/Export` | `/module/export` |
+| Library | `/Library` | `/module/library` |
+| My account | `/User` | `/account` |
+| Admin panel | `/Admin` | `/admin` |
 
 ### Step 1 — Register the style (PLM)
 
@@ -251,7 +279,7 @@ See [Section 6](#6-factory-certification) and [Section 7](#7-export-formats-for-
 4. Run trial on plotter/cutter → **Record pass**
 5. Optional: set **Shrinkage %**
 6. Select format: **DXF**, **HPGL**, or **PLT**
-7. Click **↓ Factory export** → download ZIP
+7. Click **↓ Factory export** → download ZIP (Desktop shows a toast notification when saved)
 
 **Not gated (available anytime):**
 
@@ -281,6 +309,8 @@ See [Section 6](#6-factory-certification) and [Section 7](#7-export-formats-for-
 
 ### Navigation (sidebar)
 
+**Pattern.Web routes:**
+
 | Menu item | Route | Purpose |
 |-----------|-------|---------|
 | Dashboard | `/` | Pattern list, stats, create new style |
@@ -293,6 +323,8 @@ See [Section 6](#6-factory-certification) and [Section 7](#7-export-formats-for-
 | Canvas Editor | `/Canvas` | Draw/edit geometry |
 | Graded Nest | `/Nest` | Multi-size overlay view |
 | Export / DXF | `/Export` | QC, certification, download |
+
+**PatternPro.Desktop** uses the same menu labels with routes under `/module/…` (see [Quick start](#3-quick-start-5-minutes)). **My account** and **Admin panel** are at `/account` and `/admin`.
 
 ### Fits and piece lists
 
@@ -497,10 +529,11 @@ See [OTHER_PC_SETUP.md](OTHER_PC_SETUP.md) for:
 
 ### PatternPro.Web (alternate entry)
 
-| App | URL | Notes |
-|-----|-----|-------|
-| `Pattern.Web` | http://localhost:5001 | **Primary** — full factory certification |
-| `PatternPro.Web` | http://localhost:5002 | Parallel entry, same features |
+| App | URL / launch | Notes |
+|-----|--------------|-------|
+| `PatternPro.Desktop` | `dotnet run --project PatternPro.Desktop` | **Windows pilot** — MAUI + Blazor, SkiaSharp canvas |
+| `Pattern.Web` | http://localhost:5001 | **Primary browser** — full factory certification |
+| `PatternPro.Web` | http://localhost:5002 | Parallel browser entry, same features |
 
 ---
 
@@ -517,8 +550,9 @@ PatternMaking/
 ├── PatternPro.DataAccess/       JSON + PostgreSQL stores, EF migrations
 ├── Pattern.Web.Model/           MVC ViewModels
 ├── Pattern.Web/                 Main MVC app (controllers, views, static assets)
-├── PatternPro.Web/              Parallel entry point
-├── PatternPro.Tests/              Unit tests (QC, certification, export)
+├── PatternPro.Web/              Parallel browser entry point
+├── PatternPro.Desktop/          Windows MAUI + Blazor desktop app
+├── PatternPro.Tests/            Unit tests (QC, certification, export)
 └── tools/PatternPro.DbTool/     CLI: migrations, sync, certify
 ```
 
@@ -638,4 +672,4 @@ Tests cover: seam validation, production certification, export gating.
 
 ## One-page summary (share with your team)
 
-**PatternPro** is our in-house pattern system for **trousers and denim**. One style goes through: **register → size chart → block → grading → canvas → export**. Factory files are **not released** until geometry passes QC, a designer **approves for cutting**, and the **cutter trial passes**. Download **DXF**, **HPGL**, or **PLT** from the Export page and load into cutter software. Managers track progress on the **Dashboard** (**Factory ready** count). Developers run `dotnet run` in `Pattern.Web` at **http://localhost:5001**.
+**PatternPro** is our in-house pattern system for **trousers and denim**. One style goes through: **register → size chart → block → grading → canvas → export**. Factory files are **not released** until geometry passes QC, a designer **approves for cutting**, and the **cutter trial passes**. Download **DXF**, **HPGL**, or **PLT** from the Export page and load into cutter software. Managers track progress on the **Dashboard** (**Factory ready** count). Run **PatternPro Desktop** on Windows or **Pattern.Web** at **http://localhost:5001** in the browser.

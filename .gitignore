@@ -1,5 +1,8 @@
 bin/
 obj/
+dist/
+publish/
+*.Backup.tmp
 *.user
 .vs/
 tmp-export-*/

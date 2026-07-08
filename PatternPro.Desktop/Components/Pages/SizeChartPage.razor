@@ -1,0 +1,246 @@
+@page "/module/size-chart"
+@attribute [Authorize]
+@using CoreModel = Pattern.Core.Model
+@using PatternPro.Desktop.Services
+@inject ISizeChartService SizeChartService
+@inject IJSRuntime JS
+
+<div class="gr-page">
+    <div class="cv-toolbar">
+        <div>
+            <div class="page-title" style="font-size:1.35rem">Size Chart</div>
+            <div class="page-sub">Body measurements in cm — M is the base size</div>
+        </div>
+        <div class="cv-toolbar-actions">
+            <button type="button" class="btn btn-outline btn-sm" @onclick="ExportCsv" disabled="@_busy">Export CSV</button>
+            <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddRowAsync">+ Add measurement</button>
+            <button type="button" class="btn btn-gold btn-sm" @onclick="OpenAddColAsync">+ Add size</button>
+            <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert-error" style="margin-bottom:12px">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <div class="pcs-success" style="margin-bottom:12px">@_success</div>
+    }
+
+    <div class="tbl-wrap">
+        <div class="tbl-header">
+            <span class="tbl-label">Body measurements — bottom wear</span>
+            <span style="flex:1"></span>
+            <span class="gr-hint">Unit: cm · click to edit</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Measurement point</th>
+                    @for (var i = 0; i < _columns.Count; i++)
+                    {
+                        var col = _columns[i];
+                        var isBase = string.Equals(col, "M", StringComparison.Ordinal);
+                        <th class="@(isBase ? "gr-col-base" : "")" style="text-align:center">
+                            @col@(isBase ? " — Base" : "")
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in _rows)
+                {
+                    <tr>
+                        <td class="td-bold">@row.MeasurementPoint</td>
+                        @for (var i = 0; i < row.Values.Count; i++)
+                        {
+                            var col = i;
+                            var isBase = col < _columns.Count && string.Equals(_columns[col], "M", StringComparison.Ordinal);
+                            <td class="td-mono @(isBase ? "gr-cell-base" : "gr-cell-delta")">
+                                <input type="number"
+                                       class="gr-delta-input"
+                                       step="0.1"
+                                       value="@row.Values[col].ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                       @onchange="e => OnCellChanged(row.MeasurementPoint, col, e)" />
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<dialog @ref="_addColDialog" class="pp-create-dialog" @oncancel="CloseAddColAsync">
+    <h3 style="font-family:var(--font-display);margin-bottom:12px">Add size column</h3>
+    <div class="form-row">
+        <label>Size label (e.g. 3XL)</label>
+        <input class="status-select" style="width:100%" @bind="_newColLabel" maxlength="8" />
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button type="button" class="btn btn-outline" @onclick="CloseAddColAsync">Cancel</button>
+        <button type="button" class="btn btn-gold" @onclick="AddColumnAsync" disabled="@_busy">Add</button>
+    </div>
+</dialog>
+
+<dialog @ref="_addRowDialog" class="pp-create-dialog" @oncancel="CloseAddRowAsync">
+    <h3 style="font-family:var(--font-display);margin-bottom:12px">Add measurement row</h3>
+    <div class="form-row">
+        <label>Measurement point</label>
+        <input class="status-select" style="width:100%" @bind="_newRowLabel" maxlength="64" />
+    </div>
+    <div class="form-row">
+        <label>Copy values from (optional)</label>
+        <select class="status-select" style="width:100%" @bind="_copyFromRow">
+            <option value="">— blank —</option>
+            @foreach (var row in _rows)
+            {
+                <option value="@row.MeasurementPoint">@row.MeasurementPoint</option>
+            }
+        </select>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button type="button" class="btn btn-outline" @onclick="CloseAddRowAsync">Cancel</button>
+        <button type="button" class="btn btn-gold" @onclick="AddRowAsync" disabled="@_busy">Add</button>
+    </div>
+</dialog>
+
+@code {
+    private List<string> _columns = [];
+    private List<CoreModel.SizeRow> _rows = [];
+    private ElementReference _addColDialog;
+    private ElementReference _addRowDialog;
+    private string? _message;
+    private string? _success;
+    private bool _busy;
+    private string _newColLabel = "";
+    private string _newRowLabel = "";
+    private string _copyFromRow = "";
+
+    protected override void OnInitialized() => LoadTable();
+
+    private void LoadTable()
+    {
+        _message = null;
+        _columns = SizeChartService.GetColumnLabels().ToList();
+        _rows = SizeChartService.GetAll().Select(CloneRow).ToList();
+    }
+
+    private static CoreModel.SizeRow CloneRow(CoreModel.SizeRow r) => new()
+    {
+        MeasurementPoint = r.MeasurementPoint,
+        ToleranceCm = r.ToleranceCm,
+        MeasurementMethod = r.MeasurementMethod,
+        Values = r.Values.ToList(),
+    };
+
+    private void OnCellChanged(string measurementPoint, int columnIndex, ChangeEventArgs e)
+    {
+        if (!decimal.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var value)
+            && !decimal.TryParse(e.Value?.ToString(), out value))
+        {
+            _message = "Invalid number.";
+            return;
+        }
+
+        var (ok, error) = SizeChartService.TryUpdateCell(measurementPoint, columnIndex, value);
+        if (!ok)
+        {
+            _message = error;
+            LoadTable();
+            return;
+        }
+
+        var row = _rows.FirstOrDefault(r => r.MeasurementPoint == measurementPoint);
+        if (row is not null && columnIndex < row.Values.Count)
+            row.Values[columnIndex] = value;
+        _message = null;
+    }
+
+    private async Task OpenAddColAsync()
+    {
+        _newColLabel = "";
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _addColDialog);
+    }
+
+    private async Task CloseAddColAsync()
+        => await JS.InvokeVoidAsync("patternPro.closeDialog", _addColDialog);
+
+    private async Task OpenAddRowAsync()
+    {
+        _newRowLabel = "";
+        _copyFromRow = "";
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _addRowDialog);
+    }
+
+    private async Task CloseAddRowAsync()
+        => await JS.InvokeVoidAsync("patternPro.closeDialog", _addRowDialog);
+
+    private async Task AddColumnAsync()
+    {
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var (ok, error) = SizeChartService.TryAddSizeColumn(_newColLabel);
+            if (!ok)
+            {
+                _message = error;
+                return;
+            }
+            _success = $"Added size '{_newColLabel.Trim()}'.";
+            _newColLabel = "";
+            LoadTable();
+            await CloseAddColAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task AddRowAsync()
+    {
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var (ok, error) = SizeChartService.TryAddMeasurementRow(
+                _newRowLabel.Trim(),
+                string.IsNullOrWhiteSpace(_copyFromRow) ? null : _copyFromRow);
+            if (!ok)
+            {
+                _message = error;
+                return;
+            }
+            _success = $"Added '{_newRowLabel.Trim()}'.";
+            _newRowLabel = "";
+            _copyFromRow = "";
+            LoadTable();
+            await CloseAddRowAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task ExportCsv()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var csv = SizeChartService.ExportCsv();
+            var path = await DesktopFileSave.SaveToDownloadsAsync(
+                System.Text.Encoding.UTF8.GetBytes(csv),
+                "size-chart.csv");
+            _success = $"CSV saved to Downloads: {path}";
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally { _busy = false; }
+    }
+}

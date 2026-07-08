@@ -36,6 +36,8 @@ function Get-PieceList($data) {
     return @($data)
 }
 
+. "$PSScriptRoot/qa-helpers.ps1"
+
 Write-Host ""
 Write-Host "=== PatternPro QA Smoke Test ===" -ForegroundColor Cyan
 Write-Host "Target: $BaseUrl"
@@ -100,9 +102,9 @@ foreach ($p in $pages) {
 }
 
 Try-Test "Size chart M waist = 84 cm" {
-    $csv = (Invoke-WebRequest -Uri "$BaseUrl/SizeChart/ExportCsv" -WebSession $session -UseBasicParsing).Content
-    $waistLine = ($csv -split "`n") | Where-Object { $_ -match "^Waist," } | Select-Object -First 1
-    if ($waistLine -notmatch ",84,") { throw "Expected Waist M=84, got: $waistLine" }
+    Ensure-SizeChartWaistM -Session $session -BaseUrl $BaseUrl -Value 84
+    $mWaist = Get-WaistMValue (Get-SizeChartCsv $BaseUrl $session)
+    if ($mWaist -ne 84) { throw "Expected Waist M=84, got: $mWaist" }
     Pass "Size chart M waist = 84 cm"
 }
 

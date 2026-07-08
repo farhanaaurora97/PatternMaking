@@ -1,0 +1,308 @@
+@page "/module/grading"
+@attribute [Authorize]
+@using CoreModel = Pattern.Core.Model
+@using PatternPro.Desktop.Helpers
+@using PatternPro.Desktop.Services
+@inject IGradingService GradingService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="gr-page">
+    <div class="cv-toolbar">
+        <div>
+            <div class="page-title" style="font-size:1.35rem">Grading</div>
+            <div class="page-sub">Size increments from M base — values in cm</div>
+        </div>
+        <div class="cv-toolbar-actions">
+            <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddColAsync">+ Add size</button>
+            <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddRowAsync">+ Add row</button>
+            <button type="button" class="btn btn-outline btn-sm" @onclick="ExportCsv" disabled="@_busy">Export CSV</button>
+            <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert-error" style="margin-bottom:12px">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <div class="pcs-success" style="margin-bottom:12px">@_success</div>
+    }
+
+    <nav class="fit-tabs">
+        @foreach (var opt in StyleOptions)
+        {
+            <button type="button"
+                    class="fit-tab @(_styleKey == opt.Key ? "active" : "")"
+                    @onclick="() => SelectStyle(opt.Key)">
+                @opt.Label
+            </button>
+        }
+    </nav>
+
+    <div class="tbl-wrap">
+        <div class="tbl-header">
+            <span class="tbl-label">Grade rules — @_styleLabel</span>
+            <span style="flex:1"></span>
+            <span class="gr-hint">Delta from M base · edit cells</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Measurement point</th>
+                    @for (var i = 0; i < _columns.Count; i++)
+                    {
+                        var col = i;
+                        <th class="@(col == _baseIndex ? "gr-col-base" : "")" style="text-align:@(col == _baseIndex ? "center" : "right")">
+                            @_columns[col]
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in _rows)
+                {
+                    <tr>
+                        <td class="td-bold">@row.MeasurementPoint</td>
+                        @for (var i = 0; i < row.Deltas.Count; i++)
+                        {
+                            var col = i;
+                            if (col == row.BaseIndex)
+                            {
+                                <td class="gr-cell-base">0</td>
+                            }
+                            else
+                            {
+                                <td class="gr-cell-delta">
+                                    <input type="number"
+                                           class="gr-delta-input"
+                                           step="0.1"
+                                           value="@row.Deltas[col].ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           @onchange="e => OnDeltaChanged(row.MeasurementPoint, col, e)" />
+                                </td>
+                            }
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<dialog @ref="_addColDialog" class="pp-create-dialog" @oncancel="CloseAddColAsync">
+    <h3 style="font-family:var(--font-display);margin-bottom:12px">Add size column</h3>
+    <div class="form-row">
+        <label>Size label (e.g. 3XL)</label>
+        <input class="status-select" style="width:100%" @bind="_newColLabel" maxlength="8" />
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button type="button" class="btn btn-outline" @onclick="CloseAddColAsync">Cancel</button>
+        <button type="button" class="btn btn-gold" @onclick="AddColumnAsync" disabled="@_busy">Add</button>
+    </div>
+</dialog>
+
+<dialog @ref="_addRowDialog" class="pp-create-dialog" @oncancel="CloseAddRowAsync">
+    <h3 style="font-family:var(--font-display);margin-bottom:12px">Add measurement row</h3>
+    <p class="page-sub">Added to <strong>@_styleLabel</strong> grading table.</p>
+    <div class="form-row">
+        <label>Measurement point</label>
+        <input class="status-select" style="width:100%" @bind="_newRowLabel" maxlength="64" />
+    </div>
+    <div class="form-row">
+        <label>Copy deltas from (optional)</label>
+        <select class="status-select" style="width:100%" @bind="_copyFromRow">
+            <option value="">— blank (zeros) —</option>
+            @foreach (var row in _rows)
+            {
+                <option value="@row.MeasurementPoint">@row.MeasurementPoint</option>
+            }
+        </select>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button type="button" class="btn btn-outline" @onclick="CloseAddRowAsync">Cancel</button>
+        <button type="button" class="btn btn-gold" @onclick="AddRowAsync" disabled="@_busy">Add</button>
+    </div>
+</dialog>
+
+@code {
+    private string _styleKey = "skinny";
+    private string _styleLabel = "";
+    private List<string> _columns = [];
+    private List<CoreModel.GradingRow> _rows = [];
+    private int _baseIndex;
+    private ElementReference _addColDialog;
+    private ElementReference _addRowDialog;
+    private string? _message;
+    private string? _success;
+    private bool _busy;
+    private string _newColLabel = "";
+    private string _newRowLabel = "";
+    private string _copyFromRow = "";
+
+    private static readonly (string Key, string Label)[] StyleOptions =
+    [
+        ("skinny", "Skinny"),
+        ("slim", "Slim"),
+        ("straight", "Straight"),
+        ("bootcut", "Bootcut"),
+        ("wideLeg", "Wide Leg"),
+    ];
+
+    protected override void OnInitialized()
+    {
+        ParseQuery();
+        LoadTable();
+    }
+
+    private void ParseQuery()
+    {
+        var uri = Navigation.Uri;
+        var q = uri.IndexOf('?', StringComparison.Ordinal);
+        if (q < 0) return;
+        foreach (var part in uri[(q + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith("style=", StringComparison.Ordinal))
+                _styleKey = FitStyleKeys.Normalize(Uri.UnescapeDataString(part["style=".Length..]));
+        }
+    }
+
+    private void LoadTable()
+    {
+        _message = null;
+        _styleKey = FitStyleKeys.Normalize(_styleKey);
+        _styleLabel = GradingService.GetStyleLabel(_styleKey);
+        _columns = GradingService.GetColumnLabels().ToList();
+        _rows = GradingService.GetGradingTable(_styleKey).Select(CloneRow).ToList();
+        _baseIndex = _rows.FirstOrDefault()?.BaseIndex ?? 0;
+    }
+
+    private static CoreModel.GradingRow CloneRow(CoreModel.GradingRow r) => new()
+    {
+        MeasurementPoint = r.MeasurementPoint,
+        BaseIndex = r.BaseIndex,
+        Deltas = r.Deltas.ToList(),
+    };
+
+    private void SelectStyle(string key)
+    {
+        _styleKey = key;
+        LoadTable();
+    }
+
+    private void OnDeltaChanged(string measurementPoint, int columnIndex, ChangeEventArgs e)
+    {
+        if (!double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var delta)
+            && !double.TryParse(e.Value?.ToString(), out delta))
+        {
+            _message = "Invalid number.";
+            return;
+        }
+
+        var (ok, error) = GradingService.TryUpdateDelta(_styleKey, measurementPoint, columnIndex, delta);
+        if (!ok)
+        {
+            _message = error;
+            LoadTable();
+            return;
+        }
+
+        var row = _rows.FirstOrDefault(r => r.MeasurementPoint == measurementPoint);
+        if (row is not null && columnIndex < row.Deltas.Count)
+            row.Deltas[columnIndex] = delta;
+        _message = null;
+    }
+
+    private async Task OpenAddColAsync()
+    {
+        _newColLabel = "";
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _addColDialog);
+    }
+
+    private async Task CloseAddColAsync()
+        => await JS.InvokeVoidAsync("patternPro.closeDialog", _addColDialog);
+
+    private async Task OpenAddRowAsync()
+    {
+        _newRowLabel = "";
+        _copyFromRow = "";
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _addRowDialog);
+    }
+
+    private async Task CloseAddRowAsync()
+        => await JS.InvokeVoidAsync("patternPro.closeDialog", _addRowDialog);
+
+    private async Task AddColumnAsync()
+    {
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var label = _newColLabel.Trim().ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                _message = "Column label is required.";
+                return;
+            }
+            if (_columns.Any(c => c.Equals(label, StringComparison.OrdinalIgnoreCase)))
+            {
+                _message = $"Size '{label}' already exists.";
+                return;
+            }
+            GradingService.AddColumn(label);
+            _success = $"Added size column '{label}'.";
+            _newColLabel = "";
+            LoadTable();
+            await CloseAddColAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task AddRowAsync()
+    {
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var (ok, error) = GradingService.AddRow(
+                _styleKey,
+                _newRowLabel.Trim(),
+                string.IsNullOrWhiteSpace(_copyFromRow) ? null : _copyFromRow);
+            if (!ok)
+            {
+                _message = error;
+                return;
+            }
+            _success = $"Added row '{_newRowLabel.Trim()}'.";
+            _newRowLabel = "";
+            _copyFromRow = "";
+            LoadTable();
+            await CloseAddRowAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task ExportCsv()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var csv = GradingService.ExportCsv(_styleKey);
+            var path = await DesktopFileSave.SaveToDownloadsAsync(
+                System.Text.Encoding.UTF8.GetBytes(csv),
+                $"grading-{_styleKey}.csv");
+            _success = $"CSV saved to Downloads: {path}";
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally { _busy = false; }
+    }
+}

@@ -1,0 +1,343 @@
+@page "/module/style-sheet"
+@attribute [Authorize]
+@using Pattern.Core.Model
+@using Pattern.Web.Model
+@using PatternPro.Desktop.Mapping
+@using PatternPro.Desktop.Services
+@inject IPatternService PatternService
+@inject DesktopToastService Toast
+@inject IJSRuntime JS
+
+<div class="ss-page">
+    <div class="cv-toolbar">
+        <div>
+            <div class="page-title" style="font-size:1.35rem">Style Sheet</div>
+            <div class="page-sub">PLM register — season, designer, owner, lifecycle</div>
+        </div>
+        <div class="cv-toolbar-actions">
+            <button type="button" class="btn btn-gold btn-sm" @onclick="OpenCreateAsync">+ New style</button>
+            <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert-error" style="margin-bottom:12px">@_message</div>
+    }
+
+    <div class="ss-lifecycle-legend">
+        <div class="ss-lifecycle-legend__row">
+            <span class="ss-lifecycle-legend__label">Lifecycle</span>
+            <span class="ss-lifecycle-legend__gate">merchandising / production gate</span>
+        </div>
+        <div class="ss-lifecycle-stages">
+            @foreach (var stage in LifecycleLegend)
+            {
+                <div class="ss-lifecycle-stage @stage.CssClass">
+                    <span class="ss-lifecycle-stage__dot" aria-hidden="true"></span>
+                    <span class="ss-lifecycle-stage__name">@stage.Label</span>
+                    <span class="ss-lifecycle-stage__desc">@stage.Desc</span>
+                </div>
+            }
+        </div>
+        <div class="ss-lifecycle-legend__footer">
+            <span class="ss-lifecycle-legend__label">Pattern status</span>
+            <span class="ss-lifecycle-legend__flow">Pending → Draft → In Progress → Graded → Done</span>
+        </div>
+    </div>
+
+    <div class="tbl-wrap">
+        <div class="tbl-header">
+            <span class="tbl-label">All styles</span>
+            <div class="tbl-search">
+                <input type="search" placeholder="Search code, name, season…" @bind="_search" @bind:event="oninput" />
+            </div>
+            <span class="tbl-count">@Filtered.Count() of @_rows.Count</span>
+            <div class="cat-tabs ss-lifecycle-tabs">
+                @foreach (var tab in LifecycleTabs)
+                {
+                    <button type="button"
+                            class="cat-tab @(_lifecycleTab == tab ? "active" : "") @LifecycleTabClass(tab)"
+                            @onclick="() => _lifecycleTab = tab">
+                        @if (tab != "All")
+                        {
+                            <span class="cat-tab__dot" aria-hidden="true"></span>
+                        }
+                        @tab
+                    </button>
+                }
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th @onclick='() => SortBy("code")'>Code</th>
+                    <th @onclick='() => SortBy("name")'>Name</th>
+                    <th>Season</th>
+                    <th>Designer</th>
+                    <th>Owner</th>
+                    <th>Lifecycle</th>
+                    <th>Status</th>
+                    <th>Due</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Filtered)
+                {
+                    <tr>
+                        <td class="td-mono td-bold">@p.Code</td>
+                        <td>@p.Name</td>
+                        <td>
+                            <input class="ss-inline" value="@p.Season" maxlength="16"
+                                   @onchange="e => SaveMeta(p.Id, e.Value?.ToString(), p.Designer, p.Owner)" />
+                        </td>
+                        <td>
+                            <input class="ss-inline" value="@p.Designer" maxlength="128"
+                                   @onchange="e => SaveMeta(p.Id, p.Season, e.Value?.ToString(), p.Owner)" />
+                        </td>
+                        <td>
+                            <input class="ss-inline" value="@p.Owner" maxlength="128"
+                                   @onchange="e => SaveMeta(p.Id, p.Season, p.Designer, e.Value?.ToString())" />
+                        </td>
+                        <td class="ss-lifecycle-cell">
+                            <select class="lifecycle-select @p.LifecycleCssClass"
+                                    value="@p.LifecycleStatus"
+                                    aria-label="@($"Lifecycle for {p.Code}")"
+                                    @onchange="e => OnLifecycleChanged(p.Id, e)">
+                                @foreach (var opt in StyleLifecycleOptions.All)
+                                {
+                                    <option value="@opt.Value">@opt.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td><span class="tag st-tag">@p.StatusLabel</span></td>
+                        <td class="td-mono">@p.DueDateLabel</td>
+                        <td>
+                            <NavLink class="btn btn-outline btn-sm" href="@($"module/pieces?patternId={p.Id}&style={p.StyleKey}")">Pieces</NavLink>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<dialog @ref="_createDialog" class="pp-create-dialog" @oncancel="CloseCreateAsync">
+    <h3 style="font-family:var(--font-display);margin-bottom:16px">New style</h3>
+    <p class="page-sub" style="margin:0 0 16px">Creates a PLM style row and pattern draft</p>
+
+    @if (!string.IsNullOrEmpty(_createError))
+    {
+        <div class="alert-error" style="margin-bottom:12px">@_createError</div>
+    }
+
+    <div class="form-row">
+        <label>Name</label>
+        <input class="status-select" style="width:100%" @bind="_createName" @bind:event="oninput"
+               placeholder="e.g. Slim tapered denim" />
+    </div>
+    <div class="form-row">
+        <label>Fit</label>
+        <select class="status-select" style="width:100%" @bind="_createStyleKey">
+            @foreach (var opt in PatternCreateViewModel.StyleOptions)
+            {
+                <option value="@opt.Value">@opt.Label</option>
+            }
+        </select>
+    </div>
+    <div class="form-row">
+        <label>Pant type</label>
+        <select class="status-select" style="width:100%" @bind="_createCategoryKey">
+            @foreach (var opt in PatternCreateViewModel.CategoryOptions)
+            {
+                <option value="@opt.Value">@opt.Label</option>
+            }
+        </select>
+    </div>
+    <div class="form-row">
+        <label>Season</label>
+        <input class="status-select" style="width:100%" @bind="_createSeason"
+               placeholder="@StyleLifecycle.DefaultSeason()" />
+    </div>
+    <div class="form-row">
+        <label>Designer</label>
+        <input class="status-select" style="width:100%" @bind="_createDesigner" />
+    </div>
+    <div class="form-row">
+        <label>Owner</label>
+        <input class="status-select" style="width:100%" @bind="_createOwner"
+               placeholder="Merchandiser / owner (optional)" />
+    </div>
+    <div class="form-row">
+        <label>PLM lifecycle</label>
+        <select class="lifecycle-select @LifecycleCssFor(_createLifecycle)" style="width:100%" @bind="_createLifecycle">
+            @foreach (var opt in PatternCreateViewModel.LifecycleOptions)
+            {
+                <option value="@opt.Value">@opt.Label</option>
+            }
+        </select>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+        <button type="button" class="btn btn-outline" @onclick="CloseCreateAsync">Cancel</button>
+        <button type="button" class="btn btn-gold" @onclick="CreateStyleAsync" disabled="@_createBusy">
+            @(_createBusy ? "Creating…" : "Create")
+        </button>
+    </div>
+</dialog>
+
+@code {
+    private List<PatternViewModel> _rows = [];
+    private ElementReference _createDialog;
+    private string _search = "";
+    private string _lifecycleTab = "All";
+    private string _sortCol = "code";
+    private bool _sortAsc = true;
+    private string? _message;
+    private string _createName = "";
+    private string _createStyleKey = "skinny";
+    private string _createCategoryKey = "denim";
+    private string _createBaseSize = "M";
+    private string _createDesigner = "Pattern Designer";
+    private string _createSeason = "";
+    private string _createOwner = "";
+    private string _createLifecycle = StyleLifecycle.Idea;
+    private string? _createError;
+    private bool _createBusy;
+
+    private static readonly string[] LifecycleTabs =
+        ["All", StyleLifecycle.Idea, StyleLifecycle.Sampling, StyleLifecycle.Bulk, StyleLifecycle.Cancelled];
+
+    private static readonly (string Label, string Desc, string CssClass)[] LifecycleLegend =
+    [
+        (StyleLifecycle.Idea, "concept", "lc-Idea"),
+        (StyleLifecycle.Sampling, "proto & fit", "lc-Sampling"),
+        (StyleLifecycle.Bulk, "production", "lc-Bulk"),
+        (StyleLifecycle.Cancelled, "dropped", "lc-Cancelled"),
+    ];
+
+    private static string LifecycleTabClass(string tab) => tab switch
+    {
+        StyleLifecycle.Idea => "cat-tab--lc-idea",
+        StyleLifecycle.Sampling => "cat-tab--lc-sampling",
+        StyleLifecycle.Bulk => "cat-tab--lc-bulk",
+        StyleLifecycle.Cancelled => "cat-tab--lc-cancelled",
+        _ => "",
+    };
+
+    private static string LifecycleCssFor(string lifecycle) => $"lc-{lifecycle}";
+
+    protected override void OnInitialized() => Reload();
+
+    private void Reload()
+    {
+        _rows = PatternService.GetAll().Select(p => p.ToViewModel()).ToList();
+        _message = null;
+    }
+
+    private IEnumerable<PatternViewModel> Filtered
+    {
+        get
+        {
+            IEnumerable<PatternViewModel> q = _rows;
+            if (_lifecycleTab != "All")
+                q = q.Where(p => string.Equals(p.LifecycleStatus, _lifecycleTab, StringComparison.Ordinal));
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim();
+                q = q.Where(p =>
+                    p.Code.Contains(s, StringComparison.OrdinalIgnoreCase)
+                    || p.Name.Contains(s, StringComparison.OrdinalIgnoreCase)
+                    || p.Season.Contains(s, StringComparison.OrdinalIgnoreCase)
+                    || p.Owner.Contains(s, StringComparison.OrdinalIgnoreCase)
+                    || p.Designer.Contains(s, StringComparison.OrdinalIgnoreCase));
+            }
+            return _sortCol switch
+            {
+                "name" => _sortAsc ? q.OrderBy(p => p.Name) : q.OrderByDescending(p => p.Name),
+                "season" => _sortAsc ? q.OrderBy(p => p.Season) : q.OrderByDescending(p => p.Season),
+                _ => _sortAsc ? q.OrderBy(p => p.Code) : q.OrderByDescending(p => p.Code),
+            };
+        }
+    }
+
+    private void SortBy(string col)
+    {
+        if (_sortCol == col) _sortAsc = !_sortAsc;
+        else { _sortCol = col; _sortAsc = true; }
+    }
+
+    private void SaveMeta(int id, string? season, string? designer, string? owner)
+    {
+        PatternService.UpdateStyleSheet(id, season, owner, designer);
+        Reload();
+    }
+
+    private void OnLifecycleChanged(int id, ChangeEventArgs e)
+    {
+        var lifecycle = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(lifecycle)) return;
+        PatternService.SetLifecycleStatus(id, lifecycle);
+        Reload();
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        ResetCreateForm();
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _createDialog);
+    }
+
+    private async Task CloseCreateAsync()
+    {
+        _createError = null;
+        await JS.InvokeVoidAsync("patternPro.closeDialog", _createDialog);
+    }
+
+    private void ResetCreateForm()
+    {
+        _createName = "";
+        _createStyleKey = "skinny";
+        _createCategoryKey = "denim";
+        _createBaseSize = "M";
+        _createDesigner = "Pattern Designer";
+        _createSeason = "";
+        _createOwner = "";
+        _createLifecycle = StyleLifecycle.Idea;
+        _createError = null;
+        _createBusy = false;
+    }
+
+    private async Task CreateStyleAsync()
+    {
+        _createError = null;
+        if (string.IsNullOrWhiteSpace(_createName))
+        {
+            _createError = "Please enter a style name.";
+            return;
+        }
+
+        _createBusy = true;
+        try
+        {
+            var season = string.IsNullOrWhiteSpace(_createSeason) ? null : _createSeason.Trim();
+            var owner = string.IsNullOrWhiteSpace(_createOwner) ? null : _createOwner.Trim();
+            var created = PatternService.Create(
+                _createName.Trim(), _createStyleKey, _createBaseSize, _createDesigner, _createCategoryKey,
+                season, owner, _createLifecycle);
+            Toast.Show("Style created", $"{created.Code} {created.Name} added to the register",
+                DesktopToastType.Success, "✨");
+            Reload();
+            await CloseCreateAsync();
+        }
+        catch (Exception ex)
+        {
+            _createError = ex.Message;
+            Toast.Show("Could not create style", ex.Message, DesktopToastType.Error, "⚠");
+        }
+        finally
+        {
+            _createBusy = false;
+        }
+    }
+}

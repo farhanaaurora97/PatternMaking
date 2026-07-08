@@ -1,16 +1,19 @@
 # PatternPro
 
-Technical pattern-making web application for bottom wear (denim, chinos, trousers). ASP.NET Core 8 MVC with a full data access layer and **factory production certification** before CAM export.
+Technical pattern-making application for bottom wear (denim, chinos, trousers). ASP.NET Core 8 with a full data access layer and **factory production certification** before CAM export.
 
-**Primary app:** `Pattern.Web` (run this project). `PatternPro.Web` is kept in sync for the same solution layout.
+**Desktop app (pilot):** `PatternPro.Desktop` — .NET MAUI + Blazor, Windows. Same backend services as the web apps.
+
+**Web apps:** `Pattern.Web` (primary browser app). `PatternPro.Web` is kept in sync for the same solution layout.
 
 ## Tech stack
 
 | Layer | Technology |
 |-------|------------|
-| Backend | ASP.NET Core 8 MVC (.NET 8) |
-| Frontend | Vanilla JavaScript, HTML5 Canvas, Razor |
-| Charts | Chart.js (CDN) |
+| Backend | ASP.NET Core 8 (.NET 8) |
+| Web UI | ASP.NET Core MVC, Razor, Vanilla JavaScript, HTML5 Canvas |
+| Desktop UI | .NET MAUI, Blazor, SkiaSharp canvas |
+| Charts | Chart.js (CDN, web only) |
 | PDF export | PdfSharpCore 1.3.67 |
 | Persistence | JSON (`App_Data/`) **or** PostgreSQL (schema `patternpro`) |
 | ORM | Entity Framework Core 8 + Npgsql |
@@ -29,6 +32,7 @@ Technical pattern-making web application for bottom wear (denim, chinos, trouser
 | `Pattern.Web` | **Main** MVC app — controllers, views, static assets |
 | `PatternPro.Web` | Parallel entry point (same features, kept in sync) |
 | `PatternPro.Tests` | Unit tests (QC, certification, export gating) |
+| `PatternPro.Desktop` | **Windows desktop** — MAUI + Blazor, same services as web |
 | `tools/PatternPro.DbTool` | CLI: migrations + sync `App_Data` ↔ PostgreSQL |
 
 ## Features
@@ -72,7 +76,18 @@ Industry mapping (areas 1–8): [docs/INDUSTRY_WORKFLOW.md](docs/INDUSTRY_WORKFL
 
 ## Getting started
 
-**Prerequisites:** .NET 8 SDK. Optional: PostgreSQL 14+.
+**Prerequisites:** .NET 8 SDK. Optional: PostgreSQL 14+. For Desktop: Windows 10+ and MAUI workload (`dotnet workload install maui`).
+
+### PatternPro Desktop (Windows pilot)
+
+```powershell
+cd PatternMaking
+dotnet run --project PatternPro.Desktop\PatternPro.Desktop.csproj
+```
+
+Native window opens with sidebar navigation. Default login (local pilot): `admin` / `Admin@123`. Downloads (export ZIPs) save to your **Downloads** folder. Factory export shows a toast notification when complete.
+
+### Pattern.Web (browser)
 
 ```powershell
 cd PatternMaking\Pattern.Web

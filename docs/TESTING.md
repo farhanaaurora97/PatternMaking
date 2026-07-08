@@ -89,6 +89,80 @@ Open **http://localhost:5001**
 
 ---
 
+## Level 2b — PatternPro Desktop (Windows pilot)
+
+Run the native desktop app (same PostgreSQL backend as the browser app):
+
+```powershell
+cd E:\Code\PatternMaking
+
+# Stop a running instance first
+Get-Process -Name PatternPro.Desktop -ErrorAction SilentlyContinue | Stop-Process -Force
+
+dotnet build PatternPro.Desktop/PatternPro.Desktop.csproj
+dotnet run --project PatternPro.Desktop/PatternPro.Desktop.csproj
+```
+
+### Console checks
+
+| Console message | Meaning |
+|-----------------|---------|
+| `Data store: PostgreSQL patternpro @ ...` | Using Postgres |
+| `Auth: login probe OK` | Seed admin can sign in |
+| `Auth: seed admin 'admin' ensured` | Default admin ready |
+
+**Pass criteria:** Window opens; auto-login lands on Dashboard (local pilot).
+
+### Windows installer / share with other PCs
+
+Build a portable package (no `dotnet run` needed on target PC):
+
+```powershell
+cd E:\Code\PatternMaking
+powershell -ExecutionPolicy Bypass -File tools/publish-desktop-windows.ps1
+```
+
+**Output (in `dist/`):**
+
+| File | Purpose |
+|------|---------|
+| `PatternPro-Desktop-win-x64/` | Portable folder — run `PatternPro.Desktop.exe` |
+| `PatternPro-Desktop-1.0-win-x64.zip` | Share this ZIP with other Windows PCs |
+| `PatternPro-Desktop-1.0-win-x64.msix` | Optional Windows app package (if MSIX step succeeds) |
+
+**Install shortcuts on a PC:** unzip, then inside the folder:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Install-PatternPro.ps1
+```
+
+Creates Start menu + Desktop shortcut under `%LocalAppData%\Programs\PatternPro`.
+
+Configure PostgreSQL in `appsettings.Development.json` (copy from example) before distributing.
+
+### Desktop manual checklist (~15 min)
+
+Walk through once per release. Check **toast** (bottom-right) on create/export where noted.
+
+| # | Screen | Action | Expected |
+|---|--------|--------|----------|
+| 1 | Dashboard | **+ New style** → Create | Dialog opens; new row in table; toast |
+| 2 | Style Sheet | **+ New style**; change lifecycle pill | Dialog works; colored lifecycle dropdown saves |
+| 3 | Size Chart | **+ Add measurement** / **+ Add size** | Dialog opens; row/column added |
+| 4 | Block Generator | **Generate block** | Green banner confirms formulas |
+| 5 | Grading | Edit a delta cell | Value persists after refresh |
+| 6 | Pieces | Select pattern → **Generate** | Pieces grid appears; toast |
+| 7 | Pieces | **+ Add Piece** | Wide dialog with preview; piece added |
+| 8 | Canvas | Open pattern → move vertex → **Save All** | Unsaved clears; geometry persists |
+| 9 | Export | Select pattern → run QC → **Approve** → **Record pass** | Factory export enabled |
+| 10 | Export | **Factory export** (DXF/HPGL/PLT) | ZIP in Downloads; toast |
+| 11 | Admin | **+ New user** → Create | Dialog opens; user in table; toast |
+| 12 | Account | Change password (optional) | Success message |
+
+**Note:** Automated `tools/qa-*.ps1` scripts target **Pattern.Web** HTTP APIs. Desktop reuses the same services but has no HTTP smoke script yet — use this checklist for UI/dialog/canvas verification.
+
+---
+
 ## Level 3 — Manual end-to-end checklist
 
 Use this to test the **full product** like a user would.

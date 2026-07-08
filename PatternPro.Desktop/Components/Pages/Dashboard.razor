@@ -1,0 +1,438 @@
+@page "/"
+@attribute [Authorize]
+@using System.Text.Json
+@using PatternPro.Desktop.Mapping
+@using PatternPro.Desktop.Services
+@inject DashboardDataService DashboardData
+@inject IPatternService PatternService
+@inject DesktopToastService Toast
+@inject IJSRuntime JS
+
+<div class="pp-page patternpro-dashboard">
+    <div class="pcs-header">
+        <div class="pcs-header-left">
+            <div class="pcs-eyebrow">
+                <span class="pcs-eyebrow-rule"></span>
+                <span>Workspace</span>
+            </div>
+            <h1 class="page-title" style="margin:0">All Pants — Pattern Module</h1>
+            <p class="page-sub" style="margin:6px 0 0">Denim, chinos, trousers &amp; more — desktop workspace</p>
+            <span class="tag tag-navy dash-style-tag">◈ @_vm.CurrentStyleLabel</span>
+        </div>
+        <div class="pcs-header-right">
+            <div class="pcs-summary">
+                <div class="pcs-stat">
+                    <div class="pcs-stat-val">@_vm.TotalPatternCount</div>
+                    <div class="pcs-stat-label">Patterns</div>
+                </div>
+                <div class="pcs-stat-div"></div>
+                <div class="pcs-stat">
+                    <div class="pcs-stat-val">@_vm.ProductionCertifiedCount</div>
+                    <div class="pcs-stat-label">Factory ready</div>
+                </div>
+                <div class="pcs-stat-div"></div>
+                <div class="pcs-stat">
+                    <div class="pcs-stat-val">@_vm.DueThisWeekCount</div>
+                    <div class="pcs-stat-label">Due this week</div>
+                </div>
+            </div>
+            <div class="pcs-header-actions">
+                <button type="button" class="btn btn-gold btn-sm" @onclick="OpenCreateAsync">+ New style</button>
+            </div>
+        </div>
+    </div>
+
+    @if (_vm.DueThisWeekCount > 0)
+    {
+        <div class="due-week-strip" role="status">
+            <span class="due-week-strip__text"><strong>@_vm.DueThisWeekCount</strong> pattern@(_vm.DueThisWeekCount == 1 ? "" : "s") due this week</span>
+            <span class="due-week-strip__sub">Deadlines Mon–Sun (calendar week)</span>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert-error">@_message</div>
+    }
+
+    <div class="pp-stat-row">
+        <div class="pp-stat-item">
+            <div class="stat-label">Active Patterns</div>
+            <div class="stat-val">@_vm.ActivePatternCount</div>
+            <div class="stat-delta">@_vm.PatternsCreatedThisWeek new this week</div>
+        </div>
+        <div class="pp-stat-item">
+            <div class="stat-label">Sizes Graded</div>
+            <div class="stat-val">@_vm.GradedSizesCount <span style="font-size:1rem">sz</span></div>
+            <div class="stat-delta">XS — XXL range</div>
+        </div>
+        <div class="pp-stat-item">
+            <div class="stat-label">Pattern Pieces</div>
+            <div class="stat-val">@_vm.AvgPieceCount</div>
+            <div class="stat-delta">avg per style</div>
+        </div>
+        <div class="pp-stat-item">
+            <div class="stat-label">Factory ready</div>
+            <div class="stat-val">@_vm.ProductionCertifiedCount</div>
+            <div class="stat-delta">Approve + cutter pass</div>
+        </div>
+    </div>
+
+    <div class="dash-charts">
+        <div class="pp-section-title">Analytics</div>
+        <div class="pp-grid-2">
+            <div>
+                <div class="pp-section-title" style="font-size:12px;margin-bottom:8px">Status mix</div>
+                <p class="chart-sub">Where each pattern sits in the workflow</p>
+                <div class="chart-canvas-wrap">
+                    <canvas id="chart-status" aria-label="Patterns by status"></canvas>
+                    <p class="chart-empty" id="chart-status-empty" hidden>No patterns yet — create one to see the breakdown.</p>
+                </div>
+            </div>
+            <div>
+                <div class="pp-section-title" style="font-size:12px;margin-bottom:8px">Patterns by fit</div>
+                <p class="chart-sub">Stacked by workflow status</p>
+                <div class="chart-canvas-wrap chart-canvas-wrap--bar">
+                    <canvas id="chart-styles" aria-label="Pattern count by fit"></canvas>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:24px">
+            <div class="pp-section-title" style="font-size:12px;margin-bottom:8px">Patterns by pant type</div>
+            <p class="chart-hint" id="chart-pant-types-hint"></p>
+            <div class="chart-canvas-wrap chart-canvas-wrap--pant-types">
+                <canvas id="chart-pant-types" aria-label="Pattern count by pant type"></canvas>
+            </div>
+            <div class="chart-pant-legend" id="chart-pant-types-legend"></div>
+        </div>
+    </div>
+
+    <div class="pp-grid-2">
+        <div>
+            <div class="pp-section-title">Style progress</div>
+            @foreach (var item in _vm.StyleProgress)
+            {
+                <div class="prog-row">
+                    <div>@item.Key</div>
+                    <div class="prog-track"><div class="prog-fill" style="width:@(item.Value)%"></div></div>
+                    <div>@item.Value%</div>
+                </div>
+            }
+        </div>
+        <div>
+            <div class="pp-section-title">Recent activity</div>
+            @foreach (var item in _vm.RecentActivity)
+            {
+                <div class="act-row">
+                    <span class="act-badge">@item.Badge</span>
+                    <div style="flex:1">@item.Text</div>
+                    <div class="td-mono" style="color:var(--ink4)">@item.TimeAgo</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="tbl-wrap">
+        <div class="tbl-header">
+            <span class="tbl-label">All patterns</span>
+            <div class="tbl-search">
+                <input type="search" placeholder="Search…" @bind="_search" @bind:event="oninput" />
+            </div>
+            <span class="td-mono" style="color:var(--ink4)">@Filtered.Count() of @_vm.TotalPatternCount</span>
+            @foreach (var cat in _vm.CategoryTabs)
+            {
+                <button type="button" class="cat-tab @(_category == cat ? "active" : "")" @onclick="() => SelectCategory(cat)">@cat</button>
+            }
+            <div style="flex:1"></div>
+            <button type="button" class="btn btn-gold btn-sm" @onclick="OpenCreateAsync">+ Add</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th @onclick='() => SortBy("code")'>Code</th>
+                    <th @onclick='() => SortBy("name")'>Name</th>
+                    <th>Season</th>
+                    <th>Lifecycle</th>
+                    <th @onclick='() => SortBy("style")'>Fit</th>
+                    <th>Base</th>
+                    <th>Pieces</th>
+                    <th>Status</th>
+                    <th>Due</th>
+                    <th>Updated</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Filtered)
+                {
+                    <tr>
+                        <td class="td-mono td-bold">@p.Code</td>
+                        <td class="td-bold">
+                            @p.Name
+                            @if (!string.IsNullOrEmpty(p.ProductionBadgeLabel))
+                            {
+                                <span class="tag @p.ProductionBadgeCss">@p.ProductionBadgeLabel</span>
+                            }
+                        </td>
+                        <td class="td-mono">@p.Season</td>
+                        <td><span class="tag @p.LifecycleCssClass">@p.LifecycleLabel</span></td>
+                        <td class="td-mono">@p.Style</td>
+                        <td class="td-mono">@p.BaseSize</td>
+                        <td class="td-mono">@p.PieceCount</td>
+                        <td>
+                            <select class="status-select" @onchange="e => OnStatusChanged(p.Id, e)">
+                                @foreach (var opt in StatusOptions)
+                                {
+                                    <option value="@opt.Value" selected="@(p.Status == opt.Value)">@opt.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <input type="date" class="status-select" value="@p.DueDateIso"
+                                   @onchange="e => OnDueDateChanged(p.Id, e)" />
+                        </td>
+                        <td class="td-mono" style="color:var(--ink4)">@p.Date</td>
+                        <td>
+                            <div class="action-btns">
+                                <NavLink class="btn btn-outline btn-sm" href="@($"module/pieces?patternId={p.Id}&style={p.StyleKey}")">Pieces</NavLink>
+                                <NavLink class="btn btn-outline btn-sm" href="@($"module/canvas?patternId={p.Id}&style={p.StyleKey}")">Canvas</NavLink>
+                                <NavLink class="btn btn-outline btn-sm" href="@($"module/export?patternId={p.Id}&style={p.StyleKey}")">Export</NavLink>
+                                <button type="button" class="btn btn-outline btn-sm" @onclick="() => Duplicate(p.Id)">Copy</button>
+                                <button type="button" class="btn btn-outline btn-sm" @onclick="() => Delete(p.Id)">×</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<dialog @ref="_createDialog" class="pp-create-dialog" @oncancel="CloseCreateAsync">
+    <h3 style="font-family:var(--font-display);margin-bottom:16px">New pattern</h3>
+
+    @if (!string.IsNullOrEmpty(_createError))
+    {
+        <div class="alert-error" style="margin-bottom:12px">@_createError</div>
+    }
+
+    <div class="form-row">
+        <label>Name</label>
+        <input class="status-select" style="width:100%" @bind="_createName" @bind:event="oninput"
+               placeholder="e.g. Slim tapered denim" />
+    </div>
+    <div class="form-row">
+        <label>Fit</label>
+        <select class="status-select" style="width:100%" @bind="_createStyleKey">
+            @foreach (var opt in PatternCreateViewModel.StyleOptions)
+            {
+                <option value="@opt.Value">@opt.Label</option>
+            }
+        </select>
+    </div>
+    <div class="form-row">
+        <label>Base size</label>
+        <select class="status-select" style="width:100%" @bind="_createBaseSize">
+            @foreach (var sz in PatternCreateViewModel.SizeOptions)
+            {
+                <option value="@sz">@sz</option>
+            }
+        </select>
+    </div>
+    <div class="form-row">
+        <label>Category</label>
+        <select class="status-select" style="width:100%" @bind="_createCategoryKey">
+            @foreach (var opt in PatternCreateViewModel.CategoryOptions)
+            {
+                <option value="@opt.Value">@opt.Label</option>
+            }
+        </select>
+    </div>
+    <div class="form-row">
+        <label>Designer</label>
+        <input class="status-select" style="width:100%" @bind="_createDesigner" />
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+        <button type="button" class="btn btn-outline" @onclick="CloseCreateAsync">Cancel</button>
+        <button type="button" class="btn btn-gold" @onclick="CreatePatternAsync" disabled="@_createBusy">
+            @(_createBusy ? "Creating…" : "Create")
+        </button>
+    </div>
+</dialog>
+
+@code {
+    private DashboardViewModel _vm = new();
+    private ElementReference _createDialog;
+    private string _search = "";
+    private string _category = "All";
+    private string _sortCol = "code";
+    private bool _sortAsc = true;
+    private bool _chartsReady;
+    private string? _message;
+    private string _createName = "";
+    private string _createStyleKey = "skinny";
+    private string _createBaseSize = "M";
+    private string _createCategoryKey = "denim";
+    private string _createDesigner = "Pattern Designer";
+    private string? _createError;
+    private bool _createBusy;
+
+    private static readonly JsonSerializerOptions ChartJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private static readonly (string Value, string Label)[] StatusOptions =
+    [
+        ("Pending", "Pending"),
+        ("Draft", "Draft"),
+        ("InProgress", "In Progress"),
+        ("Graded", "Graded"),
+        ("Done", "Done"),
+    ];
+
+    private IEnumerable<PatternViewModel> Filtered
+    {
+        get
+        {
+            var q = _vm.Patterns.AsEnumerable();
+            if (_category != "All")
+                q = q.Where(p => string.Equals(p.Category, _category, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim();
+                q = q.Where(p => p.Name.Contains(s, StringComparison.OrdinalIgnoreCase)
+                    || p.Code.Contains(s, StringComparison.OrdinalIgnoreCase));
+            }
+            q = _sortCol switch
+            {
+                "name" => _sortAsc ? q.OrderBy(p => p.Name) : q.OrderByDescending(p => p.Name),
+                "style" => _sortAsc ? q.OrderBy(p => p.Style) : q.OrderByDescending(p => p.Style),
+                _ => _sortAsc ? q.OrderBy(p => p.Code) : q.OrderByDescending(p => p.Code),
+            };
+            return q;
+        }
+    }
+
+    protected override void OnInitialized() => Reload();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_chartsReady)
+        {
+            await RefreshChartsAsync();
+            _chartsReady = true;
+        }
+    }
+
+    private void Reload()
+    {
+        _vm = DashboardData.Load();
+    }
+
+    private void SelectCategory(string cat) => _category = cat;
+
+    private void SortBy(string col)
+    {
+        if (_sortCol == col) _sortAsc = !_sortAsc;
+        else { _sortCol = col; _sortAsc = true; }
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        ResetCreateForm();
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _createDialog);
+    }
+
+    private async Task CloseCreateAsync()
+    {
+        _createError = null;
+        await JS.InvokeVoidAsync("patternPro.closeDialog", _createDialog);
+    }
+
+    private void ResetCreateForm()
+    {
+        _createName = "";
+        _createStyleKey = "skinny";
+        _createBaseSize = "M";
+        _createCategoryKey = "denim";
+        _createDesigner = "Pattern Designer";
+        _createError = null;
+        _createBusy = false;
+    }
+
+    private async Task CreatePatternAsync()
+    {
+        _createError = null;
+        if (string.IsNullOrWhiteSpace(_createName))
+        {
+            _createError = "Please enter a pattern name.";
+            return;
+        }
+
+        _createBusy = true;
+        try
+        {
+            var created = PatternService.Create(
+                _createName.Trim(), _createStyleKey, _createBaseSize, _createDesigner, _createCategoryKey);
+            Toast.Show("Pattern created", $"{created.Code} {created.Name} added to your workspace",
+                DesktopToastType.Success, "✨");
+            Reload();
+            await RefreshChartsAsync();
+            await CloseCreateAsync();
+        }
+        catch (Exception ex)
+        {
+            _createError = ex.Message;
+            Toast.Show("Could not create pattern", ex.Message, DesktopToastType.Error, "⚠");
+        }
+        finally
+        {
+            _createBusy = false;
+        }
+    }
+
+    private async Task RefreshChartsAsync()
+    {
+        var json = JsonSerializer.Serialize(_vm.Charts, ChartJsonOptions);
+        await JS.InvokeVoidAsync("patternProDashboard.renderFromJson", json);
+    }
+
+    private async Task OnStatusChanged(int id, ChangeEventArgs e)
+    {
+        var status = e.Value?.ToString();
+        if (string.IsNullOrEmpty(status)) return;
+        PatternService.SetStatus(id, status);
+        Reload();
+        await RefreshChartsAsync();
+    }
+
+    private void OnDueDateChanged(int id, ChangeEventArgs e)
+    {
+        DateTime? date = null;
+        var raw = e.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(raw) && DateTime.TryParse(raw, out var d))
+            date = d;
+        PatternService.SetDueDate(id, date);
+        Reload();
+    }
+
+    private async Task Duplicate(int id)
+    {
+        PatternService.Duplicate(id);
+        Reload();
+        await RefreshChartsAsync();
+    }
+
+    private async Task Delete(int id)
+    {
+        if (!PatternService.Delete(id))
+            _message = "Could not delete pattern.";
+        else
+        {
+            Reload();
+            await RefreshChartsAsync();
+        }
+    }
+}

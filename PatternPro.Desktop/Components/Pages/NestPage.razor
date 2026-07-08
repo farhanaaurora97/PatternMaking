@@ -1,0 +1,176 @@
+@page "/module/nest"
+@attribute [Authorize]
+@using Pattern.Web.Model
+@using PatternPro.Desktop.Components.Canvas
+@using PatternPro.Desktop.Helpers
+@using PatternPro.Desktop.Services
+@inject IPieceService PieceService
+@inject DesktopCanvasHost CanvasHost
+@inject NavigationManager Navigation
+
+<div class="nest-page">
+    <div class="cv-toolbar">
+        <div>
+            <div class="page-title" style="font-size:1.35rem">Graded Nest</div>
+            <div class="page-sub">All sizes overlaid — XS through XXL on single canvas</div>
+        </div>
+        <div class="cv-toolbar-actions">
+            <button type="button" class="btn btn-outline btn-sm" @onclick="ToggleAllSizes">Toggle sizes</button>
+            <NavLink class="btn btn-gold btn-sm" href="@($"module/export?style={_styleKey}")">↓ Export nest DXF</NavLink>
+            <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_hint))
+    {
+        <div class="pcs-success" style="margin-bottom:12px">@_hint</div>
+    }
+
+    <nav class="fit-tabs">
+        @foreach (var opt in StyleOptions)
+        {
+            <button type="button"
+                    class="fit-tab @(_styleKey == opt.Key ? "active" : "")"
+                    @onclick="() => SelectStyle(opt.Key)">
+                @opt.Label
+            </button>
+        }
+    </nav>
+
+    <div class="nest-legend">
+        @for (var i = 0; i < _sizes.Count; i++)
+        {
+            var idx = i;
+            var sz = _sizes[idx];
+            <button type="button"
+                    class="@LegendClass(idx)"
+                    @onclick="() => ToggleSize(idx)">
+                <div class="nl-dot" style="@LegendDotStyle(sz)"></div>
+                @sz.Label
+            </button>
+        }
+    </div>
+
+    <div class="nest-canvas">
+        <div class="nest-toolbar">
+            <div class="ctb-sep" style="visibility:hidden;width:0"></div>
+            <button type="button" class="ctb-btn" @onclick="ZoomOut">−</button>
+            <span class="ctb-label" style="min-width:38px;text-align:center">@($"{Math.Round(_nestScale * 100)}%")</span>
+            <button type="button" class="ctb-btn" @onclick="ZoomIn">+</button>
+        </div>
+        <div class="nest-skia-host">
+            <NativeCanvasSlot @ref="_slot" Mode="CanvasSurfaceMode.Nest" CssClass="native-canvas-slot" Style="height:420px;width:100%" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private NativeCanvasSlot? _slot;
+    private string _styleKey = "skinny";
+    private string? _hint;
+    private float _nestScale = 1f;
+    private IReadOnlyList<int[]> _basePoints = [];
+    private bool[] _visible = [true, true, true, true, true, true];
+
+    private static readonly NestSizeViewModel[] DefaultSizes =
+    [
+        new("XS", "#7b68ee"),
+        new("S", "#4169e1"),
+        new("M (Base)", "#0a0a24", IsBase: true),
+        new("L", "#1a7a45"),
+        new("XL", "#d4a843"),
+        new("XXL", "#c0392b"),
+    ];
+
+    private IReadOnlyList<NestSizeViewModel> _sizes => DefaultSizes;
+
+    private static readonly (string Key, string Label)[] StyleOptions =
+    [
+        ("skinny", "Skinny"),
+        ("slim", "Slim"),
+        ("straight", "Straight"),
+        ("bootcut", "Bootcut"),
+        ("wideLeg", "Wide Leg"),
+    ];
+
+    protected override void OnInitialized()
+    {
+        ParseQuery();
+        LoadGeometry();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        SyncHost();
+        if (_slot is not null)
+            await _slot.RefreshBoundsAsync();
+    }
+
+    private void SyncHost() =>
+        CanvasHost.ConfigureNest(_basePoints, _sizes, _visible, _nestScale);
+
+    private void ParseQuery()
+    {
+        var uri = Navigation.Uri;
+        var q = uri.IndexOf('?', StringComparison.Ordinal);
+        if (q < 0) return;
+        foreach (var part in uri[(q + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith("style=", StringComparison.Ordinal))
+                _styleKey = FitStyleKeys.Normalize(Uri.UnescapeDataString(part["style=".Length..]));
+        }
+    }
+
+    private void LoadGeometry()
+    {
+        _styleKey = FitStyleKeys.Normalize(_styleKey);
+        _basePoints = PieceService.GetBasePiecePoints();
+        SyncHost();
+        CanvasHost.Invalidate();
+    }
+
+    private void SelectStyle(string key)
+    {
+        _styleKey = key;
+        _hint = null;
+        LoadGeometry();
+    }
+
+    private void ToggleSize(int index)
+    {
+        _visible[index] = !_visible[index];
+        _hint = null;
+        SyncHost();
+        CanvasHost.Invalidate();
+    }
+
+    private void ToggleAllSizes()
+    {
+        var anyOn = _visible.Any(v => v);
+        for (var i = 0; i < _visible.Length; i++)
+            _visible[i] = !anyOn;
+        _hint = anyOn ? "All sizes hidden — click legend or toggle to show." : "All sizes visible.";
+        SyncHost();
+        CanvasHost.Invalidate();
+    }
+
+    private void ZoomIn()
+    {
+        _nestScale = Math.Min(2.5f, _nestScale + 0.1f);
+        SyncHost();
+        CanvasHost.Invalidate();
+    }
+
+    private void ZoomOut()
+    {
+        _nestScale = Math.Max(0.4f, _nestScale - 0.1f);
+        SyncHost();
+        CanvasHost.Invalidate();
+    }
+
+    private string LegendClass(int index) =>
+        _visible[index] ? "nl-item nl-btn" : "nl-item nl-btn nl-off";
+
+    private static string LegendDotStyle(NestSizeViewModel sz) =>
+        sz.IsBase ? $"background:{sz.Color};height:5px" : $"background:{sz.Color}";
+}

@@ -1,0 +1,198 @@
+@page "/account"
+@attribute [Authorize]
+@using System.Security.Claims
+@using Pattern.Core.Model
+@using PatternPro.Core.IServices
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthState
+
+<div class="pp-page">
+    <div class="pcs-header">
+        <div class="pcs-header-left">
+            <div class="pcs-eyebrow">
+                <span class="pcs-eyebrow-rule"></span>
+                <span>Account</span>
+            </div>
+            <h1 class="page-title" style="margin:0">My account</h1>
+            <p class="page-sub" style="margin:6px 0 0">Employee profile, password, and access level</p>
+        </div>
+        <div class="pcs-header-right">
+            <div class="pcs-header-actions">
+                <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="pcs-success">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert-error">@_error</div>
+    }
+
+    @if (_user is null)
+    {
+        <p class="page-sub">Could not load your profile.</p>
+    }
+    else
+    {
+        <div class="acct-hero">
+            <div class="acct-hero-avatar">@_initials</div>
+            <div>
+                <div class="acct-hero-name">@_user.DisplayName</div>
+                <div class="acct-hero-meta">
+                    <span class="tag tag-purple">@AppRoles.Label(_user.Role)</span>
+                    <span class="tag @(_user.IsActive ? "tag-green" : "tag-gold")">@(_user.IsActive ? "Active" : "Pending approval")</span>
+                </div>
+                <div class="acct-hero-id">@_user.EmployeeId · @_user.UserName</div>
+            </div>
+        </div>
+
+        <div class="acct-layout">
+            <div>
+                <div class="acct-section-title">Profile details</div>
+                <div class="acct-grid">
+                    <div class="acct-key">Employee ID</div>
+                    <div class="acct-val" style="font-family:var(--font-mono);font-weight:700">@_user.EmployeeId</div>
+
+                    <div class="acct-key">Full name</div>
+                    <div class="acct-val" style="font-weight:600">@_user.DisplayName</div>
+
+                    <div class="acct-key">Username</div>
+                    <div class="acct-val">@_user.UserName</div>
+
+                    <div class="acct-key">Role</div>
+                    <div class="acct-val"><span class="tag tag-purple">@AppRoles.Label(_user.Role)</span></div>
+
+                    <div class="acct-key">Registered</div>
+                    <div class="acct-val">@_user.CreatedAt.ToLocalTime().ToString("g")</div>
+
+                    <div class="acct-key">Last sign-in</div>
+                    <div class="acct-val">@(_user.LastLoginAt?.ToLocalTime().ToString("g") ?? "—")</div>
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
+                    <button type="button" class="btn btn-outline btn-sm" @onclick="() => _showPw = !_showPw">
+                        @(_showPw ? "Hide password form" : "Change password")
+                    </button>
+                </div>
+
+                @if (_showPw)
+                {
+                    <div class="acct-pw">
+                        <div class="form-field">
+                            <label class="form-label">Current password</label>
+                            <input class="form-input" type="password" @bind="_currentPw" autocomplete="current-password" />
+                        </div>
+                        <div class="form-row-2">
+                            <div class="form-field">
+                                <label class="form-label">New password</label>
+                                <input class="form-input" type="password" @bind="_newPw" autocomplete="new-password" />
+                            </div>
+                            <div class="form-field">
+                                <label class="form-label">Confirm new password</label>
+                                <input class="form-input" type="password" @bind="_confirmPw" autocomplete="new-password" />
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-gold btn-sm" @onclick="ChangePassword" disabled="@_busy">Update password</button>
+                    </div>
+                }
+            </div>
+
+            <div>
+                <div class="acct-section-title">What you can do</div>
+                <ul class="acct-permissions">
+                    <li>
+                        <span class="acct-perm-icon">👁</span>
+                        <span><strong>View only</strong> — browse patterns and exports (no save)</span>
+                    </li>
+                    <li>
+                        <span class="acct-perm-icon">✎</span>
+                        <span><strong>Pattern designer</strong> — edit canvas and factory export</span>
+                    </li>
+                    <li>
+                        <span class="acct-perm-icon">⚙</span>
+                        <span><strong>Administrator</strong> — manage users in the admin panel</span>
+                    </li>
+                </ul>
+                <div class="acct-footnote">Role changes are made by an administrator.</div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private AppUser? _user;
+    private int _userId;
+    private string _initials = "?";
+    private bool _showPw;
+    private bool _busy;
+    private string? _message;
+    private string? _error;
+    private string _currentPw = "";
+    private string _newPw = "";
+    private string _confirmPw = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var idStr = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idStr, out _userId))
+        {
+            _user = UserService.GetById(_userId);
+            if (_user is not null)
+                _initials = Initials(_user.DisplayName);
+        }
+    }
+
+    private static string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}"
+            : name.Trim()[..Math.Min(2, name.Trim().Length)].ToUpperInvariant();
+    }
+
+    private void ChangePassword()
+    {
+        _message = null;
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(_currentPw) || string.IsNullOrWhiteSpace(_newPw))
+        {
+            _error = "Enter your current and new password.";
+            return;
+        }
+        if (_newPw.Length < 6)
+        {
+            _error = "New password must be at least 6 characters.";
+            return;
+        }
+        if (_newPw != _confirmPw)
+        {
+            _error = "New passwords do not match.";
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var ok = UserService.ChangePassword(_userId, _currentPw, _newPw);
+            if (!ok)
+            {
+                _error = "Current password is incorrect.";
+                return;
+            }
+            _message = "Password updated.";
+            _showPw = false;
+            _currentPw = _newPw = _confirmPw = "";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
