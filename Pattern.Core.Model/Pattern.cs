@@ -55,4 +55,10 @@ public class Pattern
 
     /// <summary>Wash/shrink allowance applied on factory export (percent).</summary>
     public decimal ShrinkagePercent { get; set; }
+
+    /// <summary>Body vs finished garment chart interpretation.</summary>
+    public string ChartMode { get; set; } = MeasurementChartMode.Body;
+
+    /// <summary>When true, this style uses its own size-chart table instead of the global chart.</summary>
+    public bool UseCustomSizeChart { get; set; }
 }

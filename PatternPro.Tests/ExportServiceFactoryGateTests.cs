@@ -40,7 +40,7 @@ public class ExportServiceFactoryGateTests
             .Throws(new InvalidOperationException("Should not be called"));
 
         var drafting = new Mock<IPatternDraftingService>();
-        drafting.Setup(d => d.DraftGradedSet("skinny", It.IsAny<IReadOnlyList<string>>()))
+        drafting.Setup(d => d.DraftGradedSet("skinny", It.IsAny<IReadOnlyList<string>>(), It.IsAny<int?>()))
             .Returns(new Dictionary<string, IReadOnlyList<PieceDefinition>>
             {
                 ["M"] = TestPieceFactory.MinimalFactorySet().ToList(),
@@ -62,7 +62,7 @@ public class ExportServiceFactoryGateTests
     public void BuildExportPackage_Draft_Pdf_IncludesPdfBytes()
     {
         var drafting = new Mock<IPatternDraftingService>();
-        drafting.Setup(d => d.DraftGradedSet("skinny", It.IsAny<IReadOnlyList<string>>()))
+        drafting.Setup(d => d.DraftGradedSet("skinny", It.IsAny<IReadOnlyList<string>>(), It.IsAny<int?>()))
             .Returns(new Dictionary<string, IReadOnlyList<PieceDefinition>>
             {
                 ["M"] = TestPieceFactory.MinimalFactorySet().ToList(),

@@ -332,6 +332,12 @@ public class PieceService : IPieceService
         Persist();
     }
 
+    public void ReplaceStylePieces(string styleKey, IEnumerable<PieceDefinition> pieces)
+    {
+        _defsPerStyle[styleKey] = pieces.Select(CloneDef).ToList();
+        Persist();
+    }
+
     public IReadOnlySet<int> GetSavedPatternIds() =>
         _defsPerPattern.Keys.ToHashSet();
 

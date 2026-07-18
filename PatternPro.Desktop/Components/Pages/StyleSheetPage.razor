@@ -114,7 +114,9 @@
                         <td><span class="tag st-tag">@p.StatusLabel</span></td>
                         <td class="td-mono">@p.DueDateLabel</td>
                         <td>
+                            <NavLink class="btn btn-outline btn-sm" href="@($"module/size-chart/{p.Id}")">Chart</NavLink>
                             <NavLink class="btn btn-outline btn-sm" href="@($"module/pieces?patternId={p.Id}&style={p.StyleKey}")">Pieces</NavLink>
+                            <button type="button" class="pp-btn-delete" style="margin-left:4px" @onclick="() => DeleteStyleAsync(p.Id, p.Code)">Delete</button>
                         </td>
                     </tr>
                 }
@@ -339,5 +341,19 @@
         {
             _createBusy = false;
         }
+    }
+
+    private async Task DeleteStyleAsync(int id, string code)
+    {
+        if (!await DesktopConfirm.DeleteAsync(JS, $"style {code} and all its pattern data"))
+            return;
+        if (!PatternService.Delete(id))
+        {
+            _message = "Could not delete style.";
+            Toast.Show("Delete failed", _message, DesktopToastType.Error, "⚠");
+            return;
+        }
+        Toast.Show("Style deleted", $"{code} removed.", DesktopToastType.Success, "🗑");
+        Reload();
     }
 }

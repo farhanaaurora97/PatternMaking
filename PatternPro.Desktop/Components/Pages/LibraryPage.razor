@@ -2,8 +2,11 @@
 @attribute [Authorize]
 @using Pattern.Web.Model
 @using PatternPro.Desktop.Helpers
+@using PatternPro.Desktop.Services
 @inject IPatternService PatternService
 @inject IPieceService PieceService
+@inject IJSRuntime JS
+@inject DesktopToastService Toast
 
 <div class="lib-page">
     <div class="cv-toolbar">
@@ -44,6 +47,7 @@
                     <div class="lib-card-footer">
                         <span class="lib-date">@e.Date</span>
                         <NavLink class="btn btn-gold btn-sm" href="@CanvasHref(e)">Open canvas</NavLink>
+                        <button type="button" class="pp-btn-delete" style="margin-left:6px" @onclick="() => DeletePatternAsync(e)">Delete</button>
                     </div>
                 </div>
             }
@@ -79,6 +83,7 @@
                     <div class="lib-card-footer">
                         <span class="lib-date">@e.Date</span>
                         <NavLink class="btn btn-outline btn-sm" href="@CanvasHref(e)">Start in canvas</NavLink>
+                        <button type="button" class="pp-btn-delete" style="margin-left:6px" @onclick="() => DeletePatternAsync(e)">Delete</button>
                     </div>
                 </div>
             }
@@ -125,4 +130,17 @@
 
     private static string CanvasHref(LibraryEntryViewModel e) =>
         $"module/canvas?patternId={e.Id}&style={Uri.EscapeDataString(e.StyleKey)}";
+
+    private async Task DeletePatternAsync(LibraryEntryViewModel e)
+    {
+        if (!await DesktopConfirm.DeleteAsync(JS, $"pattern {e.Code} ({e.Name})"))
+            return;
+        if (!PatternService.Delete(e.Id))
+        {
+            Toast.Show("Delete failed", "Could not delete pattern.", DesktopToastType.Error, "⚠");
+            return;
+        }
+        Toast.Show("Pattern deleted", $"{e.Code} removed.", DesktopToastType.Success, "🗑");
+        LoadEntries();
+    }
 }

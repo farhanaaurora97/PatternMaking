@@ -4,23 +4,33 @@ namespace PatternPro.Core.IServices;
 
 public interface ISizeChartService
 {
-    IReadOnlyList<string> GetColumnLabels();
+    SizeChartSnapshot GetSnapshot(int? patternId = null);
 
-    IReadOnlyList<SizeRow> GetAll();
+    IReadOnlyList<string> GetColumnLabels(int? patternId = null);
 
-    string ExportCsv();
+    IReadOnlyList<SizeRow> GetAll(int? patternId = null);
 
-    /// <summary>Appends a size column; new cells extrapolate from the last two grades per row.</summary>
-    (bool Ok, string? Error) TryAddSizeColumn(string label);
+    string ExportCsv(int? patternId = null);
 
-    /// <summary>Adds a measurement row; values are copied from an existing row’s grade when provided.</summary>
-    (bool Ok, string? Error) TryAddMeasurementRow(string measurementPoint, string? copyFromMeasurementPoint);
+    (bool Ok, string? Error) TryAddSizeColumn(string label, int? patternId = null);
 
-    (bool Ok, string? Error) TryUpdateCell(string measurementPoint, int columnIndex, decimal value);
+    (bool Ok, string? Error) TryAddMeasurementRow(string measurementPoint, string? copyFromMeasurementPoint, int? patternId = null);
 
-    (bool Ok, string? Error) TryUpdateRowMeta(string measurementPoint, decimal toleranceCm, string? measurementMethod);
+    (bool Ok, string? Error) TryDeleteMeasurementRow(string measurementPoint, int? patternId = null);
+
+    (bool Ok, string? Error) TryDeleteSizeColumn(int columnIndex, int? patternId = null);
+
+    (bool Ok, string? Error) TryUpdateCell(string measurementPoint, int columnIndex, decimal value, int? patternId = null);
+
+    (bool Ok, string? Error) TryUpdateRowMeta(string measurementPoint, decimal toleranceCm, string? measurementMethod, int? patternId = null);
+
+    (bool Ok, string? Error) SetChartSettings(int patternId, bool useCustomChart, string chartMode);
+
+    (bool Ok, string? Error) CopyGlobalToPattern(int patternId);
+
+    (bool Ok, string? Error) InitializeGarmentTemplate(int patternId);
 
     IReadOnlyList<MeasurementProfile> GetMeasurementProfiles();
+
     (bool Ok, string? Error) SaveMeasurementProfile(string name, IReadOnlyDictionary<string, decimal> measurements);
 }
-

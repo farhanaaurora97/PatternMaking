@@ -78,13 +78,24 @@ public class PatternAutoRefineServiceTests
             new() { MeasurementPoint = "Inseam", Values = [80m, 80m, 80m, 80m, 80m, 80m] },
         ];
 
-        public IReadOnlyList<string> GetColumnLabels() => ["XS", "S", "M", "L", "XL", "XXL"];
-        public IReadOnlyList<SizeRow> GetAll() => _rows;
-        public string ExportCsv() => string.Empty;
-        public (bool Ok, string? Error) TryAddSizeColumn(string label) => (false, null);
-        public (bool Ok, string? Error) TryAddMeasurementRow(string measurementPoint, string? copyFromMeasurementPoint) => (false, null);
-        public (bool Ok, string? Error) TryUpdateCell(string measurementPoint, int columnIndex, decimal value) => (true, null);
-        public (bool Ok, string? Error) TryUpdateRowMeta(string measurementPoint, decimal toleranceCm, string? measurementMethod) => (true, null);
+        public SizeChartSnapshot GetSnapshot(int? patternId = null) => new()
+        {
+            Columns = GetColumnLabels(patternId),
+            Rows = GetAll(patternId),
+        };
+
+        public IReadOnlyList<string> GetColumnLabels(int? patternId = null) => ["XS", "S", "M", "L", "XL", "XXL"];
+        public IReadOnlyList<SizeRow> GetAll(int? patternId = null) => _rows;
+        public string ExportCsv(int? patternId = null) => string.Empty;
+        public (bool Ok, string? Error) TryAddSizeColumn(string label, int? patternId = null) => (false, null);
+        public (bool Ok, string? Error) TryAddMeasurementRow(string measurementPoint, string? copyFromMeasurementPoint, int? patternId = null) => (false, null);
+        public (bool Ok, string? Error) TryDeleteMeasurementRow(string measurementPoint, int? patternId = null) => (true, null);
+        public (bool Ok, string? Error) TryDeleteSizeColumn(int columnIndex, int? patternId = null) => (true, null);
+        public (bool Ok, string? Error) TryUpdateCell(string measurementPoint, int columnIndex, decimal value, int? patternId = null) => (true, null);
+        public (bool Ok, string? Error) TryUpdateRowMeta(string measurementPoint, decimal toleranceCm, string? measurementMethod, int? patternId = null) => (true, null);
+        public (bool Ok, string? Error) SetChartSettings(int patternId, bool useCustomChart, string chartMode) => (true, null);
+        public (bool Ok, string? Error) CopyGlobalToPattern(int patternId) => (true, null);
+        public (bool Ok, string? Error) InitializeGarmentTemplate(int patternId) => (true, null);
         public IReadOnlyList<MeasurementProfile> GetMeasurementProfiles() => [];
         public (bool Ok, string? Error) SaveMeasurementProfile(string name, IReadOnlyDictionary<string, decimal> measurements) => (true, null);
     }

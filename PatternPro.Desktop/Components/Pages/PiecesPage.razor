@@ -162,7 +162,7 @@
                                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
                                     </div>
                                 </NavLink>
-                                <button type="button" class="pcs-card-delete" title="Delete piece" @onclick="() => DeletePiece(card.Name)">
+                                <button type="button" class="pcs-card-delete" title="Delete piece" @onclick="() => DeletePieceAsync(card.Name)">
                                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2l-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
                                 </button>
                             </div>
@@ -479,7 +479,7 @@
         try
         {
             var baseSize = _pattern?.BaseSize ?? "M";
-            var pieces = DraftingService.DraftProductionPieces(_styleKey, baseSize);
+            var pieces = DraftingService.DraftProductionPieces(_styleKey, baseSize, _patternId);
             PieceService.ReplacePatternPieces(_patternId, pieces);
             _success = $"Generated {pieces.Count} pieces.";
             Toast.Show("Pieces generated", $"{pieces.Count} pieces drafted for {_styleLabel}",
@@ -572,9 +572,11 @@
         }
     }
 
-    private void DeletePiece(string name)
+    private async Task DeletePieceAsync(string name)
     {
         if (_patternId <= 0) return;
+        if (!await DesktopConfirm.DeleteAsync(JS, $"piece \"{name}\""))
+            return;
         _busy = true;
         _message = null;
         _success = null;
@@ -587,6 +589,7 @@
                 return;
             }
             _success = $"Deleted '{name}'.";
+            Toast.Show("Piece deleted", name, DesktopToastType.Success, "🗑");
             LoadData();
         }
         finally

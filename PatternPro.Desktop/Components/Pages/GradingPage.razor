@@ -54,10 +54,19 @@
                     @for (var i = 0; i < _columns.Count; i++)
                     {
                         var col = i;
-                        <th class="@(col == _baseIndex ? "gr-col-base" : "")" style="text-align:@(col == _baseIndex ? "center" : "right")">
-                            @_columns[col]
+                        var isBase = col == _baseIndex;
+                        <th class="@(isBase ? "gr-col-base" : "")" style="text-align:@(isBase ? "center" : "right")">
+                            <div style="display:flex;flex-direction:column;align-items:@(isBase ? "center" : "flex-end");gap:4px">
+                                <span>@_columns[col]</span>
+                                @if (!isBase)
+                                {
+                                    <button type="button" class="pp-btn-delete" title="Delete size @_columns[col]"
+                                            @onclick="() => DeleteColumnAsync(col)">×</button>
+                                }
+                            </div>
                         </th>
                     }
+                    <th style="width:72px;text-align:center">Row</th>
                 </tr>
             </thead>
             <tbody>
@@ -83,6 +92,10 @@
                                 </td>
                             }
                         }
+                        <td style="text-align:center">
+                            <button type="button" class="pp-btn-delete" title="Delete row"
+                                    @onclick="() => DeleteRowAsync(row.MeasurementPoint)">Delete</button>
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -285,6 +298,27 @@
             await CloseAddRowAsync();
         }
         finally { _busy = false; }
+    }
+
+    private async Task DeleteRowAsync(string measurementPoint)
+    {
+        if (!await DesktopConfirm.DeleteAsync(JS, $"grading row \"{measurementPoint}\""))
+            return;
+        var (ok, error) = GradingService.TryDeleteRow(_styleKey, measurementPoint);
+        if (!ok) { _message = error; return; }
+        _success = $"Deleted row '{measurementPoint}'.";
+        LoadTable();
+    }
+
+    private async Task DeleteColumnAsync(int columnIndex)
+    {
+        var label = columnIndex < _columns.Count ? _columns[columnIndex] : "?";
+        if (!await DesktopConfirm.DeleteAsync(JS, $"size column \"{label}\""))
+            return;
+        var (ok, error) = GradingService.TryDeleteColumn(columnIndex);
+        if (!ok) { _message = error; return; }
+        _success = $"Deleted size '{label}'.";
+        LoadTable();
     }
 
     private async Task ExportCsv()

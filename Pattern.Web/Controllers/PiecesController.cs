@@ -51,7 +51,7 @@ public class PiecesController(
         var pattern = patternService.GetAll().FirstOrDefault(p => p.Id == patternId);
         var baseSize = pattern?.BaseSize ?? "M";
 
-        var pieces = draftingService.DraftProductionPieces(style, baseSize);
+            var pieces = draftingService.DraftProductionPieces(style, baseSize, patternId);
         pieceService.ReplacePatternPieces(patternId, pieces);
         if (pattern is not null)
             pattern.PieceCount = pieces.Count;

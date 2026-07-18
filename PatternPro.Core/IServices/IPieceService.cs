@@ -46,6 +46,9 @@ public interface IPieceService
     /// <summary>Replaces all pieces for a specific pattern with a freshly drafted set.</summary>
     void ReplacePatternPieces(int patternId, IEnumerable<PieceDefinition> pieces);
 
+    /// <summary>Replaces all style-template pieces (canvas without a pattern selected).</summary>
+    void ReplaceStylePieces(string styleKey, IEnumerable<PieceDefinition> pieces);
+
     /// <summary>Returns IDs of all patterns that have canvas geometry saved.</summary>
     IReadOnlySet<int> GetSavedPatternIds();
 

@@ -19,6 +19,7 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
     public const string KeySizeChart = "size_chart";
     public const string KeyGrading = "grading";
     public const string KeyEaseOverrides = "ease_overrides";
+    private static string PatternSizeChartKey(int patternId) => $"size_chart_pattern_{patternId}";
     private const string KindOutline = "outline";
     private const string KindGrain = "grain";
     private const string KindCf = "cf";
@@ -167,6 +168,32 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
             tx.Rollback();
             throw;
         }
+    }
+
+    public SizeChartStore? LoadPatternSizeChart(int patternId)
+    {
+        using var db = _factory.CreateDbContext();
+        return TryReadKv<SizeChartStore>(db, PatternSizeChartKey(patternId));
+    }
+
+    public void SavePatternSizeChart(int patternId, SizeChartStore store)
+    {
+        using var db = _factory.CreateDbContext();
+        var key = PatternSizeChartKey(patternId);
+        var json = JsonSerializer.Serialize(store, PersistenceJson.CompactOptions);
+        var row = db.AppKeyValues.FirstOrDefault(x => x.Key == key);
+        if (row is null)
+            db.AppKeyValues.Add(new AppKeyValue { Key = key, Value = json });
+        else
+            row.Value = json;
+        db.SaveChanges();
+    }
+
+    public void DeletePatternSizeChart(int patternId)
+    {
+        using var db = _factory.CreateDbContext();
+        RemoveLegacyKv(db, PatternSizeChartKey(patternId));
+        db.SaveChanges();
     }
 
     public GradingStore LoadGrading()

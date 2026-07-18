@@ -198,7 +198,7 @@
                                 <NavLink class="btn btn-outline btn-sm" href="@($"module/canvas?patternId={p.Id}&style={p.StyleKey}")">Canvas</NavLink>
                                 <NavLink class="btn btn-outline btn-sm" href="@($"module/export?patternId={p.Id}&style={p.StyleKey}")">Export</NavLink>
                                 <button type="button" class="btn btn-outline btn-sm" @onclick="() => Duplicate(p.Id)">Copy</button>
-                                <button type="button" class="btn btn-outline btn-sm" @onclick="() => Delete(p.Id)">×</button>
+                                <button type="button" class="pp-btn-delete" @onclick="() => Delete(p.Id, p.Code)">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -425,8 +425,10 @@
         await RefreshChartsAsync();
     }
 
-    private async Task Delete(int id)
+    private async Task Delete(int id, string code)
     {
+        if (!await DesktopConfirm.DeleteAsync(JS, $"pattern {code}"))
+            return;
         if (!PatternService.Delete(id))
             _message = "Could not delete pattern.";
         else

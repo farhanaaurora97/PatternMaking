@@ -99,6 +99,7 @@
                                 <button type="button" class="btn btn-outline btn-sm" @onclick="() => ToggleActive(u)" disabled="@_busy">
                                     @(u.IsActive ? "Disable" : "Approve")
                                 </button>
+                                <button type="button" class="pp-btn-delete" @onclick="() => DeleteUserAsync(u)" disabled="@_busy">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -400,6 +401,28 @@
             _editError = ex.Message;
         }
         finally { _busy = false; }
+    }
+
+    private async Task DeleteUserAsync(AppUser u)
+    {
+        if (!await DesktopConfirm.DeleteAsync(JS, $"user {u.DisplayName} ({u.UserName})"))
+            return;
+        try
+        {
+            if (!UserService.DeleteUser(u.Id))
+            {
+                _error = "Could not delete user.";
+                return;
+            }
+            _message = $"Deleted {u.DisplayName}.";
+            Toast.Show("User deleted", u.DisplayName, DesktopToastType.Success, "🗑");
+            Load();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Toast.Show("Delete failed", ex.Message, DesktopToastType.Error, "⚠");
+        }
     }
 
     private sealed class NewUserForm

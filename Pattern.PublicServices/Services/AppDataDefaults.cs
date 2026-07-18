@@ -26,6 +26,24 @@ internal static class AppDataDefaults
         ],
     };
 
+    /// <summary>Industry garment POM template (sizes 36–54, BO/C1 codes).</summary>
+    public static SizeChartStore CreateGarmentSizeChartTemplate() => new()
+    {
+        Columns = ["36", "38", "40", "42", "44", "46", "48", "50", "52", "54"],
+        Rows =
+        [
+            Row("BO",  [36, 38, 40, 42, 44, 46, 48, 50, 52, 54], 0.5m, "Waist width at top edge of waistband"),
+            Row("C1",  [47, 49, 51, 53, 55, 57, 59, 61, 63, 65], 1.0m, "Hip width from top edge cm: 10"),
+            Row("C2",  [92, 96, 100, 104, 108, 112, 116, 120, 124, 128], 1.0m, "Hip width from top edge cm: 20"),
+            Row("DOT", [58, 61, 64, 67, 70, 73, 76, 79, 82, 85], 1.0m, "Width of thigh"),
+            Row("DWK", [42, 44, 46, 48, 50, 52, 54, 56, 58, 60], 1.0m, "Width of knee from crotch cm: 35"),
+            Row("DWO", [36, 38, 40, 42, 44, 46, 48, 50, 52, 54], 1.0m, "Width of leg opening"),
+            Row("MS",  [78, 78, 79, 79, 80, 80, 80, 80, 81, 81], 1.0m, "Inside leg (long)"),
+            Row("R1",  [25, 26, 27, 28, 29, 30, 31, 32, 33, 34], 0.5m, "Front rise c.f. from top edge"),
+            Row("RB1", [37, 38, 39, 40, 41, 42, 43, 44, 45, 46], 0.5m, "Back rise c.b. from top edge"),
+        ],
+    };
+
     public static bool IsLegacyDefaultSizeChart(SizeChartStore store)
     {
         if (store.Rows.Count == 0) return false;

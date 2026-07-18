@@ -716,11 +716,11 @@
             List<CoreModel.PieceDefinition> pieces;
             if (sizes.Count == 1)
             {
-                pieces = DraftingService.DraftProductionPieces(_styleKey, sizes[0]).ToList();
+                pieces = DraftingService.DraftProductionPieces(_styleKey, sizes[0], _patternId > 0 ? _patternId : null).ToList();
             }
             else
             {
-                var graded = DraftingService.DraftGradedSet(_styleKey, sizes);
+                var graded = DraftingService.DraftGradedSet(_styleKey, sizes, _patternId > 0 ? _patternId : null);
                 pieces = graded.Values.SelectMany(v => v).ToList();
             }
 

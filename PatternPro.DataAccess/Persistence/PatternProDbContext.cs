@@ -59,6 +59,7 @@ public class PatternProDbContext : DbContext
             entity.Property(e => e.CutterTestNotes).HasMaxLength(2000);
             entity.Property(e => e.CloReviewNotes).HasMaxLength(2000);
             entity.Property(e => e.ShrinkagePercent).HasPrecision(5, 2);
+            entity.Property(e => e.ChartMode).HasMaxLength(16);
         });
 
         modelBuilder.Entity<AppKeyValue>(entity =>

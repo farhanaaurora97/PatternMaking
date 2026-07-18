@@ -126,7 +126,8 @@ Set a connection string in `Pattern.Web/appsettings.json` (and/or `appsettings.D
 
 - If `ConnectionStrings:Postgres` is **present**, the app uses **PostgreSQL**.
 - There is **no** `UsePostgreSql` flag — presence of the connection string selects the store.
-- **Migrations run automatically** on startup when Postgres is configured.
+- **Migrations run automatically** on startup when
+ Postgres is configured.
 - Adjust **port** (`5433` vs `5432`) to match your local server.
 
 Manual migration (optional):

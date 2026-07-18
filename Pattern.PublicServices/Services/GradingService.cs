@@ -130,6 +130,66 @@ public class GradingService : IGradingService
         }
     }
 
+    public (bool Ok, string? Error) TryDeleteRow(string styleKey, string measurementPoint)
+    {
+        if (string.IsNullOrWhiteSpace(measurementPoint))
+            return (false, "Select a measurement row to delete.");
+
+        lock (_lock)
+        {
+            if (!_data.TryGetValue(styleKey, out var entry))
+                return (false, $"Style '{styleKey}' not found.");
+
+            if (entry.Rows.Count <= 1)
+                return (false, "At least one measurement row must remain.");
+
+            var point = measurementPoint.Trim();
+            var idx = entry.Rows.FindIndex(r =>
+                r.MeasurementPoint.Equals(point, StringComparison.OrdinalIgnoreCase));
+            if (idx < 0)
+                return (false, "Measurement row not found.");
+
+            entry.Rows.RemoveAt(idx);
+            Persist();
+            return (true, null);
+        }
+    }
+
+    public (bool Ok, string? Error) TryDeleteColumn(int columnIndex)
+    {
+        lock (_lock)
+        {
+            if (_columns.Count <= 1)
+                return (false, "At least one size column must remain.");
+            if (columnIndex < 0 || columnIndex >= _columns.Count)
+                return (false, "Invalid size column.");
+            if (columnIndex == _baseIdx)
+                return (false, $"Cannot delete base size column ({_columns[_baseIdx]}).");
+
+            foreach (var (_, rows) in _data.Values)
+            {
+                foreach (var row in rows)
+                {
+                    if (columnIndex < row.Deltas.Count)
+                        row.Deltas.RemoveAt(columnIndex);
+                }
+            }
+
+            _columns.RemoveAt(columnIndex);
+            if (columnIndex < _baseIdx)
+                _baseIdx--;
+
+            foreach (var (_, rows) in _data.Values)
+            {
+                foreach (var row in rows)
+                    row.BaseIndex = _baseIdx;
+            }
+
+            Persist();
+            return (true, null);
+        }
+    }
+
     public (bool Ok, string? Error) TryUpdateDelta(string styleKey, string measurementPoint, int columnIndex, double delta)
     {
         lock (_lock)

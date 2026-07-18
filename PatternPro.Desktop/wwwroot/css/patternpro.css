@@ -1542,6 +1542,21 @@ dialog.pp-create-dialog.pp-create-dialog--wide {
 .pcs-card:hover .pcs-card-delete { opacity: 1; }
 .pcs-card-delete:hover { background: #fee2e2; color: var(--gold); }
 
+.pp-btn-delete {
+  border: 1px solid rgba(185, 28, 28, 0.22);
+  background: #fff;
+  color: var(--gold);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  line-height: 1.2;
+}
+
+.pp-btn-delete:hover { background: #fee2e2; border-color: rgba(185, 28, 28, 0.35); }
+
 /* ── Fabric cut summary table ── */
 .pcs-cut-table-wrap {
   background: #fff;

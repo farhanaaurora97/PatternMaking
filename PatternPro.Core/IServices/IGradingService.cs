@@ -21,6 +21,10 @@ public interface IGradingService
     /// </summary>
     (bool Ok, string? Error) AddRow(string styleKey, string measurementPoint, string? copyFromPoint);
 
+    (bool Ok, string? Error) TryDeleteRow(string styleKey, string measurementPoint);
+
+    (bool Ok, string? Error) TryDeleteColumn(int columnIndex);
+
     (bool Ok, string? Error) TryUpdateDelta(string styleKey, string measurementPoint, int columnIndex, double delta);
 }
 

@@ -23,6 +23,12 @@ public interface IAppDataStore
 
     void SaveSizeChart(SizeChartStore store);
 
+    SizeChartStore? LoadPatternSizeChart(int patternId);
+
+    void SavePatternSizeChart(int patternId, SizeChartStore store);
+
+    void DeletePatternSizeChart(int patternId);
+
     GradingStore LoadGrading();
 
     void SaveGrading(GradingStore store);

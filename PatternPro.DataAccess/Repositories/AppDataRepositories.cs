@@ -24,6 +24,13 @@ internal sealed class SizeChartRepository(IAppDataStore data) : ISizeChartReposi
     public SizeChartStore Load() => data.LoadSizeChart();
 
     public void Save(SizeChartStore store) => data.SaveSizeChart(store);
+
+    public SizeChartStore? LoadForPattern(int patternId) => data.LoadPatternSizeChart(patternId);
+
+    public void SaveForPattern(int patternId, SizeChartStore store) =>
+        data.SavePatternSizeChart(patternId, store);
+
+    public void DeleteForPattern(int patternId) => data.DeletePatternSizeChart(patternId);
 }
 
 internal sealed class GradingRepository(IAppDataStore data) : IGradingRepository

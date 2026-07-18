@@ -8,7 +8,6 @@
     var pending = layout.PendingBadgeCount;
     var lockStyleSwitcher = layout.CurrentPatternId is int boundPid && boundPid > 0
         && active is "Export" or "Canvas" or "Pieces";
-
     string Nav(string ctrl) => active == ctrl ? "sb-item active" : "sb-item";
     var displayName = global::Pattern.Web.AuthSetup.CurrentDisplayName(User) ?? "User";
     var employeeId = User.FindFirst("EmployeeId")?.Value;

@@ -21,39 +21,38 @@ public class PatternDraftingService : IPatternDraftingService
         _blockGen  = blockGen;
     }
 
-    public IReadOnlyList<PieceDefinition> DraftProductionPieces(string styleKey, string baseSize)
+    public IReadOnlyList<PieceDefinition> DraftProductionPieces(string styleKey, string baseSize, int? patternId = null)
     {
-        var pieces = DraftPieces(styleKey, baseSize).Select(PatternAutoRefineService.Clone).ToList();
+        var pieces = DraftPieces(styleKey, baseSize, patternId).Select(PatternAutoRefineService.Clone).ToList();
         PatternAutoRefineService.Refine(pieces, styleKey);
         return pieces.AsReadOnly();
     }
 
-    public IReadOnlyList<PieceDefinition> DraftPieces(string styleKey, string baseSize)
+    public IReadOnlyList<PieceDefinition> DraftPieces(string styleKey, string baseSize, int? patternId = null)
     {
-        // ── 1. Body measurements for chosen size ───────────────────────────
-        var columns = _sizeChart.GetColumnLabels();
-        var rows    = _sizeChart.GetAll();
+        var snapshot = _sizeChart.GetSnapshot(patternId);
+        var columns = snapshot.Columns.ToList();
+        var rows = snapshot.Rows;
 
-        int sizeIdx = columns.ToList().IndexOf(baseSize);
-        if (sizeIdx < 0) sizeIdx = 2; // fallback to M
+        int sizeIdx = columns.FindIndex(c => c.Equals(baseSize, StringComparison.OrdinalIgnoreCase));
+        if (sizeIdx < 0) sizeIdx = columns.Count > 2 ? 2 : 0;
 
-        decimal Get(string point) =>
-            rows.FirstOrDefault(r =>
-                    r.MeasurementPoint.Equals(point, StringComparison.OrdinalIgnoreCase))
-                ?.Values.ElementAtOrDefault(sizeIdx) ?? 0m;
+        var measurements = RequiredPoints.ToDictionary(
+            k => k,
+            k => SizeChartPomResolver.ResolveValue(rows, k, sizeIdx),
+            StringComparer.OrdinalIgnoreCase);
 
-        var measurements = RequiredPoints.ToDictionary(k => k, Get, StringComparer.OrdinalIgnoreCase);
-        return DraftPiecesFromMeasurements(styleKey, measurements);
+        return DraftPiecesFromMeasurements(styleKey, measurements, MeasurementChartMode.IsGarment(snapshot.ChartMode));
     }
 
-    public Dictionary<string, IReadOnlyList<PieceDefinition>> DraftGradedSet(string styleKey, IEnumerable<string> sizes)
+    public Dictionary<string, IReadOnlyList<PieceDefinition>> DraftGradedSet(string styleKey, IEnumerable<string> sizes, int? patternId = null)
     {
         var result  = new Dictionary<string, IReadOnlyList<PieceDefinition>>();
         int yOffset = 0;
 
         foreach (var size in sizes)
         {
-            var drafted = DraftPieces(styleKey, size);
+            var drafted = DraftPieces(styleKey, size, patternId);
 
             var shifted = drafted.Select(p => new PieceDefinition
             {
@@ -84,18 +83,20 @@ public class PatternDraftingService : IPatternDraftingService
         string styleKey,
         string baseSize,
         IEnumerable<string> sizes,
-        IReadOnlyDictionary<string, decimal> baseMeasurements)
+        IReadOnlyDictionary<string, decimal> baseMeasurements,
+        int? patternId = null)
     {
         var result  = new Dictionary<string, IReadOnlyList<PieceDefinition>>();
-        var columns = _sizeChart.GetColumnLabels().ToList();
-        var rows    = _sizeChart.GetAll();
+        var snapshot = _sizeChart.GetSnapshot(patternId);
+        var columns = snapshot.Columns.ToList();
+        var rows    = snapshot.Rows;
+        var garmentMode = MeasurementChartMode.IsGarment(snapshot.ChartMode);
 
         int baseIdx = columns.FindIndex(c => c.Equals(baseSize, StringComparison.OrdinalIgnoreCase));
         if (baseIdx < 0) baseIdx = Math.Min(2, columns.Count - 1);
 
         decimal ChartValue(string point, int idx) =>
-            rows.FirstOrDefault(r => r.MeasurementPoint.Equals(point, StringComparison.OrdinalIgnoreCase))
-                ?.Values.ElementAtOrDefault(idx) ?? 0m;
+            SizeChartPomResolver.ResolveValue(rows, point, idx);
 
         int yOffset = 0;
         foreach (var size in sizes)
@@ -113,7 +114,7 @@ public class PatternDraftingService : IPatternDraftingService
                 sizeMeasurements[point] = Math.Max(0m, baseInput + delta);
             }
 
-            var drafted = DraftPiecesFromMeasurements(styleKey, sizeMeasurements);
+            var drafted = DraftPiecesFromMeasurements(styleKey, sizeMeasurements, garmentMode);
             var shifted = drafted.Select(p => new PieceDefinition
             {
                 Name      = p.Name,
@@ -143,16 +144,17 @@ public class PatternDraftingService : IPatternDraftingService
         IReadOnlyList<PieceDefinition> canvasPieces,
         string styleKey,
         string baseSize,
-        string targetSize)
+        string targetSize,
+        int? patternId = null)
     {
         var sk = styleKey.Trim();
-        var b  = ResolveSizeLabel(baseSize);
-        var t  = ResolveSizeLabel(targetSize);
+        var b  = ResolveSizeLabel(baseSize, patternId);
+        var t  = ResolveSizeLabel(targetSize, patternId);
         if (b.Equals(t, StringComparison.OrdinalIgnoreCase))
             return canvasPieces.Select(ClonePieceDefinition).ToList();
 
-        var baseDraft   = DraftPieces(sk, b).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
-        var targetDraft = DraftPieces(sk, t).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+        var baseDraft   = DraftPieces(sk, b, patternId).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+        var targetDraft = DraftPieces(sk, t, patternId).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
 
         var list = new List<PieceDefinition>(canvasPieces.Count);
         foreach (var user in canvasPieces)
@@ -169,9 +171,9 @@ public class PatternDraftingService : IPatternDraftingService
         return list;
     }
 
-    private string ResolveSizeLabel(string requested)
+    private string ResolveSizeLabel(string requested, int? patternId = null)
     {
-        var cols = _sizeChart.GetColumnLabels();
+        var cols = _sizeChart.GetColumnLabels(patternId);
         if (cols.Count == 0) return "M";
         if (string.IsNullOrWhiteSpace(requested))
             return cols.Count > 2 ? cols[2] : cols[0];
@@ -285,18 +287,18 @@ public class PatternDraftingService : IPatternDraftingService
         cy = (minY + maxY) / 2.0;
     }
 
-    public string RecommendClosestSize(string baseSize, IReadOnlyDictionary<string, decimal> baseMeasurements)
+    public string RecommendClosestSize(string baseSize, IReadOnlyDictionary<string, decimal> baseMeasurements, int? patternId = null)
     {
-        var columns = _sizeChart.GetColumnLabels().ToList();
-        var rows = _sizeChart.GetAll();
+        var snapshot = _sizeChart.GetSnapshot(patternId);
+        var columns = snapshot.Columns.ToList();
+        var rows = snapshot.Rows;
         if (columns.Count == 0) return "M";
 
         int baseIdx = columns.FindIndex(c => c.Equals(baseSize, StringComparison.OrdinalIgnoreCase));
         if (baseIdx < 0) baseIdx = Math.Min(2, columns.Count - 1);
 
         decimal ChartValue(string point, int idx) =>
-            rows.FirstOrDefault(r => r.MeasurementPoint.Equals(point, StringComparison.OrdinalIgnoreCase))
-                ?.Values.ElementAtOrDefault(idx) ?? 0m;
+            SizeChartPomResolver.ResolveValue(rows, point, idx);
 
         string bestSize = columns[Math.Clamp(baseIdx, 0, columns.Count - 1)];
         decimal bestScore = decimal.MaxValue;
@@ -324,7 +326,10 @@ public class PatternDraftingService : IPatternDraftingService
         return bestSize;
     }
 
-    private IReadOnlyList<PieceDefinition> DraftPiecesFromMeasurements(string styleKey, IReadOnlyDictionary<string, decimal> measurements)
+    private IReadOnlyList<PieceDefinition> DraftPiecesFromMeasurements(
+        string styleKey,
+        IReadOnlyDictionary<string, decimal> measurements,
+        bool garmentMode = false)
     {
         decimal M(string key) => measurements.TryGetValue(key, out var value) ? value : 0m;
 
@@ -337,7 +342,9 @@ public class PatternDraftingService : IPatternDraftingService
         var ankle  = M("Ankle");
         var inseam = M("Inseam");
 
-        var ease = _blockGen.GetEffectiveEase(styleKey);
+        var ease = garmentMode
+            ? new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+            : _blockGen.GetEffectiveEase(styleKey);
         decimal E(string k) => ease.TryGetValue(k, out var v) ? v : 0m;
 
         var aWaist  = waist  + E("Waist");

@@ -15,6 +15,7 @@ public sealed class JsonAppDataStore : IAppDataStore, IDataAccessLayer
     private readonly string _sizeChartPath;
     private readonly string _gradingPath;
     private readonly string _easePath;
+    private readonly string _patternChartsDir;
 
     public JsonAppDataStore(string dataDirectory)
     {
@@ -25,6 +26,8 @@ public sealed class JsonAppDataStore : IAppDataStore, IDataAccessLayer
         _sizeChartPath  = Path.Combine(dataDirectory, "size-chart.json");
         _gradingPath    = Path.Combine(dataDirectory, "grading.json");
         _easePath       = Path.Combine(dataDirectory, "ease-overrides.json");
+        _patternChartsDir = Path.Combine(dataDirectory, "pattern-size-charts");
+        Directory.CreateDirectory(_patternChartsDir);
     }
 
     public PiecesStore LoadPieces() =>
@@ -70,6 +73,24 @@ public sealed class JsonAppDataStore : IAppDataStore, IDataAccessLayer
 
     public void SaveSizeChart(SizeChartStore store) =>
         WriteJson(_sizeChartPath, store);
+
+    public SizeChartStore? LoadPatternSizeChart(int patternId)
+    {
+        var path = Path.Combine(_patternChartsDir, $"{patternId}.json");
+        if (!File.Exists(path))
+            return null;
+        return ReadJson(path, () => new SizeChartStore());
+    }
+
+    public void SavePatternSizeChart(int patternId, SizeChartStore store) =>
+        WriteJson(Path.Combine(_patternChartsDir, $"{patternId}.json"), store);
+
+    public void DeletePatternSizeChart(int patternId)
+    {
+        var path = Path.Combine(_patternChartsDir, $"{patternId}.json");
+        if (File.Exists(path))
+            File.Delete(path);
+    }
 
     public GradingStore LoadGrading() =>
         ReadJson(_gradingPath, () => new GradingStore());
