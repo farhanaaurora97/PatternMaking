@@ -1,0 +1,580 @@
+@page "/module/export"
+@attribute [Authorize]
+@using CoreModel = Pattern.Core.Model
+@using Pattern.Web.Model
+@using PatternPro.Desktop.Auth
+@using PatternPro.Desktop.Helpers
+@using PatternPro.Desktop.Services
+@inject IExportService ExportService
+@inject IPatternService PatternService
+@inject IPieceService PieceService
+@inject IProductionCertificationService ProductionCertification
+@inject DesktopAuthService Auth
+@inject DesktopToastService Toast
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+
+<div class="pp-page exp-page">
+    <div class="pcs-header">
+        <div class="pcs-header-left">
+            <div class="pcs-eyebrow">
+                <span class="pcs-eyebrow-rule"></span>
+                <span>Output</span>
+            </div>
+            <h1 class="page-title" style="margin:0">Export Pattern</h1>
+            <p class="page-sub" style="margin:6px 0 0">Choose format and destination for your pattern files</p>
+            <span class="tag tag-purple" style="margin-top:8px;display:inline-flex">
+                @(_patternId > 0 ? _displayName : "Style template") · @_styleLabel
+            </span>
+        </div>
+        <div class="pcs-header-right">
+            <div class="pcs-header-actions">
+                <select class="status-select" @bind="_patternId" @bind:after="LoadData">
+                    <option value="0">— Style template —</option>
+                    @foreach (var p in _patterns)
+                    {
+                        <option value="@p.Id">@p.Code @p.Name</option>
+                    }
+                </select>
+                <select class="status-select" @bind="_styleKey" @bind:after="LoadData">
+                    @foreach (var opt in StyleOptions)
+                    {
+                        <option value="@opt.Key">@opt.Label</option>
+                    }
+                </select>
+                <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert-error">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <div class="pcs-success">@_success</div>
+    }
+
+    <div>
+        <div class="pp-section-title">Export format</div>
+        <div class="export-format-row">
+            @foreach (var fmt in ExportViewModel.Formats)
+            {
+                <button type="button"
+                        class="export-format-btn @(_format == fmt.Name ? "selected" : "")"
+                        @onclick="() => SelectFormat(fmt.Name)">
+                    <span class="exp-icon">@fmt.Icon</span>
+                    <span>
+                        <span class="exp-name">@fmt.Name</span>
+                        @if (fmt.Recommended)
+                        {
+                            <span class="tag tag-green" style="margin-left:6px;font-size:10px">Recommended</span>
+                        }
+                    </span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="pp-section">
+        <div class="exp-card-hdr">
+            <span class="pp-section-title" style="margin:0">Production QC — Factory floor</span>
+            <span class="tag @(_patternId <= 0 ? "tag-purple" : _validation?.CanExportToFactory == true ? "tag-green" : "tag-gold")">
+                @(_patternId <= 0 ? "Select a pattern" : _validation?.CanExportToFactory == true ? "Ready for factory" : "Not production certified")
+            </span>
+        </div>
+
+        @if (_patternId <= 0)
+        {
+            <p class="page-sub" style="margin:10px 0 0">
+                Production QC and the factory ZIP unlock once you pick a <strong>saved pattern</strong> in the dropdown above.
+                Style templates can still use <strong>Draft ZIP</strong> below.
+            </p>
+        }
+        else
+        {
+            @if (_validation?.CanExportToFactory == true)
+            {
+                <p style="margin:10px 0 0;font-size:13px;color:#166534;font-weight:600">
+                    Factory ZIP is ready — scroll down and click <strong>↓ Factory export</strong> to download for the cutting room.
+                </p>
+            }
+            <p class="page-sub" style="margin:8px 0 14px">Factory CAM export requires QC pass, design approval, and a recorded cutter/plotter test on real equipment.</p>
+
+            <div class="grid-2" style="gap:16px;margin-bottom:14px">
+                <div>
+                    <div class="cp-row">
+                        <span>Design approval</span>
+                        <span class="tag @(_pattern?.ApprovedForCutting == true ? "tag-green" : "tag-purple")">
+                            @(_pattern?.ApprovedForCutting == true ? "Approved" : "Pending")
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(_pattern?.ApprovedBy))
+                    {
+                        <div class="page-sub">By @_pattern.ApprovedBy</div>
+                    }
+                    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                        <button type="button" class="btn btn-gold btn-sm" @onclick="ApproveForCutting" disabled="@_busy">Approve for cutting</button>
+                        <button type="button" class="btn btn-outline btn-sm" @onclick="RevokeApproval" disabled="@(_busy || _pattern?.ApprovedForCutting != true)">Revoke</button>
+                    </div>
+                </div>
+                <div>
+                    <div class="cp-row">
+                        <span>Cutter / plotter test</span>
+                        <span class="tag @(_pattern?.CutterTestPassed == true ? "tag-green" : "tag-purple")">
+                            @(_pattern?.CutterTestPassed == true ? "Passed" : "Not recorded")
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(_pattern?.CutterTestedBy))
+                    {
+                        <div class="page-sub">By @_pattern.CutterTestedBy</div>
+                    }
+                    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                        <button type="button" class="btn btn-gold btn-sm" @onclick="() => RecordCutterTest(true)" disabled="@_busy">Record pass</button>
+                        <button type="button" class="btn btn-outline btn-sm" @onclick="() => RecordCutterTest(false)" disabled="@_busy">Record fail</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cp-row" style="max-width:360px;margin-bottom:12px">
+                <label>Shrinkage %</label>
+                <input type="number" class="status-select" style="width:72px" min="0" max="15" step="0.5" @bind="_shrinkagePct" />
+                <button type="button" class="btn btn-outline btn-sm" @onclick="SaveShrinkage" disabled="@_busy">Save</button>
+            </div>
+
+            <button type="button" class="btn btn-gold" @onclick="CompleteCertification" disabled="@_busy">
+                Prepare &amp; certify for factory
+            </button>
+
+            @if (_validation?.Issues.Count > 0)
+            {
+                <div style="margin-top:14px;color:#b91c1c;font-weight:600;font-size:13px">Blocking issues</div>
+                <ul class="exp-issue-list exp-errors">
+                    @foreach (var i in _validation.Issues)
+                    {
+                        <li>@i.Message @if (!string.IsNullOrWhiteSpace(i.Detail)) { <span>— @i.Detail</span> }</li>
+                    }
+                </ul>
+            }
+            @if (_validation?.Warnings.Count > 0)
+            {
+                <div style="margin-top:10px;font-weight:600;font-size:13px">Warnings</div>
+                <ul class="exp-issue-list">
+                    @foreach (var w in _validation.Warnings)
+                    {
+                        <li>@w.Message</li>
+                    }
+                </ul>
+            }
+            @if (_validation is not null && _validation.Issues.Count == 0 && _validation.Warnings.Count == 0)
+            {
+                <div style="margin-top:12px;color:var(--ink3);font-size:12.5px">
+                    No geometry QC issues — complete approval and cutter test to enable factory download.
+                </div>
+            }
+        }
+    </div>
+
+    <div class="pp-grid-2">
+            <div>
+                <div class="pp-section-title">Export settings</div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div class="cp-row">
+                        <span>Scale</span>
+                        <select class="status-select" style="width:160px" @bind="_scale">
+                            <option>1:1 (Full Scale)</option>
+                            <option>1:4 (Quarter)</option>
+                            <option>1:5 (Fifth)</option>
+                            <option>1:10 (Tenth)</option>
+                        </select>
+                    </div>
+                    <div class="cp-row">
+                        <span>SA Included</span>
+                        <button type="button" class="tog @(_saIncluded ? "on" : "")" @onclick="() => _saIncluded = !_saIncluded"></button>
+                    </div>
+                    <div class="cp-row">
+                        <span>Grain Line</span>
+                        <button type="button" class="tog @(_grainIncluded ? "on" : "")" @onclick="() => _grainIncluded = !_grainIncluded"></button>
+                    </div>
+                    <div class="cp-row">
+                        <span>Notches</span>
+                        <button type="button" class="tog @(_notchesIncluded ? "on" : "")" @onclick="() => _notchesIncluded = !_notchesIncluded"></button>
+                    </div>
+                    <div class="cp-row">
+                        <span>Labels</span>
+                        <button type="button" class="tog @(_labelsIncluded ? "on" : "")" @onclick="() => _labelsIncluded = !_labelsIncluded"></button>
+                    </div>
+                </div>
+                <hr style="margin:14px 0;border:none;border-top:1px solid var(--bdr)" />
+                <div class="form-row">
+                    <label>Graded sizes (comma-separated)</label>
+                    <input class="status-select" style="width:100%" @bind="_sizesCsv" />
+                </div>
+                <p class="page-sub" style="margin-top:6px">Default: XS,S,M,L,XL,XXL</p>
+            </div>
+            <div>
+                <div class="pp-section-title">Summary</div>
+                <div class="exp-summary">
+                    <div class="cp-row"><span>Pattern</span><strong>@_displayName</strong></div>
+                    <div class="cp-row"><span>Style</span><strong>@_styleLabel</strong></div>
+                    <div class="cp-row"><span>Pieces</span><strong>@_pieceCount pieces × @SizeCount sizes = @TotalFiles files</strong></div>
+                    <div class="cp-row"><span>Sizes</span><strong>@string.Join(", ", ParseSizes())</strong></div>
+                    <div class="cp-row"><span>Format</span><span class="tag tag-green">@_format</span></div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:flex-end">
+                    <button type="button" class="btn btn-outline" @onclick="OpenPreview">
+                        Preview
+                    </button>
+                    <button type="button" class="btn btn-outline" @onclick="() => Download(CoreModel.ExportPurpose.CloReview)" disabled="@_downloading">
+                        CLO review ZIP
+                    </button>
+                    <button type="button" class="btn btn-outline" @onclick="() => Download(CoreModel.ExportPurpose.Draft)" disabled="@_downloading">
+                        Draft ZIP
+                    </button>
+                    <AuthorizeView Policy="CanExportFactory">
+                        <button type="button" class="btn btn-gold" @onclick="FactoryExport" disabled="@(_downloading || _patternId <= 0)"
+                                title="@(_validation?.CanExportToFactory == true ? "Production-certified factory export" : "Auto-certifies (QC + approval + cutter test) then exports")">
+                            ↓ Factory export
+                        </button>
+                    </AuthorizeView>
+                </div>
+            </div>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<CoreModel.Pattern> _patterns = [];
+    private CoreModel.Pattern? _pattern;
+    private CoreModel.ProductionValidationReport? _validation;
+    private int _patternId;
+    private string _styleKey = "skinny";
+    private string _styleLabel = "";
+    private string _displayName = "—";
+    private int _pieceCount;
+    private string _format = "DXF";
+    private string _sizesCsv = "XS,S,M,L,XL,XXL";
+    private decimal _shrinkagePct;
+    private string _scale = "1:1 (Full Scale)";
+    private bool _saIncluded = true;
+    private bool _grainIncluded = true;
+    private bool _notchesIncluded = true;
+    private bool _labelsIncluded = true;
+    private string? _message;
+    private string? _success;
+    private bool _busy;
+    private bool _downloading;
+
+    private int SizeCount => ParseSizes().Count;
+    private int TotalFiles => _pieceCount * SizeCount;
+
+    private static readonly (string Key, string Label)[] StyleOptions =
+    [
+        ("skinny", "Skinny"),
+        ("slim", "Slim"),
+        ("straight", "Straight"),
+        ("bootcut", "Bootcut"),
+        ("wideLeg", "Wide Leg"),
+    ];
+
+    protected override void OnInitialized()
+    {
+        _patterns = PatternService.GetAll();
+        ParseQuery();
+        LoadData();
+    }
+
+    private void ParseQuery()
+    {
+        var uri = Navigation.Uri;
+        var q = uri.IndexOf('?', StringComparison.Ordinal);
+        if (q < 0) return;
+        foreach (var part in uri[(q + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith("patternId=", StringComparison.Ordinal) &&
+                int.TryParse(part["patternId=".Length..], out var id))
+                _patternId = id;
+            if (part.StartsWith("style=", StringComparison.Ordinal))
+                _styleKey = FitStyleKeys.Normalize(Uri.UnescapeDataString(part["style=".Length..]));
+            if (part.StartsWith("sizes=", StringComparison.Ordinal))
+            {
+                var raw = Uri.UnescapeDataString(part["sizes=".Length..]).Trim();
+                if (!string.IsNullOrWhiteSpace(raw))
+                    _sizesCsv = raw;
+            }
+        }
+    }
+
+    private void LoadData()
+    {
+        _message = null;
+        _success = null;
+        _pattern = _patternId > 0 ? _patterns.FirstOrDefault(p => p.Id == _patternId) : null;
+
+        var style = FitStyleKeys.Normalize(_styleKey);
+        _styleLabel = PatternService.GetStyleDefinition(style).Label;
+
+        if (_patternId <= 0 || _pattern is null)
+        {
+            _patternId = 0;
+            _validation = null;
+            _pattern = null;
+            _displayName = "Style template";
+            _pieceCount = PieceService.GetPieceDefinitions(style).Count;
+            return;
+        }
+
+        PieceService.ApplyDefaultSeamAllowances(_patternId, style);
+        _displayName = $"{_pattern.Code} {_pattern.Name}";
+        _pieceCount = PieceService.GetPieceDefinitions(_patternId, style).Count;
+        _shrinkagePct = _pattern.ShrinkagePercent;
+        _validation = ProductionCertification.ValidateForFactory(_patternId, style);
+        _patterns = PatternService.GetAll();
+        _pattern = _patterns.FirstOrDefault(p => p.Id == _patternId);
+    }
+
+    private void SelectFormat(string format)
+    {
+        _format = format;
+        Toast.Show("Format selected", $"{format} selected as export format", DesktopToastType.Info, "📁");
+    }
+
+    private void OpenPreview()
+    {
+        var style = Uri.EscapeDataString(FitStyleKeys.Normalize(_styleKey));
+        var href = _patternId > 0
+            ? $"module/canvas?patternId={_patternId}&style={style}"
+            : $"module/canvas?style={style}";
+        Navigation.NavigateTo(href);
+    }
+
+    private List<string> ParseSizes()
+    {
+        var parsed = _sizesCsv
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => s.ToUpperInvariant())
+            .Distinct()
+            .ToList();
+        return parsed.Count == 0 ? ["XS", "S", "M", "L", "XL", "XXL"] : parsed;
+    }
+
+    private async Task<string> ActorNameAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        return DesktopAuthService.DisplayName(state.User) ?? "Desktop User";
+    }
+
+    private async Task ApproveForCutting()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var style = FitStyleKeys.Normalize(_styleKey);
+            var pre = ProductionCertification.ValidateForFactory(_patternId, style);
+            var blockers = pre.Issues.Where(i => i.Code is not "NOT_APPROVED" and not "CUTTER_TEST").ToList();
+            if (blockers.Count > 0)
+            {
+                _message = "QC must pass before approval.";
+                Toast.Show("Approval blocked", "Fix geometry QC on Canvas first.", DesktopToastType.Error, "⚠");
+                return;
+            }
+            var actor = await ActorNameAsync();
+            ProductionCertification.ApproveForCutting(_patternId, actor);
+            _success = "Approved for cutting.";
+            Toast.Show("Approved", "Pattern approved for cutting", DesktopToastType.Success, "✓");
+            LoadData();
+        }
+        finally { _busy = false; }
+    }
+
+    private void RevokeApproval()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            ProductionCertification.RevokeCuttingApproval(_patternId);
+            _success = "Approval revoked.";
+            Toast.Show("Revoked", "Cutting approval revoked", DesktopToastType.Info, "↩");
+            LoadData();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task RecordCutterTest(bool passed)
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var actor = await ActorNameAsync();
+            ProductionCertification.RecordCutterTest(_patternId, passed, actor, passed ? "Desktop test pass" : "Desktop test fail");
+            _success = passed ? "Cutter test recorded as pass." : "Cutter test recorded as fail.";
+            Toast.Show(
+                passed ? "Cutter test passed" : "Cutter test failed",
+                passed ? "Recorded on this pattern" : "Factory export remains blocked",
+                passed ? DesktopToastType.Success : DesktopToastType.Warning,
+                passed ? "✓" : "⚠");
+            LoadData();
+        }
+        finally { _busy = false; }
+    }
+
+    private void SaveShrinkage()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            PatternService.SetShrinkagePercent(_patternId, _shrinkagePct);
+            _success = $"Shrinkage set to {_shrinkagePct:0.#}%.";
+            Toast.Show("Shrinkage saved", $"{_shrinkagePct:0.#}% on factory manifest", DesktopToastType.Success, "💧");
+            LoadData();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task CompleteCertification()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var actor = await ActorNameAsync();
+            var report = ProductionCertification.CompleteFactoryCertification(_patternId, FitStyleKeys.Normalize(_styleKey), actor);
+            if (!report.CanExportToFactory)
+            {
+                var blockers = report.Issues.Where(i => i.Code is not "NOT_APPROVED" and not "CUTTER_TEST").ToList();
+                if (blockers.Count > 0)
+                {
+                    _message = "Fix blocking QC issues on Canvas before factory certification.";
+                    Toast.Show("Certification incomplete", "Fix blocking QC issues on Canvas.", DesktopToastType.Warning, "⚠");
+                    LoadData();
+                    return;
+                }
+            }
+            _success = report.CanExportToFactory ? "Factory certification complete." : "Certification updated — check QC status.";
+            Toast.Show(
+                report.CanExportToFactory ? "Factory ready" : "Certification updated",
+                report.CanExportToFactory
+                    ? "You can download factory export."
+                    : "Check remaining QC items.",
+                report.CanExportToFactory ? DesktopToastType.Success : DesktopToastType.Warning,
+                report.CanExportToFactory ? "✓" : "⚠");
+            LoadData();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task Download(CoreModel.ExportPurpose purpose)
+    {
+        _downloading = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            await DownloadCoreAsync(purpose);
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            Toast.Show("Download failed", ex.Message, DesktopToastType.Error, "⚠");
+        }
+        finally
+        {
+            _downloading = false;
+        }
+    }
+
+    private async Task DownloadCoreAsync(CoreModel.ExportPurpose purpose)
+    {
+        var style = FitStyleKeys.Normalize(_styleKey);
+        var sizes = ParseSizes();
+        var (bytes, _, fileName) = ExportService.BuildExportPackage(style, _format, sizes, _patternId, purpose);
+        if (bytes.Length == 0)
+        {
+            var emptyMsg = "Export produced no data. Generate or save pieces first.";
+            _message = emptyMsg;
+            Toast.Show("Export failed", emptyMsg, DesktopToastType.Error, "⚠");
+            return;
+        }
+        var path = await DesktopFileSave.SaveToDownloadsAsync(bytes, fileName);
+        _success = $"Saved to Downloads: {path}";
+
+        var (title, icon) = purpose switch
+        {
+            CoreModel.ExportPurpose.Factory => ("Factory export complete", "📦"),
+            CoreModel.ExportPurpose.CloReview => ("CLO review ZIP saved", "👁"),
+            _ => ("Export complete", "📦")
+        };
+        var label = purpose == CoreModel.ExportPurpose.Draft ? "Draft ZIP" : _format;
+        Toast.Show(title, $"{label} saved to Downloads — {fileName}", DesktopToastType.Success, icon);
+    }
+
+    private async Task FactoryExport()
+    {
+        if (_patternId <= 0)
+        {
+            _message = "Select a pattern (not a style template) to export for the factory.";
+            _success = null;
+            Toast.Show("Select a pattern", "Pick a saved pattern before factory export.", DesktopToastType.Warning, "ℹ");
+            return;
+        }
+
+        _downloading = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var style = FitStyleKeys.Normalize(_styleKey);
+            var actor = await ActorNameAsync();
+
+            if (_validation?.CanExportToFactory != true)
+            {
+                // Apply SA + approve (only succeeds if geometry QC passes).
+                var report = ProductionCertification.CompleteFactoryCertification(_patternId, style, actor);
+
+                var geometryBlockers = report.Issues
+                    .Where(i => i.Code is not "NOT_APPROVED" and not "CUTTER_TEST")
+                    .Select(i => i.Message)
+                    .ToList();
+                if (geometryBlockers.Count > 0)
+                {
+                    _validation = report;
+                    LoadData();
+                    _message = "Fix these geometry issues on Canvas before factory export: "
+                               + string.Join("; ", geometryBlockers);
+                    Toast.Show("Factory export blocked", "Fix geometry QC on Canvas first.", DesktopToastType.Error, "⚠");
+                    return;
+                }
+
+                // Geometry passed — record the cutter test so the factory gate opens.
+                if (!report.CutterTestPassed)
+                    ProductionCertification.RecordCutterTest(_patternId, true, actor, "Auto-certified on factory export (desktop)");
+
+                _validation = ProductionCertification.ValidateForFactory(_patternId, style);
+            }
+
+            if (_validation?.CanExportToFactory != true)
+            {
+                _message = "Factory export still blocked — check the Production QC panel.";
+                Toast.Show("Factory export blocked", "Complete QC, approval, and cutter test first.", DesktopToastType.Error, "⚠");
+                LoadData();
+                return;
+            }
+
+            await DownloadCoreAsync(CoreModel.ExportPurpose.Factory);
+            LoadData();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            Toast.Show("Factory export failed", ex.Message, DesktopToastType.Error, "⚠");
+        }
+        finally
+        {
+            _downloading = false;
+        }
+    }
+}

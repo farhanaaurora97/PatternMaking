@@ -1,86 +1,87 @@
 using Pattern.Core.Model;
-using Pattern.PublicServices.Interfaces;
+using PatternPro.Core.IServices;
+using PatternPro.Core.Persistence.Repositories;
 
-namespace Pattern.PublicServices.Services;
+namespace PatternPro.Business.Services;
 
 public class SizeChartService : ISizeChartService
 {
     private readonly object _lock = new();
     private readonly IGradingService _gradingService;
-    private readonly List<MeasurementProfile> _profiles = [];
+    private readonly ISizeChartRepository _sizeChart;
+    private readonly IMeasurementProfileRepository _profilesRepo;
+    private readonly IPatternRepository _patterns;
+    private readonly List<MeasurementProfile> _profiles;
+    private readonly List<string> _globalColumns;
+    private readonly List<SizeRow> _globalRows;
 
-    private readonly List<string> _columns;
-
-    private readonly List<SizeRow> _rows;
-
-    public SizeChartService(IGradingService gradingService)
+    public SizeChartService(
+        IGradingService gradingService,
+        ISizeChartRepository sizeChart,
+        IMeasurementProfileRepository profilesRepo,
+        IPatternRepository patterns)
     {
         _gradingService = gradingService;
+        _sizeChart      = sizeChart;
+        _profilesRepo   = profilesRepo;
+        _patterns       = patterns;
+        _profiles       = profilesRepo.Load().Select(CloneProfile).ToList();
 
-        _columns =
-        [
-            "XS", "S", "M", "L", "XL", "XXL",
-        ];
-
-        _rows =
-        [
-            new() { MeasurementPoint = "Waist",        Values = [60, 64, 68, 72, 76, 80] },
-            new() { MeasurementPoint = "Hip",          Values = [84, 88, 92, 96, 100, 106] },
-            new() { MeasurementPoint = "Front Rise",   Values = [25, 25.5m, 26, 26.5m, 27, 27.5m] },
-            new() { MeasurementPoint = "Back Rise",    Values = [34, 35, 36, 37, 38, 39] },
-            new() { MeasurementPoint = "Crotch Depth", Values = [26, 27, 28, 29, 30, 31] },
-            new() { MeasurementPoint = "Thigh",        Values = [50, 53, 56, 59, 62, 66] },
-            new() { MeasurementPoint = "Knee",         Values = [34, 36, 38, 40, 42, 44] },
-            new() { MeasurementPoint = "Ankle",        Values = [29, 31, 33, 35, 37, 39] },
-            new() { MeasurementPoint = "Inseam",       Values = [77, 78, 79, 80, 80, 80] },
-            new() { MeasurementPoint = "Outseam",      Values = [103, 104.5m, 106, 107.5m, 109, 110] },
-        ];
-    }
-
-    public IReadOnlyList<string> GetColumnLabels()
-    {
-        lock (_lock)
-            return _columns.ToList();
-    }
-
-    public IReadOnlyList<SizeRow> GetAll()
-    {
-        lock (_lock)
+        var persisted = sizeChart.Load();
+        var source = persisted.Rows.Count > 0 ? persisted : AppDataDefaults.CreateDefaultSizeChart();
+        if (persisted.Rows.Count == 0)
+            sizeChart.Save(source);
+        else if (AppDataDefaults.IsLegacyDefaultSizeChart(persisted))
         {
-            return _rows
-                .Select(r => new SizeRow
-                {
-                    MeasurementPoint = r.MeasurementPoint,
-                    Values = [.. r.Values],
-                })
-                .ToList();
+            source = AppDataDefaults.CreateDefaultSizeChart();
+            sizeChart.Save(source);
         }
+
+        _globalColumns = [.. source.Columns];
+        _globalRows    = source.Rows.Select(CloneRow).ToList();
     }
 
-    public string ExportCsv()
+    public SizeChartSnapshot GetSnapshot(int? patternId = null) =>
+        BuildSnapshot(patternId, LoadMutableScope(patternId));
+
+    public IReadOnlyList<string> GetColumnLabels(int? patternId = null)
+    {
+        lock (_lock)
+            return LoadMutableScope(patternId).columns.ToList();
+    }
+
+    public IReadOnlyList<SizeRow> GetAll(int? patternId = null)
+    {
+        lock (_lock)
+            return LoadMutableScope(patternId).rows.Select(CloneRow).ToList();
+    }
+
+    public string ExportCsv(int? patternId = null)
     {
         lock (_lock)
         {
-            var header = "Measurement," + string.Join(",", _columns);
+            var scope = LoadMutableScope(patternId);
+            var header = "Measurement,± cm,Method," + string.Join(",", scope.columns);
             var lines = new List<string> { header };
-            foreach (var r in _rows)
-                lines.Add($"{r.MeasurementPoint},{string.Join(",", r.Values)}");
+            foreach (var r in scope.rows)
+                lines.Add($"{r.MeasurementPoint},{r.ToleranceCm},{EscapeCsv(r.MeasurementMethod)},{string.Join(",", r.Values)}");
             return string.Join("\n", lines);
         }
     }
 
-    public (bool Ok, string? Error) TryAddSizeColumn(string label)
+    public (bool Ok, string? Error) TryAddSizeColumn(string label, int? patternId = null)
     {
         var clean = label.Trim();
         if (string.IsNullOrEmpty(clean))
-            return (false, "Enter a size label (e.g. 3XL).");
+            return (false, "Enter a size label (e.g. 3XL or 40).");
 
         lock (_lock)
         {
-            if (_columns.Any(c => c.Equals(clean, StringComparison.OrdinalIgnoreCase)))
+            var scope = LoadMutableScope(patternId);
+            if (scope.columns.Any(c => c.Equals(clean, StringComparison.OrdinalIgnoreCase)))
                 return (false, "That size already exists in the chart.");
 
-            foreach (var row in _rows)
+            foreach (var row in scope.rows)
             {
                 var v = row.Values;
                 decimal next;
@@ -90,20 +91,19 @@ public class SizeChartService : ISizeChartService
                     next = v[0];
                 else
                     next = 0;
-
                 v.Add(next);
             }
 
-            _columns.Add(clean);
+            scope.columns.Add(clean);
+            PersistScope(patternId, scope);
         }
 
-        // Keep grading tables in sync — call outside our lock to avoid lock ordering issues.
-        _gradingService.AddColumn(clean);
-
+        if (patternId is null)
+            _gradingService.AddColumn(clean);
         return (true, null);
     }
 
-    public (bool Ok, string? Error) TryAddMeasurementRow(string measurementPoint, string? copyFromMeasurementPoint)
+    public (bool Ok, string? Error) TryAddMeasurementRow(string measurementPoint, string? copyFromMeasurementPoint, int? patternId = null)
     {
         var name = measurementPoint.Trim();
         if (string.IsNullOrEmpty(name))
@@ -111,23 +111,185 @@ public class SizeChartService : ISizeChartService
 
         lock (_lock)
         {
-            if (_rows.Any(r => r.MeasurementPoint.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            var scope = LoadMutableScope(patternId);
+            if (scope.rows.Any(r => r.MeasurementPoint.Equals(name, StringComparison.OrdinalIgnoreCase)))
                 return (false, "A row with that name already exists.");
 
             var copyFrom = copyFromMeasurementPoint?.Trim() ?? string.Empty;
-            var source = _rows.FirstOrDefault(r =>
+            var source = scope.rows.FirstOrDefault(r =>
                 r.MeasurementPoint.Equals(copyFrom, StringComparison.OrdinalIgnoreCase));
-            if (source is null)
-                source = _rows[0];
+            if (source is null && scope.rows.Count > 0)
+                source = scope.rows[0];
 
-            if (source.Values.Count != _columns.Count)
+            var values = source?.Values ?? scope.columns.Select(_ => 0m).ToList();
+            if (values.Count != scope.columns.Count)
                 return (false, "Chart is inconsistent; refresh the page.");
 
-            _rows.Add(new SizeRow
+            scope.rows.Add(new SizeRow
             {
                 MeasurementPoint = name,
-                Values = [.. source.Values],
+                ToleranceCm = source?.ToleranceCm ?? 0m,
+                MeasurementMethod = source?.MeasurementMethod ?? string.Empty,
+                Values = [.. values],
             });
+
+            PersistScope(patternId, scope);
+        }
+
+        return (true, null);
+    }
+
+    public (bool Ok, string? Error) TryDeleteMeasurementRow(string measurementPoint, int? patternId = null)
+    {
+        var name = measurementPoint.Trim();
+        if (string.IsNullOrEmpty(name))
+            return (false, "Select a measurement row to delete.");
+
+        lock (_lock)
+        {
+            var scope = LoadMutableScope(patternId);
+            if (scope.rows.Count <= 1)
+                return (false, "At least one measurement row must remain.");
+
+            var idx = scope.rows.FindIndex(r =>
+                r.MeasurementPoint.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (idx < 0)
+                return (false, "Measurement row not found.");
+
+            scope.rows.RemoveAt(idx);
+            PersistScope(patternId, scope);
+        }
+
+        return (true, null);
+    }
+
+    public (bool Ok, string? Error) TryDeleteSizeColumn(int columnIndex, int? patternId = null)
+    {
+        lock (_lock)
+        {
+            var scope = LoadMutableScope(patternId);
+            if (scope.columns.Count <= 1)
+                return (false, "At least one size column must remain.");
+            if (columnIndex < 0 || columnIndex >= scope.columns.Count)
+                return (false, "Invalid size column.");
+
+            var protectedLabel = patternId is > 0
+                ? ResolvePattern(patternId)?.BaseSize
+                : "M";
+            if (!string.IsNullOrWhiteSpace(protectedLabel)
+                && scope.columns[columnIndex].Equals(protectedLabel, StringComparison.OrdinalIgnoreCase))
+                return (false, $"Cannot delete base size column ({protectedLabel}).");
+
+            foreach (var row in scope.rows)
+            {
+                if (columnIndex < row.Values.Count)
+                    row.Values.RemoveAt(columnIndex);
+            }
+
+            scope.columns.RemoveAt(columnIndex);
+            PersistScope(patternId, scope);
+        }
+
+        if (patternId is null)
+        {
+            var (ok, err) = _gradingService.TryDeleteColumn(columnIndex);
+            if (!ok) return (false, err);
+        }
+
+        return (true, null);
+    }
+
+    public (bool Ok, string? Error) TryUpdateCell(string measurementPoint, int columnIndex, decimal value, int? patternId = null)
+    {
+        lock (_lock)
+        {
+            var scope = LoadMutableScope(patternId);
+            var row = scope.rows.FirstOrDefault(r =>
+                r.MeasurementPoint.Equals(measurementPoint.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (row is null) return (false, "Measurement row not found.");
+            if (columnIndex < 0 || columnIndex >= row.Values.Count)
+                return (false, "Invalid size column.");
+
+            row.Values[columnIndex] = value;
+            PersistScope(patternId, scope);
+            return (true, null);
+        }
+    }
+
+    public (bool Ok, string? Error) TryUpdateRowMeta(string measurementPoint, decimal toleranceCm, string? measurementMethod, int? patternId = null)
+    {
+        lock (_lock)
+        {
+            var scope = LoadMutableScope(patternId);
+            var row = scope.rows.FirstOrDefault(r =>
+                r.MeasurementPoint.Equals(measurementPoint.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (row is null) return (false, "Measurement row not found.");
+
+            row.ToleranceCm = Math.Max(0, toleranceCm);
+            row.MeasurementMethod = measurementMethod?.Trim() ?? string.Empty;
+            PersistScope(patternId, scope);
+            return (true, null);
+        }
+    }
+
+    public (bool Ok, string? Error) SetChartSettings(int patternId, bool useCustomChart, string chartMode)
+    {
+        if (patternId <= 0)
+            return (false, "Select a valid style.");
+
+        var mode = MeasurementChartMode.IsGarment(chartMode) ? MeasurementChartMode.Garment : MeasurementChartMode.Body;
+
+        lock (_lock)
+        {
+            var store = _patterns.Load();
+            var pattern = store?.Patterns.FirstOrDefault(p => p.Id == patternId);
+            if (pattern is null)
+                return (false, "Style not found.");
+
+            pattern.UseCustomSizeChart = useCustomChart;
+            pattern.ChartMode = mode;
+            _patterns.Save(store!.Patterns, store.NextId);
+        }
+
+        return (true, null);
+    }
+
+    public (bool Ok, string? Error) CopyGlobalToPattern(int patternId)
+    {
+        lock (_lock)
+        {
+            var copy = new SizeChartStore
+            {
+                Columns = [.. _globalColumns],
+                Rows = _globalRows.Select(CloneRow).ToList(),
+            };
+            _sizeChart.SaveForPattern(patternId, copy);
+
+            var store = _patterns.Load();
+            var pattern = store?.Patterns.FirstOrDefault(p => p.Id == patternId);
+            if (pattern is null)
+                return (false, "Style not found.");
+            pattern.UseCustomSizeChart = true;
+            _patterns.Save(store!.Patterns, store.NextId);
+        }
+
+        return (true, null);
+    }
+
+    public (bool Ok, string? Error) InitializeGarmentTemplate(int patternId)
+    {
+        lock (_lock)
+        {
+            var template = AppDataDefaults.CreateGarmentSizeChartTemplate();
+            _sizeChart.SaveForPattern(patternId, template);
+
+            var store = _patterns.Load();
+            var pattern = store?.Patterns.FirstOrDefault(p => p.Id == patternId);
+            if (pattern is null)
+                return (false, "Style not found.");
+            pattern.UseCustomSizeChart = true;
+            pattern.ChartMode = MeasurementChartMode.Garment;
+            _patterns.Save(store!.Patterns, store.NextId);
         }
 
         return (true, null);
@@ -136,15 +298,7 @@ public class SizeChartService : ISizeChartService
     public IReadOnlyList<MeasurementProfile> GetMeasurementProfiles()
     {
         lock (_lock)
-        {
-            return _profiles
-                .Select(p => new MeasurementProfile
-                {
-                    Name = p.Name,
-                    Measurements = new Dictionary<string, decimal>(p.Measurements, StringComparer.OrdinalIgnoreCase),
-                })
-                .ToList();
-        }
+            return _profiles.Select(CloneProfile).ToList();
     }
 
     public (bool Ok, string? Error) SaveMeasurementProfile(string name, IReadOnlyDictionary<string, decimal> measurements)
@@ -170,8 +324,104 @@ public class SizeChartService : ISizeChartService
             {
                 existing.Measurements = new Dictionary<string, decimal>(measurements, StringComparer.OrdinalIgnoreCase);
             }
+
+            PersistProfiles();
         }
 
         return (true, null);
+    }
+
+    private SizeChartSnapshot BuildSnapshot(int? patternId, (List<string> columns, List<SizeRow> rows) scope)
+    {
+        var pattern = ResolvePattern(patternId);
+        var chartMode = pattern?.ChartMode ?? MeasurementChartMode.Body;
+        var useCustom = pattern?.UseCustomSizeChart == true && patternId is > 0;
+
+        return new SizeChartSnapshot
+        {
+            PatternId = patternId,
+            PatternCode = pattern?.Code,
+            ChartMode = chartMode,
+            UseCustomChart = useCustom,
+            Columns = scope.columns.ToList(),
+            Rows = scope.rows.Select(CloneRow).ToList(),
+        };
+    }
+
+    private (List<string> columns, List<SizeRow> rows) LoadMutableScope(int? patternId)
+    {
+        if (patternId is null or <= 0)
+            return (_globalColumns, _globalRows);
+
+        var pattern = ResolvePattern(patternId);
+        if (pattern?.UseCustomSizeChart != true)
+            return (_globalColumns, _globalRows);
+
+        var persisted = _sizeChart.LoadForPattern(patternId.Value);
+        if (persisted is null || persisted.Rows.Count == 0)
+        {
+            var empty = new SizeChartStore { Columns = [.. _globalColumns], Rows = [] };
+            _sizeChart.SaveForPattern(patternId.Value, empty);
+            persisted = empty;
+        }
+
+        return (
+            persisted.Columns.ToList(),
+            persisted.Rows.Select(CloneRow).ToList());
+    }
+
+    private void PersistScope(int? patternId, (List<string> columns, List<SizeRow> rows) scope)
+    {
+        var store = new SizeChartStore
+        {
+            Columns = [.. scope.columns],
+            Rows = scope.rows.Select(CloneRow).ToList(),
+        };
+
+        if (patternId is null or <= 0)
+        {
+            _globalColumns.Clear();
+            _globalColumns.AddRange(scope.columns);
+            _globalRows.Clear();
+            _globalRows.AddRange(scope.rows.Select(CloneRow));
+            _sizeChart.Save(store);
+            return;
+        }
+
+        _sizeChart.SaveForPattern(patternId.Value, store);
+    }
+
+    private Pattern.Core.Model.Pattern? ResolvePattern(int? patternId)
+    {
+        if (patternId is null or <= 0)
+            return null;
+        return _patterns.Load()?.Patterns.FirstOrDefault(p => p.Id == patternId);
+    }
+
+    private void PersistProfiles() =>
+        _profilesRepo.Save(_profiles.Select(CloneProfile));
+
+    private static SizeRow CloneRow(SizeRow r) =>
+        new()
+        {
+            MeasurementPoint = r.MeasurementPoint,
+            ToleranceCm = r.ToleranceCm,
+            MeasurementMethod = r.MeasurementMethod,
+            Values = [.. r.Values],
+        };
+
+    private static MeasurementProfile CloneProfile(MeasurementProfile p) =>
+        new()
+        {
+            Name = p.Name,
+            Measurements = new Dictionary<string, decimal>(p.Measurements, StringComparer.OrdinalIgnoreCase),
+        };
+
+    private static string EscapeCsv(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        return value.Contains(',') || value.Contains('"')
+            ? $"\"{value.Replace("\"", "\"\"")}\""
+            : value;
     }
 }

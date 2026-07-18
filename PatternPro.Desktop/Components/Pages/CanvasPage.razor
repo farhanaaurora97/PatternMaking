@@ -1,0 +1,764 @@
+@page "/module/canvas"
+@attribute [Authorize]
+@using CoreModel = Pattern.Core.Model
+@using PatternPro.Desktop.Canvas
+@using PatternPro.Desktop.Components.Canvas
+@using PatternPro.Desktop.Helpers
+@using PatternPro.Desktop.Services
+@using Microsoft.AspNetCore.Components.Web
+@inject IPieceService PieceService
+@inject IPatternService PatternService
+@inject IPatternDraftingService DraftingService
+@inject DesktopCanvasHost CanvasHost
+@inject NavigationManager Navigation
+
+<div class="cv-editor-page" tabindex="0" @onkeydown="OnKeyDown" @ref="_pageRoot">
+    <nav class="fit-tabs cv-fit-tabs">
+        @foreach (var opt in StyleOptions)
+        {
+            <button type="button"
+                    class="fit-tab @(_styleKey == opt.Key ? "active" : "")"
+                    @onclick="() => SelectStyle(opt.Key)">
+                @opt.Label
+            </button>
+        }
+        <span style="flex:1"></span>
+        <select class="status-select" style="max-width:200px" @bind="_patternId" @bind:after="LoadPieces"
+                @onkeydown:stopPropagation="true">
+            <option value="0">— Style template —</option>
+            @foreach (var p in _patterns)
+            {
+                <option value="@p.Id">@p.Code @p.Name</option>
+            }
+        </select>
+    </nav>
+
+    <div class="cv-header">
+        <div class="cv-header-brand">
+            <span class="cv-title">Canvas</span>
+            <span class="cv-piece-badge">@PieceBadge</span>
+        </div>
+        @if (_dirty)
+        {
+            <span class="cv-save-indicator">Unsaved</span>
+        }
+        <div class="cv-sep"></div>
+        <div class="cv-header-actions">
+            <button type="button" class="btn btn-outline btn-sm" @onclick="UndoAsync" disabled="@(!CanvasHost.CanUndo)">↺ Undo</button>
+            <button type="button" class="btn btn-outline btn-sm" @onclick="ClearCanvasAsync" disabled="@(_pieces.Count == 0 && CanvasHost.DrawPointCount == 0)">✕ Clear</button>
+            <div class="cv-sep"></div>
+            <button type="button" class="btn btn-outline btn-sm" @onclick="FitAll">⊞ Fit All</button>
+            <button type="button" class="btn btn-outline btn-sm" @onclick="SaveAll" disabled="@(_saving || !_dirty || _pieces.Count == 0)">
+                @(_saving ? "Saving…" : "⬆ Save All")
+            </button>
+            <div class="cv-sep"></div>
+            <NavLink class="btn btn-outline btn-sm" href="@NestHref">Nest ↗</NavLink>
+            <NavLink class="btn btn-gold btn-sm" href="@ExportHref">↓ Export DXF</NavLink>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="cv-loading">Loading pieces…</div>
+    }
+    @if (!string.IsNullOrEmpty(_status))
+    {
+        <div class="alert-error" style="margin:0">@_status</div>
+    }
+    @if (!string.IsNullOrEmpty(_saveMsg))
+    {
+        <div class="cv-save-msg @(_saveOk ? "ok" : "err")" style="margin:0">@_saveMsg</div>
+    }
+
+    <div class="canvas-shell">
+        <aside class="canvas-pieces-list">
+            <div class="cpl-header">
+                <span>Pieces</span>
+                <span class="cpl-count-badge">@_pieces.Count</span>
+            </div>
+            @if (_pieces.Count == 0)
+            {
+                <div class="cpl-empty-msg">
+                    <div class="cpl-empty-icon">◻</div>
+                    <div class="cpl-empty-txt">No pieces yet.<br />Use ✏ Draw or ⚡ Generate to start.</div>
+                </div>
+            }
+            else
+            {
+                @for (var i = 0; i < _pieces.Count; i++)
+                {
+                    var idx = i;
+                    var p = _pieces[idx];
+                    <div class="cpl-item @(_selectedIndex == idx ? "active" : "")"
+                         @onclick="() => SelectPiece(idx)">
+                        <span class="cpl-num">@(idx + 1)</span>
+                        <div class="cpl-dot" style="background:@p.Color"></div>
+                        <div>
+                            <div class="cpl-name">@p.Name</div>
+                            <div class="cpl-cut">@p.Cut</div>
+                        </div>
+                    </div>
+                }
+            }
+        </aside>
+
+        <div class="canvas-main">
+            <div class="canvas-toolbar">
+                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Select ? "active" : "")"
+                        @onclick="() => SetTool(CanvasToolMode.Select)">↖ Select</button>
+                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Pan ? "active" : "")"
+                        @onclick="() => SetTool(CanvasToolMode.Pan)">✥ Pan</button>
+                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Point ? "active" : "")"
+                        @onclick="() => SetTool(CanvasToolMode.Point)">● Point</button>
+                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Notch ? "active" : "")"
+                        @onclick="() => SetTool(CanvasToolMode.Notch)">◆ Notch</button>
+                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Draw ? "active" : "")"
+                        @onclick="() => SetTool(CanvasToolMode.Draw)">✏ Draw</button>
+                <div class="ctb-sep"></div>
+                <button type="button" class="ctb-btn @(CanvasHost.Layers.ShowSeamAllowance ? "active" : "")"
+                        @onclick='() => ToggleLayer("sa")'>⬜ SA</button>
+                <button type="button" class="ctb-btn @(CanvasHost.Layers.ShowGrain ? "active" : "")"
+                        @onclick='() => ToggleLayer("grain")'>⇅ Grain</button>
+                <button type="button" class="ctb-btn @(CanvasHost.Layers.ShowLabels ? "active" : "")"
+                        @onclick='() => ToggleLayer("labels")'>T Labels</button>
+                <div class="ctb-sep"></div>
+                <button type="button" class="ctb-btn" @onclick="() => CanvasHost.ZoomOut()">−</button>
+                <span class="ctb-label">@($"{Math.Round(CanvasHost.ZoomPercent)}%")</span>
+                <button type="button" class="ctb-btn" @onclick="() => CanvasHost.ZoomIn()">+</button>
+            </div>
+
+            <div class="canvas-draw">
+                <div class="canvas-grid-bg"></div>
+                @if (_pieces.Count == 0 && !_loading)
+                {
+                    <div class="cv-empty-state">
+                        <div class="cv-empty-icon">✏</div>
+                        <div class="cv-empty-title">Empty Canvas</div>
+                        <div class="cv-empty-sub">Select a pattern or style template, then use ⚡ Generate in the panel to auto-draft from size chart.</div>
+                    </div>
+                }
+                <NativeCanvasSlot @ref="_slot"
+                                    Mode="CanvasSurfaceMode.Pattern"
+                                    CssClass="native-canvas-slot cv-native-slot" />
+            </div>
+        </div>
+
+        <aside class="canvas-props">
+            <div class="cp-section">
+                <div class="cp-label">Selection</div>
+                <div class="cp-row"><span class="cp-key">Piece</span><span class="cp-val">@SelectionName</span></div>
+                <div class="cp-row"><span class="cp-key">Points</span><span class="cp-val">@SelectionPoints</span></div>
+                <div class="cp-row"><span class="cp-key">Width</span><span class="cp-val">@SelectionWidth</span></div>
+                <div class="cp-row"><span class="cp-key">Height</span><span class="cp-val">@SelectionHeight</span></div>
+                <div class="cp-row"><span class="cp-key">Perimeter</span><span class="cp-val">@SelectionPerimeter</span></div>
+            </div>
+
+            <div class="cp-section">
+                <div class="cp-label">Layers</div>
+                <div class="tog-row">
+                    <span class="tog-lbl">Seam allowance</span>
+                    <button type="button" class="tog @(CanvasHost.Layers.ShowSeamAllowance ? "on" : "")"
+                            @onclick='() => ToggleLayer("sa")'></button>
+                </div>
+                <div class="tog-row">
+                    <span class="tog-lbl">Grain line</span>
+                    <button type="button" class="tog @(CanvasHost.Layers.ShowGrain ? "on" : "")"
+                            @onclick='() => ToggleLayer("grain")'></button>
+                </div>
+                <div class="tog-row">
+                    <span class="tog-lbl">Labels</span>
+                    <button type="button" class="tog @(CanvasHost.Layers.ShowLabels ? "on" : "")"
+                            @onclick='() => ToggleLayer("labels")'></button>
+                </div>
+                <div class="tog-row">
+                    <span class="tog-lbl">Notches</span>
+                    <button type="button" class="tog @(CanvasHost.Layers.ShowNotches ? "on" : "")"
+                            @onclick='() => ToggleLayer("notches")'></button>
+                </div>
+            </div>
+
+            @if (_selectedIndex is int selIdx && selIdx >= 0 && selIdx < _pieces.Count)
+            {
+                var saPiece = _pieces[selIdx];
+                <div class="cp-section cp-section--sa">
+                    <div class="cp-label">Seam Allowance</div>
+                    <div class="sa-stack">
+                        <div>
+                            <label class="sa-field-label">Distance (px)</label>
+                            <input type="number" class="cp-input sa-input-lg" step="0.5" min="0"
+                                   @bind="saPiece.SeamAllowance" @bind:after="OnPieceMetaChanged"
+                                   @onkeydown:stopPropagation="true" />
+                        </div>
+                        <div>
+                            <label class="sa-field-label">Corner join</label>
+                            <select class="cp-input sa-select-lg" @bind="saPiece.SeamAllowanceJoin" @bind:after="OnPieceMetaChanged"
+                                    @onkeydown:stopPropagation="true">
+                                <option value="miter">Miter</option>
+                                <option value="bevel">Bevel</option>
+                                <option value="round">Round</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (CanvasHost.PendingNewPiece is not null)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">New Piece</div>
+                    <input type="text" class="cp-input" placeholder="Piece name" @bind="_newPieceName"
+                           @onkeydown:stopPropagation="true" />
+                    <select class="cp-input" @bind="_newPieceCategory" @onkeydown:stopPropagation="true">
+                        <option>Body Panels</option>
+                        <option>Closures</option>
+                        <option>Pockets</option>
+                        <option>Hardware &amp; Details</option>
+                    </select>
+                    <select class="cp-input" @bind="_newPieceCut" @onkeydown:stopPropagation="true">
+                        <option>Cut 2</option>
+                        <option>Cut 1</option>
+                        <option>Cut 4</option>
+                        <option>Cut 8</option>
+                    </select>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <label style="font-size:10.5px;color:var(--ink3)">Color</label>
+                        <input type="color" @bind="_newPieceColor" style="width:34px;height:22px;border:1px solid var(--bdr);border-radius:4px;cursor:pointer;padding:1px;" />
+                    </div>
+                    <div style="display:flex;gap:6px">
+                        <button type="button" class="btn btn-gold btn-sm" style="flex:1" @onclick="ConfirmNewPieceAsync">✓ Add Piece</button>
+                        <button type="button" class="btn btn-outline btn-sm" @onclick="CancelNewPiece">✕</button>
+                    </div>
+                </div>
+            }
+            else if (CanvasHost.ToolMode == CanvasToolMode.Draw)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Draw</div>
+                    <div style="font-size:10.5px;color:var(--ink4);line-height:1.6;margin-bottom:8px">
+                        @if (CanvasHost.DrawPointCount < 3)
+                        {
+                            <span>@CanvasHost.DrawPointCount point@(CanvasHost.DrawPointCount == 1 ? "" : "s") placed — need at least 3.</span>
+                        }
+                        else
+                        {
+                            <span>@CanvasHost.DrawPointCount points — click the first point or Close shape.</span>
+                        }
+                    </div>
+                    @if (CanvasHost.DrawPointCount >= 3)
+                    {
+                        <button type="button" class="btn btn-gold btn-sm" style="width:100%;margin-bottom:6px" @onclick="CloseDrawShape">Close shape</button>
+                    }
+                    <button type="button" class="btn btn-outline btn-sm" style="width:100%" @onclick="CancelDraw">Cancel draw</button>
+                </div>
+            }
+
+            <div class="cp-section">
+                <div class="cp-label">Auto-Draft Sizes</div>
+                <div style="font-size:10.5px;color:var(--ink4);margin-bottom:8px;line-height:1.55">Generate pieces from style block.</div>
+                <div class="draft-size-grid">
+                    @foreach (var sz in _draftSizes)
+                    {
+                        <label class="size-cb-label">
+                            <input type="checkbox" @bind="sz.Checked" />
+                            <span>@sz.Label</span>
+                        </label>
+                    }
+                </div>
+                <button type="button" class="btn btn-gold btn-sm" style="width:100%" @onclick="GenerateDraftAsync" disabled="@_generating">
+                    @(_generating ? "Generating…" : "⚡ Generate")
+                </button>
+                @if (!string.IsNullOrEmpty(_draftMsg))
+                {
+                    <div style="font-size:10.5px;color:var(--ink4);margin-top:8px">@_draftMsg</div>
+                }
+            </div>
+
+            <div class="cp-section">
+                <div class="cp-label">Shortcuts</div>
+                <div class="cv-shortcuts">
+                    <div><b>S</b> Select &nbsp; <b>P</b> Pan &nbsp; <b>D</b> Draw</div>
+                    <div><b>A</b> Point &nbsp; <b>N</b> Notch</div>
+                    <div><b>Ctrl+Z</b> Undo &nbsp; <b>Ctrl+S</b> Save</div>
+                    <div><b>Space</b> Fit all &nbsp; <b>±</b> Zoom &nbsp; <b>Esc</b> Cancel draw</div>
+                    <div>Right-drag to pan (select mode)</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+@code {
+    private ElementReference _pageRoot;
+    private NativeCanvasSlot? _slot;
+    private readonly CanvasViewport _viewport = new();
+    private List<CoreModel.PieceDefinition> _pieces = [];
+    private IReadOnlyList<CoreModel.Pattern> _patterns = [];
+    private int _patternId;
+    private string _styleKey = "skinny";
+    private int? _selectedIndex;
+    private string? _status;
+    private string? _draftMsg;
+    private bool _loading;
+    private bool _dirty;
+    private bool _saving;
+    private bool _generating;
+    private bool _saveOk;
+    private string? _saveMsg;
+    private string _newPieceName = "New Piece";
+    private string _newPieceCategory = "Body Panels";
+    private string _newPieceCut = "Cut 2";
+    private string _newPieceColor = "#a78bfa";
+
+    private readonly List<DraftSizeOption> _draftSizes =
+    [
+        new("XS", false), new("S", false), new("M", true),
+        new("L", true), new("XL", true), new("XXL", true),
+    ];
+
+    private static readonly (string Key, string Label)[] StyleOptions =
+    [
+        ("skinny", "Skinny"),
+        ("slim", "Slim"),
+        ("straight", "Straight"),
+        ("bootcut", "Bootcut"),
+        ("wideLeg", "Wide Leg"),
+    ];
+
+    private string PieceBadge => _pieces.Count == 0 ? "Empty" : $"{_pieces.Count} pieces";
+    private string NestHref => $"module/nest?style={Uri.EscapeDataString(_styleKey)}";
+
+    private string SelectedSizesCsv
+    {
+        get
+        {
+            var chosen = _draftSizes.Where(s => s.Checked).Select(s => s.Label).ToList();
+            return chosen.Count > 0 ? string.Join(",", chosen) : "M";
+        }
+    }
+
+    private string ExportHref
+    {
+        get
+        {
+            var sizes = Uri.EscapeDataString(SelectedSizesCsv);
+            var style = Uri.EscapeDataString(_styleKey);
+            return _patternId > 0
+                ? $"module/export?patternId={_patternId}&style={style}&sizes={sizes}"
+                : $"module/export?style={style}&sizes={sizes}";
+        }
+    }
+
+    private CoreModel.PieceDefinition? _selectedPiece =>
+        _selectedIndex is int i && i >= 0 && i < _pieces.Count ? _pieces[i] : null;
+
+    private string SelectionName => _selectedPiece?.Name ?? "—";
+    private string SelectionPoints => _selectedPiece?.Points.Count.ToString() ?? "—";
+    private string SelectionWidth => FormatMeasure(_selectedPiece is null ? 0 : CanvasPainter.MeasurePiece(_selectedPiece).Width);
+    private string SelectionHeight => FormatMeasure(_selectedPiece is null ? 0 : CanvasPainter.MeasurePiece(_selectedPiece).Height);
+    private string SelectionPerimeter => FormatMeasure(_selectedPiece is null ? 0 : CanvasPainter.MeasurePiece(_selectedPiece).Perimeter);
+
+    protected override async Task OnInitializedAsync()
+    {
+        ParseQuery();
+        await LoadPiecesAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        SyncHost();
+        if (_slot is not null)
+            await _slot.RefreshBoundsAsync();
+        if (firstRender)
+        {
+            try { await _pageRoot.FocusAsync(); } catch { /* focus optional */ }
+            if (_pieces.Count > 0)
+                FitAll();
+        }
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.CtrlKey && (e.Key is "s" or "S"))
+        {
+            SaveAll();
+            return;
+        }
+        if (e.CtrlKey && (e.Key is "z" or "Z"))
+        {
+            _ = UndoAsync();
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case "s" or "S":
+                SetTool(CanvasToolMode.Select);
+                break;
+            case "p" or "P":
+                SetTool(CanvasToolMode.Pan);
+                break;
+            case "d" or "D":
+                SetTool(CanvasToolMode.Draw);
+                break;
+            case "a" or "A":
+                SetTool(CanvasToolMode.Point);
+                break;
+            case "n" or "N":
+                SetTool(CanvasToolMode.Notch);
+                break;
+            case "Escape":
+                if (CanvasHost.PendingNewPiece is not null)
+                    CancelNewPiece();
+                else if (CanvasHost.ToolMode == CanvasToolMode.Draw)
+                    CancelDraw();
+                else
+                    SetTool(CanvasToolMode.Select);
+                break;
+            case "Delete":
+            case "Backspace":
+                _ = DeleteSelectedVertex();
+                break;
+            case " ":
+                FitAll();
+                break;
+            case "+" or "=":
+                CanvasHost.ZoomIn();
+                StateHasChanged();
+                break;
+            case "-":
+                CanvasHost.ZoomOut();
+                StateHasChanged();
+                break;
+        }
+    }
+
+    private void SyncHost()
+    {
+        CanvasHost.ConfigurePattern(_pieces, _viewport, _selectedIndex, MarkDirtyAsync, OnSelectedChanged, OnHostChangedAsync);
+    }
+
+    private Task OnHostChangedAsync()
+    {
+        InvokeAsync(StateHasChanged);
+        return Task.CompletedTask;
+    }
+
+    private static string FormatMeasure(float v) => v <= 0 ? "—" : $"{v:0.#}";
+
+    private void ParseQuery()
+    {
+        var uri = Navigation.Uri;
+        var q = uri.IndexOf('?', StringComparison.Ordinal);
+        if (q < 0) return;
+        foreach (var part in uri[(q + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith("patternId=", StringComparison.Ordinal) &&
+                int.TryParse(part["patternId=".Length..], out var id))
+                _patternId = id;
+            if (part.StartsWith("style=", StringComparison.Ordinal))
+                _styleKey = FitStyleKeys.Normalize(Uri.UnescapeDataString(part["style=".Length..]));
+        }
+    }
+
+    private async Task LoadPiecesAsync()
+    {
+        _loading = true;
+        _status = null;
+        _saveMsg = null;
+        _draftMsg = null;
+        _dirty = false;
+        _selectedIndex = null;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+
+        try
+        {
+            _patterns = PatternService.GetAll();
+            if (_patternId > 0)
+                _pieces = PieceService.GetPieceDefinitions(_patternId, _styleKey).ToList();
+            else
+                _pieces = PieceService.GetPieceDefinitions(_styleKey).ToList();
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+            _pieces = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        if (_pieces.Count > 0)
+            _selectedIndex = 0;
+
+        CanvasHost.ClearHistory();
+        SyncHost();
+    }
+
+    private Task LoadPieces() => LoadPiecesAsync();
+
+    private void SelectStyle(string key)
+    {
+        _styleKey = key;
+        _ = LoadPiecesAsync();
+    }
+
+    private void SelectPiece(int index)
+    {
+        _selectedIndex = index;
+        SyncHost();
+        CanvasHost.Invalidate();
+    }
+
+    private Task OnSelectedChanged(int? index)
+    {
+        _selectedIndex = index;
+        InvokeAsync(StateHasChanged);
+        return Task.CompletedTask;
+    }
+
+    private Task MarkDirtyAsync()
+    {
+        MarkDirty();
+        return Task.CompletedTask;
+    }
+
+    private void MarkDirty()
+    {
+        _dirty = true;
+        _saveMsg = null;
+        StateHasChanged();
+    }
+
+    private void OnPieceMetaChanged()
+    {
+        MarkDirty();
+        CanvasHost.Invalidate();
+    }
+
+    private void SetTool(CanvasToolMode mode)
+    {
+        CanvasHost.ToolMode = mode;
+        if (mode != CanvasToolMode.Draw && CanvasHost.PendingNewPiece is null)
+            CanvasHost.CancelDrawSession();
+        StateHasChanged();
+    }
+
+    private void CloseDrawShape()
+    {
+        CanvasHost.CloseDrawShapeFromUi();
+        _newPieceName = $"Piece {_pieces.Count + 1}";
+    }
+
+    private void CancelDraw()
+    {
+        CanvasHost.CancelDrawSession();
+        SetTool(CanvasToolMode.Select);
+    }
+
+    private void CancelNewPiece()
+    {
+        CanvasHost.CancelPendingPiece();
+        SetTool(CanvasToolMode.Select);
+    }
+
+    private async Task ConfirmNewPieceAsync()
+    {
+        var pending = CanvasHost.PendingNewPiece;
+        if (pending is null) return;
+
+        var name = _newPieceName.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            _status = "Enter a piece name.";
+            return;
+        }
+
+        try
+        {
+            var (ok, error, piece) = _patternId > 0
+                ? PieceService.CreatePatternPiece(
+                    _patternId, _styleKey, name, _newPieceCategory, _newPieceCut, _newPieceColor,
+                    pending.Points, pending.OffsetX, pending.OffsetY)
+                : PieceService.CreateStylePiece(
+                    _styleKey, name, _newPieceCategory, _newPieceCut, _newPieceColor,
+                    pending.Points, pending.OffsetX, pending.OffsetY);
+
+            if (!ok || piece is null)
+            {
+                _status = error ?? "Could not create piece.";
+                return;
+            }
+
+            if (_patternId > 0)
+                _pieces = PieceService.GetPieceDefinitions(_patternId, _styleKey).ToList();
+            else
+                _pieces = PieceService.GetPieceDefinitions(_styleKey).ToList();
+
+            _selectedIndex = _pieces.FindIndex(p => p.Name.Equals(piece.Name, StringComparison.OrdinalIgnoreCase));
+            if (_selectedIndex < 0) _selectedIndex = _pieces.Count - 1;
+            CanvasHost.CancelPendingPiece();
+            SetTool(CanvasToolMode.Select);
+            _dirty = true;
+            _status = null;
+            SyncHost();
+            FitAll();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+    }
+
+    private async Task UndoAsync()
+    {
+        if (!await CanvasHost.UndoAsync()) return;
+        _dirty = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ClearCanvasAsync()
+    {
+        _pieces.Clear();
+        _selectedIndex = null;
+        _dirty = true;
+        _status = null;
+        _draftMsg = null;
+        CanvasHost.CancelDrawSession();
+        CanvasHost.ClearHistory();
+
+        if (_patternId > 0)
+            PieceService.ReplacePatternPieces(_patternId, []);
+        else
+            PieceService.ReplaceStylePieces(_styleKey, []);
+
+        SyncHost();
+        CanvasHost.Invalidate();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteSelectedVertex()
+    {
+        if (await CanvasHost.TryDeleteVertexAtCursorAsync())
+            _dirty = true;
+    }
+
+    private void ToggleLayer(string key)
+    {
+        var layers = CanvasHost.Layers;
+        switch (key)
+        {
+            case "sa": layers.ShowSeamAllowance = !layers.ShowSeamAllowance; break;
+            case "grain": layers.ShowGrain = !layers.ShowGrain; break;
+            case "labels": layers.ShowLabels = !layers.ShowLabels; break;
+            case "notches": layers.ShowNotches = !layers.ShowNotches; break;
+        }
+        CanvasHost.Invalidate();
+        StateHasChanged();
+    }
+
+    private void FitAll()
+    {
+        var bounds = CanvasPainter.ComputeBounds(_pieces);
+        if (!bounds.IsEmpty)
+        {
+            var w = (float)(CanvasHost.SlotWidth > 1 ? CanvasHost.SlotWidth : 900);
+            var h = (float)(CanvasHost.SlotHeight > 1 ? CanvasHost.SlotHeight : 600);
+            _viewport.FitToBounds(bounds, w, h);
+        }
+        SyncHost();
+        CanvasHost.Invalidate();
+    }
+
+    private void SaveAll()
+    {
+        _saving = true;
+        _saveMsg = null;
+        _status = null;
+        try
+        {
+            var (ok, error, saved) = CanvasPieceSaver.SaveAll(PieceService, _patternId, _styleKey, _pieces);
+            _saveOk = ok;
+            _saveMsg = ok ? $"Saved {saved} piece(s)" : error;
+            if (ok) _dirty = false;
+        }
+        catch (Exception ex)
+        {
+            _saveOk = false;
+            _saveMsg = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task GenerateDraftAsync()
+    {
+        var sizes = _draftSizes.Where(s => s.Checked).Select(s => s.Label).ToList();
+        if (sizes.Count == 0)
+        {
+            _draftMsg = "Select at least one size.";
+            _status = null;
+            return;
+        }
+
+        _generating = true;
+        _draftMsg = "Generating…";
+        _status = null;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+
+        try
+        {
+            List<CoreModel.PieceDefinition> pieces;
+            if (sizes.Count == 1)
+            {
+                pieces = DraftingService.DraftProductionPieces(_styleKey, sizes[0], _patternId > 0 ? _patternId : null).ToList();
+            }
+            else
+            {
+                var graded = DraftingService.DraftGradedSet(_styleKey, sizes, _patternId > 0 ? _patternId : null);
+                pieces = graded.Values.SelectMany(v => v).ToList();
+            }
+
+            if (_patternId > 0)
+            {
+                PieceService.ReplacePatternPieces(_patternId, pieces);
+                _pieces = PieceService.GetPieceDefinitions(_patternId, _styleKey).ToList();
+            }
+            else
+            {
+                PieceService.ReplaceStylePieces(_styleKey, pieces);
+                _pieces = PieceService.GetPieceDefinitions(_styleKey).ToList();
+            }
+
+            _selectedIndex = _pieces.Count > 0 ? 0 : null;
+            _dirty = true;
+            _draftMsg = $"Generated {_pieces.Count} pieces ({string.Join(", ", sizes)}).";
+
+            SyncHost();
+            if (_slot is not null)
+                await _slot.RefreshBoundsAsync();
+            FitAll();
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+            _draftMsg = null;
+        }
+        finally
+        {
+            _generating = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private sealed class DraftSizeOption(string label, bool @checked)
+    {
+        public string Label { get; } = label;
+        public bool Checked { get; set; } = @checked;
+    }
+}

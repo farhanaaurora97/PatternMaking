@@ -1,0 +1,429 @@
+@page "/module/size-chart"
+@page "/module/size-chart/{PatternId:int}"
+@attribute [Authorize]
+@using CoreModel = Pattern.Core.Model
+@using PatternPro.Desktop.Services
+@inject ISizeChartService SizeChartService
+@inject IPatternService PatternService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="gr-page">
+    <div class="cv-toolbar">
+        <div>
+            <div class="page-title" style="font-size:1.35rem">Size Chart</div>
+            <div class="page-sub">@_snapshot.ScopeLabel · @_snapshot.ChartMode mode · unit cm</div>
+        </div>
+        <div class="cv-toolbar-actions">
+            <button type="button" class="btn btn-outline btn-sm" @onclick="ExportCsv" disabled="@_busy">Export CSV</button>
+            <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddRowAsync">+ Add measurement</button>
+            <button type="button" class="btn btn-gold btn-sm" @onclick="OpenAddColAsync">+ Add size</button>
+            <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+        </div>
+    </div>
+
+    <div class="ss-lifecycle-legend" style="margin-bottom:14px">
+        <div class="ss-lifecycle-legend__row">
+            <span class="ss-lifecycle-legend__label">Style scope</span>
+            <select class="status-select" style="min-width:220px" @bind="_selectedPatternId" @bind:after="OnPatternChanged">
+                <option value="0">Global (all styles)</option>
+                @foreach (var p in _patterns)
+                {
+                    <option value="@p.Id">@p.Code — @p.Name</option>
+                }
+            </select>
+        </div>
+        @if (_selectedPatternId > 0)
+        {
+            <div class="ss-lifecycle-legend__row" style="margin-top:10px;flex-wrap:wrap;gap:12px">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px">
+                    <input type="radio" name="chartMode" checked="@(_chartMode == CoreModel.MeasurementChartMode.Body)" @onchange="() => SetChartMode(CoreModel.MeasurementChartMode.Body)" />
+                    Body (+ ease when generating)
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px">
+                    <input type="radio" name="chartMode" checked="@(_chartMode == CoreModel.MeasurementChartMode.Garment)" @onchange="() => SetChartMode(CoreModel.MeasurementChartMode.Garment)" />
+                    Garment (finished POM — no ease)
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin-left:8px">
+                    <input type="checkbox" @bind="_useCustomChart" @bind:after="OnCustomChartChanged" />
+                    Custom chart for this style
+                </label>
+                <button type="button" class="btn btn-outline btn-sm" @onclick="CopyGlobalAsync" disabled="@_busy">Copy global → custom</button>
+                <button type="button" class="btn btn-outline btn-sm" @onclick="LoadGarmentTemplateAsync" disabled="@_busy">Load garment template (BO, 36–54)</button>
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert-error" style="margin-bottom:12px">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <div class="pcs-success" style="margin-bottom:12px">@_success</div>
+    }
+
+    <div class="tbl-wrap">
+        <div class="tbl-header">
+            <span class="tbl-label">@(_chartMode == CoreModel.MeasurementChartMode.Garment ? "Garment POM" : "Body measurements")</span>
+            <span style="flex:1"></span>
+            <span class="gr-hint">Click cells to edit · ± tolerance shown</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Point</th>
+                    <th style="text-align:center">± cm</th>
+                    <th>Method</th>
+                    @for (var i = 0; i < _columns.Count; i++)
+                    {
+                        var col = _columns[i];
+                        var colIdx = i;
+                        var isBase = IsBaseColumn(col, i);
+                        <th class="@(isBase ? "gr-col-base" : "")" style="text-align:center">
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+                                <span>@col@(isBase ? " — Base" : "")</span>
+                                @if (!isBase)
+                                {
+                                    <button type="button" class="pp-btn-delete" title="Delete size @col"
+                                            @onclick="() => DeleteColumnAsync(colIdx, col)">×</button>
+                                }
+                            </div>
+                        </th>
+                    }
+                    <th style="width:72px;text-align:center">Row</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in _rows)
+                {
+                    <tr>
+                        <td class="td-bold">@row.MeasurementPoint</td>
+                        <td class="td-mono" style="text-align:center">
+                            <input type="number" class="gr-delta-input" style="width:56px" step="0.1" min="0"
+                                   value="@row.ToleranceCm.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                   @onchange="e => OnToleranceChanged(row.MeasurementPoint, e)" />
+                        </td>
+                        <td>
+                            <input type="text" class="gr-delta-input" style="min-width:180px;max-width:280px"
+                                   value="@row.MeasurementMethod"
+                                   @onchange="e => OnMethodChanged(row.MeasurementPoint, e)" />
+                        </td>
+                        @for (var i = 0; i < row.Values.Count; i++)
+                        {
+                            var col = i;
+                            var isBase = IsBaseColumn(col < _columns.Count ? _columns[col] : "", col);
+                            <td class="td-mono @(isBase ? "gr-cell-base" : "gr-cell-delta")">
+                                <input type="number"
+                                       class="gr-delta-input"
+                                       step="0.1"
+                                       value="@row.Values[col].ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                       @onchange="e => OnCellChanged(row.MeasurementPoint, col, e)" />
+                            </td>
+                        }
+                        <td style="text-align:center">
+                            <button type="button" class="pp-btn-delete" title="Delete row"
+                                    @onclick="() => DeleteRowAsync(row.MeasurementPoint)">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<dialog @ref="_addColDialog" class="pp-create-dialog" @oncancel="CloseAddColAsync">
+    <h3 style="font-family:var(--font-display);margin-bottom:12px">Add size column</h3>
+    <div class="form-row">
+        <label>Size label (e.g. 40 or 3XL)</label>
+        <input class="status-select" style="width:100%" @bind="_newColLabel" maxlength="8" />
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button type="button" class="btn btn-outline" @onclick="CloseAddColAsync">Cancel</button>
+        <button type="button" class="btn btn-gold" @onclick="AddColumnAsync" disabled="@_busy">Add</button>
+    </div>
+</dialog>
+
+<dialog @ref="_addRowDialog" class="pp-create-dialog" @oncancel="CloseAddRowAsync">
+    <h3 style="font-family:var(--font-display);margin-bottom:12px">Add measurement row</h3>
+    <div class="form-row">
+        <label>Measurement point (e.g. BO or Waist)</label>
+        <input class="status-select" style="width:100%" @bind="_newRowLabel" maxlength="64" />
+    </div>
+    <div class="form-row">
+        <label>Copy values from (optional)</label>
+        <select class="status-select" style="width:100%" @bind="_copyFromRow">
+            <option value="">— blank —</option>
+            @foreach (var row in _rows)
+            {
+                <option value="@row.MeasurementPoint">@row.MeasurementPoint</option>
+            }
+        </select>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button type="button" class="btn btn-outline" @onclick="CloseAddRowAsync">Cancel</button>
+        <button type="button" class="btn btn-gold" @onclick="AddRowAsync" disabled="@_busy">Add</button>
+    </div>
+</dialog>
+
+@code {
+    [Parameter] public int PatternId { get; set; }
+
+    private List<CoreModel.Pattern> _patterns = [];
+    private CoreModel.SizeChartSnapshot _snapshot = new();
+    private int _selectedPatternId;
+    private string _chartMode = CoreModel.MeasurementChartMode.Body;
+    private bool _useCustomChart;
+    private List<string> _columns = [];
+    private List<CoreModel.SizeRow> _rows = [];
+    private ElementReference _addColDialog;
+    private ElementReference _addRowDialog;
+    private string? _message;
+    private string? _success;
+    private bool _busy;
+    private string _newColLabel = "";
+    private string _newRowLabel = "";
+    private string _copyFromRow = "";
+
+    protected override void OnParametersSet()
+    {
+        if (PatternId > 0)
+            _selectedPatternId = PatternId;
+    }
+
+    protected override void OnInitialized()
+    {
+        _patterns = PatternService.GetAll().OrderBy(p => p.Code).ToList();
+        LoadTable();
+    }
+
+    private int? ScopeId => _selectedPatternId > 0 ? _selectedPatternId : null;
+
+    private void LoadTable()
+    {
+        _message = null;
+        _snapshot = SizeChartService.GetSnapshot(ScopeId);
+        _chartMode = _snapshot.ChartMode;
+        _useCustomChart = _snapshot.UseCustomChart;
+        _columns = _snapshot.Columns.ToList();
+        _rows = _snapshot.Rows.Select(CloneRow).ToList();
+    }
+
+    private static CoreModel.SizeRow CloneRow(CoreModel.SizeRow r) => new()
+    {
+        MeasurementPoint = r.MeasurementPoint,
+        ToleranceCm = r.ToleranceCm,
+        MeasurementMethod = r.MeasurementMethod,
+        Values = r.Values.ToList(),
+    };
+
+    private bool IsBaseColumn(string col, int index)
+    {
+        if (_selectedPatternId > 0)
+        {
+            var pattern = _patterns.FirstOrDefault(p => p.Id == _selectedPatternId);
+            if (pattern is not null && !string.IsNullOrWhiteSpace(pattern.BaseSize))
+                return col.Equals(pattern.BaseSize, StringComparison.OrdinalIgnoreCase);
+        }
+        return col.Equals("M", StringComparison.OrdinalIgnoreCase) || index == 2;
+    }
+
+    private void OnPatternChanged()
+    {
+        _success = null;
+        if (_selectedPatternId > 0)
+            Navigation.NavigateTo($"module/size-chart/{_selectedPatternId}", replace: true);
+        else
+            Navigation.NavigateTo("module/size-chart", replace: true);
+        LoadTable();
+    }
+
+    private void SetChartMode(string mode)
+    {
+        if (_selectedPatternId <= 0) return;
+        var (ok, error) = SizeChartService.SetChartSettings(_selectedPatternId, _useCustomChart, mode);
+        if (!ok) { _message = error; return; }
+        _chartMode = mode;
+        _success = $"Chart mode set to {mode}.";
+        LoadTable();
+    }
+
+    private void OnCustomChartChanged()
+    {
+        if (_selectedPatternId <= 0) return;
+        var (ok, error) = SizeChartService.SetChartSettings(_selectedPatternId, _useCustomChart, _chartMode);
+        if (!ok) { _message = error; _useCustomChart = !_useCustomChart; return; }
+        _success = _useCustomChart ? "Using custom chart for this style." : "Using global chart values.";
+        LoadTable();
+    }
+
+    private void OnCellChanged(string measurementPoint, int columnIndex, ChangeEventArgs e)
+    {
+        if (!TryParseDecimal(e, out var value)) { _message = "Invalid number."; return; }
+        var (ok, error) = SizeChartService.TryUpdateCell(measurementPoint, columnIndex, value, ScopeId);
+        if (!ok) { _message = error; LoadTable(); return; }
+        var row = _rows.FirstOrDefault(r => r.MeasurementPoint == measurementPoint);
+        if (row is not null && columnIndex < row.Values.Count)
+            row.Values[columnIndex] = value;
+        _message = null;
+    }
+
+    private void OnToleranceChanged(string measurementPoint, ChangeEventArgs e)
+    {
+        if (!TryParseDecimal(e, out var value)) { _message = "Invalid tolerance."; return; }
+        var row = _rows.FirstOrDefault(r => r.MeasurementPoint == measurementPoint);
+        var (ok, error) = SizeChartService.TryUpdateRowMeta(measurementPoint, value, row?.MeasurementMethod, ScopeId);
+        if (!ok) { _message = error; return; }
+        if (row is not null) row.ToleranceCm = value;
+    }
+
+    private void OnMethodChanged(string measurementPoint, ChangeEventArgs e)
+    {
+        var row = _rows.FirstOrDefault(r => r.MeasurementPoint == measurementPoint);
+        var method = e.Value?.ToString() ?? "";
+        var (ok, error) = SizeChartService.TryUpdateRowMeta(measurementPoint, row?.ToleranceCm ?? 0m, method, ScopeId);
+        if (!ok) { _message = error; return; }
+        if (row is not null) row.MeasurementMethod = method;
+    }
+
+    private static bool TryParseDecimal(ChangeEventArgs e, out decimal value) =>
+        decimal.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out value)
+        || decimal.TryParse(e.Value?.ToString(), out value);
+
+    private async Task OpenAddColAsync()
+    {
+        _newColLabel = "";
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _addColDialog);
+    }
+
+    private async Task CloseAddColAsync()
+        => await JS.InvokeVoidAsync("patternPro.closeDialog", _addColDialog);
+
+    private async Task OpenAddRowAsync()
+    {
+        _newRowLabel = "";
+        _copyFromRow = "";
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _addRowDialog);
+    }
+
+    private async Task CloseAddRowAsync()
+        => await JS.InvokeVoidAsync("patternPro.closeDialog", _addRowDialog);
+
+    private async Task AddColumnAsync()
+    {
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var (ok, error) = SizeChartService.TryAddSizeColumn(_newColLabel, ScopeId);
+            if (!ok) { _message = error; return; }
+            _success = $"Added size '{_newColLabel.Trim()}'.";
+            _newColLabel = "";
+            LoadTable();
+            await CloseAddColAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task AddRowAsync()
+    {
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var (ok, error) = SizeChartService.TryAddMeasurementRow(
+                _newRowLabel.Trim(),
+                string.IsNullOrWhiteSpace(_copyFromRow) ? null : _copyFromRow,
+                ScopeId);
+            if (!ok) { _message = error; return; }
+            _success = $"Added '{_newRowLabel.Trim()}'.";
+            _newRowLabel = "";
+            _copyFromRow = "";
+            LoadTable();
+            await CloseAddRowAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private Task CopyGlobalAsync()
+    {
+        if (_selectedPatternId <= 0) return Task.CompletedTask;
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var (ok, error) = SizeChartService.CopyGlobalToPattern(_selectedPatternId);
+            if (!ok) { _message = error; return Task.CompletedTask; }
+            _useCustomChart = true;
+            _success = "Copied global chart to this style.";
+            LoadTable();
+        }
+        finally { _busy = false; }
+        return Task.CompletedTask;
+    }
+
+    private Task LoadGarmentTemplateAsync()
+    {
+        if (_selectedPatternId <= 0) return Task.CompletedTask;
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var (ok, error) = SizeChartService.InitializeGarmentTemplate(_selectedPatternId);
+            if (!ok) { _message = error; return Task.CompletedTask; }
+            _useCustomChart = true;
+            _chartMode = CoreModel.MeasurementChartMode.Garment;
+            _success = "Garment template loaded (BO, C1, sizes 36–54).";
+            LoadTable();
+        }
+        finally { _busy = false; }
+        return Task.CompletedTask;
+    }
+
+    private async Task DeleteRowAsync(string measurementPoint)
+    {
+        if (!await DesktopConfirm.DeleteAsync(JS, $"measurement row \"{measurementPoint}\""))
+            return;
+        var (ok, error) = SizeChartService.TryDeleteMeasurementRow(measurementPoint, ScopeId);
+        if (!ok) { _message = error; return; }
+        _success = $"Deleted row '{measurementPoint}'.";
+        LoadTable();
+    }
+
+    private async Task DeleteColumnAsync(int columnIndex, string label)
+    {
+        if (!await DesktopConfirm.DeleteAsync(JS, $"size column \"{label}\""))
+            return;
+        var (ok, error) = SizeChartService.TryDeleteSizeColumn(columnIndex, ScopeId);
+        if (!ok) { _message = error; return; }
+        _success = $"Deleted size '{label}'.";
+        LoadTable();
+    }
+
+    private async Task ExportCsv()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var csv = SizeChartService.ExportCsv(ScopeId);
+            var name = _selectedPatternId > 0 ? $"size-chart-{_selectedPatternId}.csv" : "size-chart.csv";
+            var path = await DesktopFileSave.SaveToDownloadsAsync(
+                System.Text.Encoding.UTF8.GetBytes(csv),
+                name);
+            _success = $"CSV saved to Downloads: {path}";
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally { _busy = false; }
+    }
+}

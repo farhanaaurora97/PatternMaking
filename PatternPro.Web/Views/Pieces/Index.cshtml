@@ -1,0 +1,584 @@
+@model PiecesViewModel
+@{ ViewData["Title"] = "Pattern Pieces"; }
+
+@{
+  /* ── Colour palette per piece (mirrors PieceService colors) ── */
+  var colMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+  {
+    ["Front Leg"]         = "#1a1a6e",
+    ["Back Leg"]          = "#1a1a6e",
+    ["Waistband"]         = "#2626a0",
+    ["Fly Facing"]        = "#534AB7",
+    ["Fly Shield"]        = "#534AB7",
+    ["Coin Pocket"]       = "#0F6E56",
+    ["Front Pocket Bag"]  = "#0F6E56",
+    ["Pocket Bag"]        = "#0F6E56",
+    ["Back Patch Pocket"] = "#854F0B",
+    ["Back Pocket"]       = "#854F0B",
+    ["Belt Loop"]         = "#854F0B",
+    ["Side Pocket Bag"]   = "#0F6E56",
+    ["Flare Insert"]      = "#7B2C8E",
+    ["Waist Tab"]         = "#2626a0",
+  };
+  string PieceColor(string name) =>
+      colMap.TryGetValue(name, out var c) ? c : "#3d3d3d";
+
+  /* ── Grouping logic ── */
+  string PieceGroup(string name) => name switch
+  {
+    "Front Leg" or "Back Leg" or "Waistband" or "Waist Tab" or "Flare Insert"
+      => "Body Panels",
+    "Fly Facing" or "Fly Shield"
+      => "Closures",
+    "Coin Pocket" or "Front Pocket Bag" or "Pocket Bag" or
+    "Side Pocket Bag" or "Back Patch Pocket" or "Back Pocket"
+      => "Pockets",
+    _
+      => "Hardware & Details",
+  };
+
+  /* ── Group icon SVGs ── */
+  string GroupIcon(string group) => group switch
+  {
+    "Body Panels" =>
+      "<svg viewBox='0 0 20 20' fill='none'><rect x='3' y='2' width='6' height='16' rx='1.5' stroke='currentColor' stroke-width='1.5'/><rect x='11' y='2' width='6' height='16' rx='1.5' stroke='currentColor' stroke-width='1.5' opacity='.6'/></svg>",
+    "Closures" =>
+      "<svg viewBox='0 0 20 20' fill='none'><path d='M6 4h8v9a4 4 0 0 1-8 0V4z' stroke='currentColor' stroke-width='1.5'/><path d='M8 4V2m4 2V2' stroke='currentColor' stroke-width='1.5' stroke-linecap='round'/></svg>",
+    "Pockets" =>
+      "<svg viewBox='0 0 20 20' fill='none'><rect x='4' y='6' width='12' height='11' rx='2' stroke='currentColor' stroke-width='1.5'/><path d='M4 10h12' stroke='currentColor' stroke-width='1.5'/></svg>",
+    _ =>
+      "<svg viewBox='0 0 20 20' fill='none'><circle cx='10' cy='10' r='7' stroke='currentColor' stroke-width='1.5'/><path d='M10 7v3l2 2' stroke='currentColor' stroke-width='1.5' stroke-linecap='round'/></svg>",
+  };
+
+  var groups = Model.Pieces
+      .GroupBy(p => PieceGroup(p.Name))
+      .OrderBy(g => g.Key == "Body Panels" ? 0 : g.Key == "Closures" ? 1 : g.Key == "Pockets" ? 2 : 3)
+      .ToList();
+
+  int totalPanels = Model.Pieces.Sum(p =>
+      p.CutInstruction.Contains("1") ? 1 :
+      p.CutInstruction.Contains("8") ? 8 : 2);
+}
+
+<!-- ══ PAGE HEADER ══ -->
+<div class="pcs-header">
+  <div class="pcs-header-left">
+    <div class="pcs-eyebrow">
+      <span class="pcs-eyebrow-rule"></span>
+      <span>Technical Pattern Sheet</span>
+    </div>
+    <h1 class="page-title">Pattern Pieces</h1>
+    <p class="page-sub">
+      @if (!string.IsNullOrEmpty(Model.PatternName))
+      {
+        <span class="page-sub-code">@Model.PatternCode</span>
+        <span>@Model.PatternName &nbsp;·&nbsp; </span>
+      }
+      @Model.StyleLabel — @Model.Pieces.Count pieces &nbsp;·&nbsp; @totalPanels total fabric panels cut
+    </p>
+    <span class="tag tag-navy" style="font-family:var(--font-mono);letter-spacing:.06em">
+      ◈ @Model.StyleLabel
+    </span>
+  </div>
+  <div class="pcs-header-right">
+    <!-- Summary stats -->
+    <div class="pcs-summary">
+      <div class="pcs-stat">
+        <div class="pcs-stat-val">@Model.Pieces.Count</div>
+        <div class="pcs-stat-label">Pieces</div>
+      </div>
+      <div class="pcs-stat-div"></div>
+      <div class="pcs-stat">
+        <div class="pcs-stat-val">@totalPanels</div>
+        <div class="pcs-stat-label">Panels Cut</div>
+      </div>
+      <div class="pcs-stat-div"></div>
+      <div class="pcs-stat">
+        <div class="pcs-stat-val">@groups.Count</div>
+        <div class="pcs-stat-label">Groups</div>
+      </div>
+    </div>
+    <div class="pcs-header-actions">
+      <form method="post" asp-action="DraftPieces" style="display:inline">
+        <input type="hidden" name="patternId" value="@Model.PatternId" />
+        <input type="hidden" name="style" value="@Model.StyleKey" />
+        <button type="submit" class="btn btn-outline btn-sm">⬡ Generate Pattern</button>
+      </form>
+      <button class="btn btn-outline btn-sm" id="btn-add-piece">＋ Add Piece</button>
+      <a class="btn btn-primary btn-sm" asp-controller="Canvas" asp-action="Index" asp-route-patternId="@Model.PatternId" asp-route-style="@Model.StyleKey">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M4 7l2 2 3-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Open All in Canvas
+      </a>
+    </div>
+  </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+  <div class="alert alert-success" id="pcs-alert">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 7l2 2 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    @Model.SuccessMessage
+  </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+  <div class="alert alert-error" id="pcs-alert">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M5 5l4 4M9 5l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    @Model.ErrorMessage
+  </div>
+}
+
+<!-- ══ FILTER BAR ══ -->
+<div class="pcs-filter-bar">
+  <div class="pcs-filter-label">Filter:</div>
+  <button class="pcs-filter-btn active" data-filter="all">All Pieces</button>
+  @foreach (var g in groups)
+  {
+    <button class="pcs-filter-btn" data-filter="@g.Key.Replace(" ", "-").ToLower()">@g.Key</button>
+  }
+  <div style="flex:1"></div>
+  <div class="pcs-view-toggle" id="pcs-view-toggle">
+    <button class="pvt-btn active" data-view="grid" title="Grid view">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" fill="currentColor"/><rect x="8" y="1" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="8" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/><rect x="8" y="8" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/></svg>
+    </button>
+    <button class="pvt-btn" data-view="list" title="List view">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="2" rx="1" fill="currentColor"/><rect x="1" y="6" width="12" height="2" rx="1" fill="currentColor" opacity=".6"/><rect x="1" y="10" width="12" height="2" rx="1" fill="currentColor" opacity=".4"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══ GROUPED PIECE GRID ══ -->
+<div class="pcs-body" id="pcs-body">
+  @foreach (var grp in groups)
+  {
+    var groupKey = grp.Key.Replace(" ", "-").ToLower();
+    <div class="pcs-group" data-group="@groupKey">
+      <!-- Group heading -->
+      <div class="pcs-group-hdr">
+        <div class="pcs-group-icon">@Html.Raw(GroupIcon(grp.Key))</div>
+        <div class="pcs-group-name">@grp.Key</div>
+        <div class="pcs-group-count">@grp.Count() piece@(grp.Count() != 1 ? "s" : "")</div>
+        <div class="pcs-group-line"></div>
+      </div>
+
+      <!-- Cards -->
+      <div class="pcs-grid">
+        @foreach (var piece in grp)
+        {
+          var col = !string.IsNullOrEmpty(piece.Color) ? piece.Color : PieceColor(piece.Name);
+          var cutNum = piece.CutInstruction.Replace("cut ", "").Replace("Cut ", "").Trim();
+          var isActive = piece.Index == 0;
+          <a class="pcs-card @(isActive ? "pcs-card--active" : "")"
+             asp-controller="Canvas" asp-action="Index"
+             asp-route-patternId="@Model.PatternId"
+             asp-route-piece="@piece.Index"
+             asp-route-style="@Model.StyleKey"
+             data-piece="@piece.Index"
+             title="Open @piece.Name in Canvas Editor">
+
+            <!-- Coloured top rule -->
+            <div class="pcs-card-rule" style="background:@col"></div>
+
+            <!-- Schematic preview area -->
+            <div class="pcs-card-preview">
+              <div class="pcs-card-grid-bg"></div>
+              @{
+                /* Simple schematic SVG shapes per piece category */
+                var shapePaths = PieceGroup(piece.Name) switch
+                {
+                  "Body Panels" when piece.Name.StartsWith("Front") =>
+                    "<polygon points='50,12 88,18 94,55 90,70 88,118 56,124 24,118 22,70 18,55 14,18' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/>" +
+                    "<line x1='56' y1='12' x2='56' y2='124' stroke='currentColor' stroke-width='.7' stroke-dasharray='3,2'/>",
+                  "Body Panels" when piece.Name.StartsWith("Back") =>
+                    "<polygon points='44,12 96,12 104,25 108,55 100,72 98,118 56,126 14,118 12,72 4,55 8,25' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/>" +
+                    "<line x1='56' y1='12' x2='56' y2='126' stroke='currentColor' stroke-width='.7' stroke-dasharray='3,2'/>",
+                  "Body Panels" when (piece.Name.Contains("Waistband") || piece.Name.Contains("Tab")) =>
+                    "<rect x='14' y='50' width='84' height='38' rx='2' fill='none' stroke='currentColor' stroke-width='1.4'/>" +
+                    "<line x1='56' y1='50' x2='56' y2='88' stroke='currentColor' stroke-width='.7' stroke-dasharray='3,2'/>",
+                  "Body Panels" =>
+                    "<polygon points='30,15 82,15 94,55 90,118 56,128 22,118 18,55' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/>",
+                  "Closures" =>
+                    "<path d='M44,18 L72,18 L72,82 L58,90 L44,82 Z' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/>" +
+                    "<line x1='58' y1='18' x2='58' y2='90' stroke='currentColor' stroke-width='.7' stroke-dasharray='3,2'/>",
+                  "Pockets" when piece.Name.Contains("Coin") =>
+                    "<path d='M36,40 L76,40 L76,74 L60,82 L44,74 L44,40' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linejoin='round'/>",
+                  "Pockets" =>
+                    "<rect x='24' y='28' width='64' height='82' rx='2' fill='none' stroke='currentColor' stroke-width='1.4'/>" +
+                    "<line x1='24' y1='66' x2='88' y2='66' stroke='currentColor' stroke-width='.8' stroke-dasharray='3,2'/>",
+                  _ =>
+                    "<rect x='44' y='32' width='24' height='74' rx='2' fill='none' stroke='currentColor' stroke-width='1.4'/>",
+                };
+              }
+              <svg class="pcs-card-svg" viewBox="0 0 112 138" fill="none"
+                   style="color:@col">
+                @Html.Raw(shapePaths)
+                <!-- Grain line arrow -->
+                <line x1="56" y1="30" x2="56" y2="108"
+                      stroke="@col" stroke-width="0.7" stroke-dasharray="2,2" opacity=".4"/>
+                <polygon points="52,33 56,26 60,33" fill="@col" opacity=".45"/>
+              </svg>
+              <!-- Fold indicator -->
+              <div class="pcs-fold-mark" title="Grain line">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M5 1v8M2 3l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+                Grain
+              </div>
+            </div>
+
+            <!-- Card body -->
+            <div class="pcs-card-body">
+              <div class="pcs-card-top">
+                <div class="pcs-card-num" style="color:@col">#@(piece.Index + 1)</div>
+                <div class="pcs-cut-badge" data-cut="@cutNum">
+                  ×@cutNum
+                </div>
+              </div>
+              <div class="pcs-card-name">@piece.Name</div>
+              <div class="pcs-card-meta">
+                <span class="pcs-meta-dot" style="background:@col"></span>
+                @PieceGroup(piece.Name)
+              </div>
+            </div>
+
+            <!-- Hover arrow -->
+            <div class="pcs-card-arrow">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </a>
+          <form asp-controller="Pieces" asp-action="DeletePiece" method="post"
+                class="pcs-card-delete-form"
+                onsubmit="return confirm('Delete piece \'@piece.Name\'?')">
+            <input type="hidden" name="patternId" value="@Model.PatternId" />
+            <input type="hidden" name="style"     value="@Model.StyleKey" />
+            <input type="hidden" name="pieceName" value="@piece.Name" />
+            <button type="submit" class="pcs-card-delete" title="Delete piece">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                <path d="M2 2l7 7M9 2l-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </form>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ══ FABRIC CUT SUMMARY TABLE ══ -->
+<div class="pcs-cut-table-wrap">
+  <div class="pcs-cut-table-hdr">
+    <div class="pcs-cut-table-title">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L1 4v5l6 4 6-4V4L7 1z" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>
+      Fabric Cut Summary
+    </div>
+    <div class="pcs-cut-table-sub">@Model.StyleLabel — all panels</div>
+  </div>
+  <div class="pcs-cut-rows">
+    @foreach (var piece in Model.Pieces)
+    {
+      var col = PieceColor(piece.Name);
+      var cutNum = piece.CutInstruction.Replace("cut ", "").Replace("Cut ", "").Trim();
+      int cutInt = int.TryParse(cutNum, out var n) ? n : 2;
+      <div class="pcs-cut-row">
+        <div class="pcs-cut-swatch" style="background:@(col)22;border-color:@(col)44">
+          <div class="pcs-cut-swatch-dot" style="background:@col"></div>
+        </div>
+        <div class="pcs-cut-num-label">#@(piece.Index + 1)</div>
+        <div class="pcs-cut-name">@piece.Name</div>
+        <div class="pcs-cut-bar-wrap">
+          <div class="pcs-cut-bar-track">
+            <div class="pcs-cut-bar-fill" style="width:@(cutInt * 12.5)%;background:@col"></div>
+          </div>
+        </div>
+        <div class="pcs-cut-count">×@cutNum</div>
+        <a class="pcs-cut-open" asp-controller="Canvas" asp-action="Index"
+           asp-route-patternId="@Model.PatternId"
+           asp-route-piece="@piece.Index" asp-route-style="@Model.StyleKey"
+           title="Open in canvas">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 5.5h9M6.5 2l3.5 3.5L6.5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    }
+  </div>
+  <div class="pcs-cut-footer">
+    <span>Total fabric panels: <strong>@totalPanels</strong></span>
+    <span class="pcs-cut-footer-sep">·</span>
+    <span>Unique pieces: <strong>@Model.Pieces.Count</strong></span>
+  </div>
+</div>
+
+<!-- ══ ADD PIECE MODAL ══ -->
+<div class="modal-overlay" id="modal-add-piece">
+  <div class="modal modal--wide">
+    <!-- Header -->
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Add New Piece</div>
+        <div class="modal-sub">@Model.StyleLabel — new piece will appear in the pieces grid</div>
+      </div>
+      <button class="modal-close-btn" id="modal-add-piece-close" type="button" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body: form + live preview side-by-side -->
+    <div class="modal-body-cols">
+
+      <!-- Left: form fields -->
+      <div class="modal-form-col">
+        @if (!string.IsNullOrEmpty(Model.PatternName))
+        {
+          <div class="modal-pattern-badge">
+            <span class="modal-pattern-code">@Model.PatternCode</span>
+            @Model.PatternName
+          </div>
+        }
+        <div id="add-piece-error" class="modal-error"></div>
+
+        <div class="form-field">
+          <label class="form-label" for="ap-name">Piece Name <span class="req">*</span></label>
+          <input class="form-input" id="ap-name" placeholder="e.g. Knee Patch" autocomplete="off" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">Category</label>
+          <div class="chip-group" id="ap-category">
+            <button type="button" class="chip chip--active" data-val="Body Panels">Body Panels</button>
+            <button type="button" class="chip" data-val="Closures">Closures</button>
+            <button type="button" class="chip" data-val="Pockets">Pockets</button>
+            <button type="button" class="chip" data-val="Hardware &amp; Details">Hardware &amp; Details</button>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-field">
+            <label class="form-label" for="ap-cut">Cut Quantity</label>
+            <select class="form-input" id="ap-cut">
+              <option value="Cut 1">Cut 1 — Fold</option>
+              <option value="Cut 2" selected>Cut 2 — Pair</option>
+              <option value="Cut 4">Cut 4</option>
+              <option value="Cut 8">Cut 8 — Loops</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="ap-grain">Grain Line</label>
+            <select class="form-input" id="ap-grain">
+              <option value="Straight" selected>Straight</option>
+              <option value="Bias">Bias</option>
+              <option value="Cross Grain">Cross Grain</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="ap-desc">Description <span class="form-opt">(optional)</span></label>
+          <input class="form-input" id="ap-desc" placeholder="e.g. Knee reinforcement panel" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="ap-color">Accent Colour</label>
+          <div class="color-picker-row">
+            <input type="color" id="ap-color" value="#a78bfa" class="color-swatch-input" />
+            <div class="color-presets" id="ap-color-presets">
+              <button type="button" class="color-preset" data-color="#1a1a6e" style="background:#1a1a6e" title="Navy"></button>
+              <button type="button" class="color-preset" data-color="#534AB7" style="background:#534AB7" title="Violet"></button>
+              <button type="button" class="color-preset" data-color="#0F6E56" style="background:#0F6E56" title="Forest"></button>
+              <button type="button" class="color-preset" data-color="#854F0B" style="background:#854F0B" title="Cognac"></button>
+              <button type="button" class="color-preset" data-color="#a78bfa" style="background:#a78bfa" title="Lavender"></button>
+              <button type="button" class="color-preset" data-color="#f87171" style="background:#f87171" title="Rose"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: live preview card -->
+      <div class="modal-preview-col">
+        <div class="preview-label">Live Preview</div>
+        <div class="pcs-card pcs-card--preview" id="ap-preview-card">
+          <div class="pcs-card-rule" id="ap-preview-rule" style="background:#a78bfa"></div>
+          <div class="pcs-card-preview">
+            <div class="pcs-card-grid-bg"></div>
+            <svg class="pcs-card-svg" viewBox="0 0 112 138" fill="none" id="ap-preview-svg" style="color:#a78bfa">
+              <rect x="30" y="20" width="52" height="98" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"/>
+              <line x1="56" y1="30" x2="56" y2="108" stroke="currentColor" stroke-width="0.7" stroke-dasharray="2,2" opacity=".4"/>
+              <polygon points="52,33 56,26 60,33" fill="currentColor" opacity=".45"/>
+            </svg>
+            <div class="pcs-fold-mark">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M5 1v8M2 3l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+              <span id="ap-preview-grain">Grain</span>
+            </div>
+          </div>
+          <div class="pcs-card-body">
+            <div class="pcs-card-top">
+              <div class="pcs-card-num" id="ap-preview-num" style="color:#a78bfa">#—</div>
+              <div class="pcs-cut-badge" id="ap-preview-cut">×2</div>
+            </div>
+            <div class="pcs-card-name" id="ap-preview-name">New Piece</div>
+            <div class="pcs-card-meta">
+              <span class="pcs-meta-dot" id="ap-preview-dot" style="background:#a78bfa"></span>
+              <span id="ap-preview-cat">Body Panels</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer actions -->
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline btn-sm" id="modal-add-piece-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" id="ap-submit">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add Piece
+      </button>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+  <script src="~/js/pieces.js" asp-append-version="true"></script>
+  <script>
+  (() => {
+    const STYLE_KEY   = '@Model.StyleKey';
+    const PATTERN_ID  = @Model.PatternId;
+
+    // ── Modal open/close ────────────────────────────────────────────────────
+    const overlay  = document.getElementById('modal-add-piece');
+    const open  = () => overlay.classList.add('open');
+    const close = () => { overlay.classList.remove('open'); resetForm(); };
+
+    document.getElementById('btn-add-piece')         ?.addEventListener('click', open);
+    document.getElementById('modal-add-piece-close') ?.addEventListener('click', close);
+    document.getElementById('modal-add-piece-cancel')?.addEventListener('click', close);
+    overlay?.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    // ── Live preview state ───────────────────────────────────────────────────
+    const previewName  = document.getElementById('ap-preview-name');
+    const previewNum   = document.getElementById('ap-preview-num');
+    const previewCut   = document.getElementById('ap-preview-cut');
+    const previewCat   = document.getElementById('ap-preview-cat');
+    const previewGrain = document.getElementById('ap-preview-grain');
+    const previewRule  = document.getElementById('ap-preview-rule');
+    const previewDot   = document.getElementById('ap-preview-dot');
+    const previewNum2  = document.getElementById('ap-preview-num');
+    const previewSvg   = document.getElementById('ap-preview-svg');
+
+    function updatePreview() {
+      const name  = document.getElementById('ap-name').value.trim() || 'New Piece';
+      const cat   = document.querySelector('#ap-category .chip--active')?.dataset.val || 'Body Panels';
+      const cut   = document.getElementById('ap-cut').value;
+      const grain = document.getElementById('ap-grain').value;
+      const color = document.getElementById('ap-color').value;
+      const cutNum = cut.replace('Cut ', '');
+
+      previewName.textContent  = name;
+      previewCat.textContent   = cat;
+      previewGrain.textContent = grain;
+      previewCut.textContent   = `×${cutNum}`;
+      previewRule.style.background = color;
+      previewDot.style.background  = color;
+      previewNum.style.color       = color;
+      previewSvg.style.color       = color;
+      const totalCount = document.querySelectorAll('.pcs-card:not(.pcs-card--preview)').length;
+      previewNum.textContent = `#${totalCount + 1}`;
+    }
+
+    document.getElementById('ap-name') ?.addEventListener('input',  updatePreview);
+    document.getElementById('ap-cut')  ?.addEventListener('change', updatePreview);
+    document.getElementById('ap-grain')?.addEventListener('change', updatePreview);
+    document.getElementById('ap-color')?.addEventListener('input',  updatePreview);
+
+    // Category chips
+    document.getElementById('ap-category')?.addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll('#ap-category .chip').forEach(c => c.classList.remove('chip--active'));
+      chip.classList.add('chip--active');
+      updatePreview();
+    });
+
+    // Color presets
+    document.getElementById('ap-color-presets')?.addEventListener('click', e => {
+      const btn = e.target.closest('.color-preset');
+      if (!btn) return;
+      document.getElementById('ap-color').value = btn.dataset.color;
+      updatePreview();
+    });
+
+    // ── Submit via AJAX ──────────────────────────────────────────────────────
+    document.getElementById('ap-submit')?.addEventListener('click', async () => {
+      const nameVal = document.getElementById('ap-name').value.trim();
+      const errBox  = document.getElementById('add-piece-error');
+      errBox.classList.remove('show');
+
+      if (!nameVal) {
+        errBox.textContent = 'Piece name is required.';
+        errBox.classList.add('show');
+        document.getElementById('ap-name').focus();
+        return;
+      }
+
+      const body = new URLSearchParams({
+        patternId:   PATTERN_ID,
+        style:       STYLE_KEY,
+        pieceName:   nameVal,
+        category:    document.querySelector('#ap-category .chip--active')?.dataset.val ?? 'Body Panels',
+        cut:         document.getElementById('ap-cut').value,
+        grainLine:   document.getElementById('ap-grain').value,
+        color:       document.getElementById('ap-color').value,
+        description: document.getElementById('ap-desc').value.trim(),
+      });
+
+      const btn = document.getElementById('ap-submit');
+      btn.disabled = true;
+      btn.textContent = 'Adding…';
+
+      try {
+        const resp = await fetch('/Pieces/AddPiece', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded',
+                     'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '' },
+          body: body.toString(),
+        });
+
+        if (!resp.ok) {
+          const data = await resp.json().catch(() => ({}));
+          errBox.textContent = data.error ?? 'Failed to add piece.';
+          errBox.classList.add('show');
+          return;
+        }
+
+        // Success — reload page so the card appears in the correct group
+        window.location.reload();
+
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Add Piece';
+      }
+    });
+
+    // ── Reset form ───────────────────────────────────────────────────────────
+    function resetForm() {
+      document.getElementById('ap-name').value  = '';
+      document.getElementById('ap-desc').value  = '';
+      document.getElementById('ap-cut').value   = 'Cut 2';
+      document.getElementById('ap-grain').value = 'Straight';
+      document.getElementById('ap-color').value = '#a78bfa';
+      document.querySelectorAll('#ap-category .chip').forEach((c, i) => c.classList.toggle('chip--active', i === 0));
+      document.getElementById('add-piece-error').classList.remove('show');
+      updatePreview();
+    }
+
+    // ── Auto-dismiss page-level alert ────────────────────────────────────────
+    const pageAlert = document.getElementById('pcs-alert');
+    if (pageAlert) setTimeout(() => pageAlert.remove(), 4000);
+
+    updatePreview();
+  })();
+  </script>
+}

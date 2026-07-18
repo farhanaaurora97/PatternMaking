@@ -1,0 +1,137 @@
+@page "/login"
+@layout LoginLayout
+@attribute [AllowAnonymous]
+@using Microsoft.Extensions.Configuration
+@using PatternPro.Desktop.Auth
+@using Pattern.Web.Model
+@inject DesktopAuthService Auth
+@inject IConfiguration Configuration
+@inject NavigationManager Navigation
+
+<div class="login-card">
+    <div class="login-brand">
+        <div class="pp-brand-name">PatternPro</div>
+        <div class="pp-brand-sub">Desktop sign in</div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert-error">@_error</div>
+    }
+
+    <EditForm Model="_model" OnValidSubmit="HandleLogin">
+        <DataAnnotationsValidator />
+        <div class="form-row">
+            <label>Username or employee ID</label>
+            <InputText @bind-Value="_model.UserName" autocomplete="username" />
+            <ValidationMessage For="() => _model.UserName" />
+        </div>
+        <div class="form-row">
+            <label>Password</label>
+            <input type="@(_showPassword ? "text" : "password")"
+                   class="status-select"
+                   style="width:100%"
+                   @bind="_model.Password"
+                   @bind:event="oninput"
+                   autocomplete="current-password" />
+            <ValidationMessage For="() => _model.Password" />
+        </div>
+        <div class="form-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400">
+                <InputCheckbox @bind-Value="_model.RememberMe" id="remember" />
+                Remember me
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400">
+                <input type="checkbox" @bind="_showPassword" id="show-pw" />
+                Show password
+            </label>
+        </div>
+        @if (_isLocalPilot)
+        {
+            <button type="button" class="btn btn-outline btn-sm" style="width:100%;margin-top:4px" @onclick="FillDefaultCredentials">
+                Use default dev credentials
+            </button>
+        }
+        <button type="submit" class="btn btn-gold" style="width:100%;margin-top:8px" disabled="@_busy">
+            @(_busy ? "Signing in…" : "Sign in")
+        </button>
+    </EditForm>
+
+    <p class="login-hint">
+        Default: <code>admin</code> / <code>Admin@123</code> (9 characters · employee ID <code>ADMIN</code>)
+    </p>
+</div>
+
+@code {
+    private readonly LoginViewModel _model = new();
+    private string? _error;
+    private bool _busy;
+    private bool _showPassword;
+    private bool _isLocalPilot;
+    private string? _returnUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLocalPilot = DesktopPilot.IsLocal(Configuration);
+        ParseReturnUrl();
+
+        if (_isLocalPilot && !Auth.AutoLoginSuppressed && Auth.Current.Identity?.IsAuthenticated != true)
+        {
+            var creds = DesktopPilot.Credentials(Configuration);
+            if (creds is { } c && await Auth.SignInAsync(c.UserName, c.Password, rememberMe: true))
+            {
+                Navigation.NavigateTo(string.IsNullOrWhiteSpace(_returnUrl) ? "" : _returnUrl, replace: true);
+                return;
+            }
+        }
+    }
+
+    private void ParseReturnUrl()
+    {
+        var uri = Navigation.Uri;
+        var q = uri.IndexOf('?', StringComparison.Ordinal);
+        if (q < 0) return;
+        foreach (var part in uri[(q + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith("returnUrl=", StringComparison.Ordinal))
+                _returnUrl = Uri.UnescapeDataString(part["returnUrl=".Length..]);
+        }
+    }
+
+    private void FillDefaultCredentials()
+    {
+        var creds = DesktopPilot.Credentials(Configuration);
+        _model.UserName = creds?.UserName ?? "admin";
+        _model.Password = creds?.Password ?? "Admin@123";
+        _error = null;
+    }
+
+    private async Task HandleLogin()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            var ok = await Auth.SignInAsync(_model.UserName, _model.Password, _model.RememberMe);
+            if (!ok)
+            {
+                if (_isLocalPilot && _model.Password.Length != 9)
+                {
+                    _error = "Invalid password. Admin@123 is exactly 9 characters — check for an extra letter or autofill.";
+                }
+                else
+                {
+                    _error = "Invalid username/employee ID or password, or account disabled.";
+                }
+                return;
+            }
+
+            var dest = string.IsNullOrWhiteSpace(_returnUrl) ? "" : _returnUrl;
+            Navigation.NavigateTo(dest, replace: true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

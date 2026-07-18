@@ -111,4 +111,30 @@
     closeSize();
     closeMp();
   });
+
+  document.querySelectorAll('.sc-cell-input').forEach((input) => {
+    input.addEventListener('change', async () => {
+      const measurement = input.dataset.measurement ?? '';
+      const columnIndex = parseInt(input.dataset.col ?? '-1', 10);
+      const value = parseFloat(input.value);
+      if (!measurement || columnIndex < 0 || Number.isNaN(value)) return;
+
+      const res = await fetch('/SizeChart/UpdateCell', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ measurementPoint: measurement, columnIndex, value }),
+      });
+
+      if (res.ok) {
+        window.toast?.('Size chart saved', `${measurement} updated`, 'success', '✓');
+      } else {
+        let msg = 'Could not save cell.';
+        try {
+          const data = await res.json();
+          if (data?.error) msg = data.error;
+        } catch { /* ignore */ }
+        window.toast?.('Save failed', msg, 'error', '⚠️');
+      }
+    });
+  });
 })();

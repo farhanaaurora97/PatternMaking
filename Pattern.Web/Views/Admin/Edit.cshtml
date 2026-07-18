@@ -1,0 +1,67 @@
+@model global::Pattern.Web.Model.AdminUserFormViewModel
+@using Pattern.Core.Model
+@{ ViewData["Title"] = "Edit user"; }
+
+<div class="page-header">
+  <div class="page-title">Edit user</div>
+  <div class="page-sub"><a asp-action="Index">← Back to users</a></div>
+</div>
+
+<div class="card" style="padding:24px;max-width:520px">
+  <form asp-action="Edit" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="UserName" />
+    <div asp-validation-summary="All" style="margin-bottom:16px;color:#b91c1c"></div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="EmployeeId"></label>
+      <input class="form-input" asp-for="EmployeeId" />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Username</label>
+      <input class="form-input" value="@Model.UserName" disabled />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="DisplayName"></label>
+      <input class="form-input" asp-for="DisplayName" />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="Role"></label>
+      <select class="form-input" asp-for="Role">
+        @foreach (var role in AppRoles.All)
+        {
+          <option value="@role">@AppRoles.Label(role)</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label class="login-remember" style="margin:0">
+        <input type="checkbox" asp-for="IsActive" />
+        Account active (can sign in)
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="Password"></label>
+      <input class="form-input" asp-for="Password" autocomplete="new-password" placeholder="Leave blank to keep current password" />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="ConfirmPassword"></label>
+      <input class="form-input" asp-for="ConfirmPassword" autocomplete="new-password" />
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+    </div>
+  </form>
+</div>
+
+@section Scripts {
+  <partial name="_ValidationScriptsPartial" />
+}

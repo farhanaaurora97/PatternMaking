@@ -1,0 +1,56 @@
+@model global::Pattern.Web.Model.AdminUserFormViewModel
+@using Pattern.Core.Model
+@{ ViewData["Title"] = "New user"; }
+
+<div class="page-header">
+  <div class="page-title">New user</div>
+  <div class="page-sub"><a asp-action="Index">← Back to users</a></div>
+</div>
+
+<div class="card" style="padding:24px;max-width:520px">
+  <form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="All" class="login-error" style="margin-bottom:16px"></div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="EmployeeId"></label>
+      <input class="form-input" asp-for="EmployeeId" autocomplete="off" placeholder="e.g. EMP-1042" />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="UserName"></label>
+      <input class="form-input" asp-for="UserName" autocomplete="off" />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="DisplayName"></label>
+      <input class="form-input" asp-for="DisplayName" />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="Role"></label>
+      <select class="form-input" asp-for="Role">
+        @foreach (var role in AppRoles.All)
+        {
+          <option value="@role">@AppRoles.Label(role)</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="Password"></label>
+      <input class="form-input" asp-for="Password" autocomplete="new-password" />
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" asp-for="ConfirmPassword"></label>
+      <input class="form-input" asp-for="ConfirmPassword" autocomplete="new-password" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create user</button>
+  </form>
+</div>
+
+@section Scripts {
+  <partial name="_ValidationScriptsPartial" />
+}

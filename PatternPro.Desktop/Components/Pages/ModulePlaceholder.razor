@@ -1,0 +1,40 @@
+@page "/module/{ModuleName}"
+@attribute [Authorize]
+
+<div class="pp-placeholder">
+    <h2>@Title</h2>
+    <p>@Description</p>
+    <NavLink class="btn btn-gold" href="">← Back to dashboard</NavLink>
+</div>
+
+@code {
+    [Parameter] public string ModuleName { get; set; } = "";
+
+    private string Title => ModuleName switch
+    {
+        "canvas" => "Canvas editor",
+        "grading" => "Grading",
+        "export" => "Export & factory QC",
+        "style-sheet" => "Style sheet",
+        "size-chart" => "Size chart",
+        "block-generator" => "Block generator",
+        "pieces" => "Pattern pieces",
+        "nest" => "Graded nest",
+        "library" => "Library",
+        _ => "Module",
+    };
+
+    private string Description => ModuleName switch
+    {
+        "style-sheet" => "Use the Style Sheet nav link (PLM register).",
+        "block-generator" => "Use the Block Generator nav link (ease & drafting formulas).",
+        "nest" => "Use the Graded Nest nav link (size overlay canvas).",
+        "library" => "Use the Library nav link (saved canvas patterns).",
+        "size-chart" => "Use the Size Chart nav link (body measurements).",
+        "grading" => "Use the Grading nav link (size grade table).",
+        "export" => "Use the Export nav link (factory packages).",
+        "pieces" => "Use the Pieces nav link (pattern piece manager).",
+        "canvas" => "Use the Canvas nav link (SkiaSharp editor).",
+        _ => "This screen will be built in Blazor next. For now, use the same module in Pattern.Web (browser).",
+    };
+}

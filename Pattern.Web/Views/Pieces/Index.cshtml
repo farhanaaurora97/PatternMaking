@@ -104,6 +104,11 @@
         <input type="hidden" name="style" value="@Model.StyleKey" />
         <button type="submit" class="btn btn-outline btn-sm">⬡ Generate Pattern</button>
       </form>
+      <form method="post" asp-action="RefinePieces" style="display:inline">
+        <input type="hidden" name="patternId" value="@Model.PatternId" />
+        <input type="hidden" name="style" value="@Model.StyleKey" />
+        <button type="submit" class="btn btn-outline btn-sm" title="Balance seams, seam allowance, notches">⚙ Auto-refine</button>
+      </form>
       <button class="btn btn-outline btn-sm" id="btn-add-piece">＋ Add Piece</button>
       <a class="btn btn-primary btn-sm" asp-controller="Canvas" asp-action="Index" asp-route-patternId="@Model.PatternId" asp-route-style="@Model.StyleKey">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M4 7l2 2 3-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>

@@ -1,0 +1,37 @@
+@using Microsoft.Extensions.Configuration
+@using PatternPro.Desktop.Auth
+@inject DesktopAuthService Auth
+@inject IConfiguration Configuration
+@inject NavigationManager Navigation
+
+@if (!_ready)
+{
+    <div class="login-layout"><p style="color:#fff">Loading…</p></div>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private bool _ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.TryRestoreSessionAsync();
+
+        if (!Auth.AutoLoginSuppressed && Auth.Current.Identity?.IsAuthenticated != true)
+        {
+            var creds = DesktopPilot.Credentials(Configuration);
+            if (creds is { } c && await Auth.SignInAsync(c.UserName, c.Password, rememberMe: true))
+            {
+                Console.WriteLine("[PatternPro Desktop] Auth: auto sign-in (local pilot).");
+                if (Navigation.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase))
+                    Navigation.NavigateTo("", replace: true);
+            }
+        }
+
+        _ready = true;
+    }
+}

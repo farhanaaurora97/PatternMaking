@@ -1,8 +1,21 @@
 bin/
 obj/
+dist/
+publish/
+*.Backup.tmp
 *.user
 .vs/
 tmp-export-*/
 check-pdf/
 check-pdf.zip
 tmp-export-*.zip
+
+# Local dev secrets (copy from *.example.json)
+**/appsettings.Development.json
+
+# Tooling / IDE (machine-specific)
+.claude/settings.local.json
+graphify-out/cache/
+
+# Optional: ignore full graphify output (regenerate with graphify update)
+# graphify-out/

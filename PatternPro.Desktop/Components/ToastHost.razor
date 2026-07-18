@@ -1,0 +1,33 @@
+@implements IDisposable
+@inject DesktopToastService Toasts
+
+<div class="toast-container" aria-live="polite" aria-atomic="false">
+    @foreach (var toast in Toasts.Toasts)
+    {
+        <div class="toast toast-@TypeClass(toast.Type) show">
+            <div class="toast-icon">@toast.Icon</div>
+            <div style="flex:1;min-width:0">
+                <div class="toast-title">@toast.Title</div>
+                <div class="toast-msg">@toast.Message</div>
+            </div>
+            <button type="button" class="toast-close" aria-label="Dismiss" @onclick="() => Toasts.Dismiss(toast.Id)">×</button>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+        => Toasts.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private static string TypeClass(DesktopToastType type) => type switch
+    {
+        DesktopToastType.Error => "error",
+        DesktopToastType.Warning => "warning",
+        DesktopToastType.Info => "info",
+        _ => "success"
+    };
+
+    public void Dispose() => Toasts.Changed -= OnChanged;
+}

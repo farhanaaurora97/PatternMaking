@@ -1,80 +1,33 @@
 using Pattern.Core.Model;
-using Pattern.PublicServices.Interfaces;
+using PatternPro.Core.IServices;
+using PatternPro.Core.Persistence.Repositories;
 
-namespace Pattern.PublicServices.Services;
+namespace PatternPro.Business.Services;
 
 public class GradingService : IGradingService
 {
     private readonly object _lock = new();
-
-    // Instance fields so AddColumn can mutate them at runtime.
+    private readonly IGradingRepository _grading;
     private readonly List<string> _columns;
     private readonly Dictionary<string, (string Label, List<GradingRow> Rows)> _data;
-
-    // Index of the M (base-size) column — never changes.
     private int _baseIdx;
 
-    public GradingService()
+    public GradingService(IGradingRepository grading)
     {
-        _columns = ["XS", "S", "M", "L", "XL", "XXL"];
-        _baseIdx = 2; // "M" is at index 2
+        _grading = grading;
+        var persisted = grading.Load();
+        var source = persisted.Styles.Count > 0 ? persisted : AppDataDefaults.CreateDefaultGrading();
 
-        _data = new Dictionary<string, (string, List<GradingRow>)>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["skinny"] = ("Skinny Fit", Rows(
-                R("Waist",      -4,    -2,     2,    4,    6    ),
-                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
-                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
-                R("Back Rise",  -0.75, -0.4,   0.4,  0.75, 1    ),
-                R("Thigh",      -4,    -2,     2,    4,    6    ),
-                R("Knee",       -4,    -2,     2,    4,    6    ),
-                R("Ankle",      -3,    -1.5,   1.5,  3,    4.5  ),
-                R("Inseam",     -2,    -1,     1,    2,    2    )
-            )),
-            ["slim"] = ("Slim Fit", Rows(
-                R("Waist",      -4,    -2,     2,    4,    6    ),
-                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
-                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
-                R("Back Rise",  -0.75, -0.4,   0.4,  0.75, 1    ),
-                R("Thigh",      -3,    -1.5,   1.5,  3,    5    ),
-                R("Knee",       -3,    -1.5,   1.5,  3,    5    ),
-                R("Ankle",      -2.5,  -1.5,   1.5,  2.5,  4    ),
-                R("Inseam",     -2,    -1,     1,    2,    2    )
-            )),
-            ["straight"] = ("Straight Fit", Rows(
-                R("Waist",      -4,    -2,     2,    4,    6    ),
-                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
-                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
-                R("Back Rise",  -0.75, -0.4,   0.4,  0.75, 1    ),
-                R("Thigh",      -3,    -1.5,   1.5,  3,    5    ),
-                R("Knee",       -3,    -1.5,   1.5,  3,    5    ),
-                R("Ankle",      -3,    -1.5,   1.5,  3,    5    ),
-                R("Inseam",     -2,    -1,     1,    2,    2    )
-            )),
-            ["bootcut"] = ("Bootcut Fit", Rows(
-                R("Waist",      -4,    -2,     2,    4,    6    ),
-                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
-                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
-                R("Back Rise",  -1,    -0.5,   0.5,  1,    1.5  ),
-                R("Thigh",      -3,    -1.5,   1.5,  3,    5    ),
-                R("Knee",       -2.5,  -1.5,   1.5,  2.5,  4    ),
-                R("Ankle",      -2,    -1,     1,    2,    3    ),
-                R("Inseam",     -2,    -1,     1,    2,    2    )
-            )),
-            ["wideLeg"] = ("Wide Leg Fit", Rows(
-                R("Waist",      -5,    -2.5,   2.5,  5,    7    ),
-                R("Hip",        -5,    -2.5,   2.5,  5,    8    ),
-                R("Front Rise", -0.5,  -0.25,  0.25, 0.5,  0.75 ),
-                R("Back Rise",  -0.75, -0.4,   0.4,  0.75, 1    ),
-                R("Thigh",      -4,    -2,     2,    4,    6    ),
-                R("Knee",       -4,    -2,     2,    4,    6    ),
-                R("Ankle",      -3,    -1.5,   1.5,  3,    5    ),
-                R("Inseam",     -2,    -1,     1,    2,    2    )
-            )),
-        };
+        if (persisted.Styles.Count == 0)
+            grading.Save(source);
+
+        _columns  = [.. source.Columns];
+        _baseIdx  = source.BaseIndex;
+        _data     = source.Styles.ToDictionary(
+            s => s.StyleKey,
+            s => (s.Label, s.Rows.Select(CloneRow).ToList()),
+            StringComparer.OrdinalIgnoreCase);
     }
-
-    // ── Public API ──────────────────────────────────────────────────────
 
     public IReadOnlyList<string> GetColumnLabels()
     {
@@ -84,7 +37,7 @@ public class GradingService : IGradingService
     public IReadOnlyList<GradingRow> GetGradingTable(string styleKey)
     {
         lock (_lock)
-            return _data.TryGetValue(styleKey, out var d) ? d.Rows : _data["skinny"].Rows;
+            return _data.TryGetValue(styleKey, out var d) ? d.Rows.Select(CloneRow).ToList() : _data["skinny"].Rows.Select(CloneRow).ToList();
     }
 
     public string GetStyleLabel(string styleKey)
@@ -108,7 +61,9 @@ public class GradingService : IGradingService
                     d.Add(next);
                 }
             }
+
             _columns.Add(label);
+            Persist();
         }
     }
 
@@ -126,6 +81,7 @@ public class GradingService : IGradingService
                     i == r.BaseIndex ? "0" : v > 0 ? $"+{v:0.##}" : v.ToString("0.##"));
                 lines.Add($"{r.MeasurementPoint},{string.Join(",", cells)}");
             }
+
             return string.Join("\n", lines);
         }
     }
@@ -159,7 +115,6 @@ public class GradingService : IGradingService
             }
             else
             {
-                // Zero deltas — same count as current columns
                 deltas = Enumerable.Repeat(0.0, _columns.Count).ToList();
             }
 
@@ -170,14 +125,113 @@ public class GradingService : IGradingService
                 Deltas           = deltas,
             });
 
+            Persist();
             return (true, null);
         }
     }
 
-    // ── Seed helpers ────────────────────────────────────────────────────
+    public (bool Ok, string? Error) TryDeleteRow(string styleKey, string measurementPoint)
+    {
+        if (string.IsNullOrWhiteSpace(measurementPoint))
+            return (false, "Select a measurement row to delete.");
 
-    private GradingRow R(string point, double xs, double s, double l, double xl, double xxl) =>
-        new() { MeasurementPoint = point, BaseIndex = _baseIdx, Deltas = [xs, s, 0, l, xl, xxl] };
+        lock (_lock)
+        {
+            if (!_data.TryGetValue(styleKey, out var entry))
+                return (false, $"Style '{styleKey}' not found.");
 
-    private static List<GradingRow> Rows(params GradingRow[] rows) => [.. rows];
+            if (entry.Rows.Count <= 1)
+                return (false, "At least one measurement row must remain.");
+
+            var point = measurementPoint.Trim();
+            var idx = entry.Rows.FindIndex(r =>
+                r.MeasurementPoint.Equals(point, StringComparison.OrdinalIgnoreCase));
+            if (idx < 0)
+                return (false, "Measurement row not found.");
+
+            entry.Rows.RemoveAt(idx);
+            Persist();
+            return (true, null);
+        }
+    }
+
+    public (bool Ok, string? Error) TryDeleteColumn(int columnIndex)
+    {
+        lock (_lock)
+        {
+            if (_columns.Count <= 1)
+                return (false, "At least one size column must remain.");
+            if (columnIndex < 0 || columnIndex >= _columns.Count)
+                return (false, "Invalid size column.");
+            if (columnIndex == _baseIdx)
+                return (false, $"Cannot delete base size column ({_columns[_baseIdx]}).");
+
+            foreach (var (_, rows) in _data.Values)
+            {
+                foreach (var row in rows)
+                {
+                    if (columnIndex < row.Deltas.Count)
+                        row.Deltas.RemoveAt(columnIndex);
+                }
+            }
+
+            _columns.RemoveAt(columnIndex);
+            if (columnIndex < _baseIdx)
+                _baseIdx--;
+
+            foreach (var (_, rows) in _data.Values)
+            {
+                foreach (var row in rows)
+                    row.BaseIndex = _baseIdx;
+            }
+
+            Persist();
+            return (true, null);
+        }
+    }
+
+    public (bool Ok, string? Error) TryUpdateDelta(string styleKey, string measurementPoint, int columnIndex, double delta)
+    {
+        lock (_lock)
+        {
+            if (!_data.TryGetValue(styleKey, out var entry))
+                return (false, $"Style '{styleKey}' not found.");
+
+            var row = entry.Rows.FirstOrDefault(r =>
+                r.MeasurementPoint.Equals(measurementPoint.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (row is null) return (false, "Measurement row not found.");
+            if (columnIndex < 0 || columnIndex >= row.Deltas.Count)
+                return (false, "Invalid size column.");
+            if (columnIndex == row.BaseIndex)
+                return (false, "Base size delta is always zero.");
+
+            row.Deltas[columnIndex] = delta;
+            Persist();
+            return (true, null);
+        }
+    }
+
+    private void Persist()
+    {
+        var store = new GradingStore
+        {
+            Columns   = [.. _columns],
+            BaseIndex = _baseIdx,
+            Styles    = _data.Select(kvp => new GradingStyleEntry
+            {
+                StyleKey = kvp.Key,
+                Label    = kvp.Value.Label,
+                Rows     = kvp.Value.Rows.Select(CloneRow).ToList(),
+            }).ToList(),
+        };
+        _grading.Save(store);
+    }
+
+    private static GradingRow CloneRow(GradingRow r) =>
+        new()
+        {
+            MeasurementPoint = r.MeasurementPoint,
+            BaseIndex        = r.BaseIndex,
+            Deltas           = [.. r.Deltas],
+        };
 }

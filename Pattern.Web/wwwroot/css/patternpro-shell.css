@@ -57,10 +57,25 @@ body.pp-theme{
 .pp-theme .sb-footer{
   padding:12px;border-top:1px solid #2a2a40;
   background:transparent;
+  align-items:flex-start;
 }
-.pp-theme .sb-avatar{width:28px;height:28px;font-size:10px;border:none;background:#2a3a5a}
+.pp-theme .sb-footer-info{flex:1;min-width:0}
+.pp-theme .sb-signout-wrap{margin-top:8px}
+.pp-theme .sb-avatar{width:28px;height:28px;font-size:10px;border:none;background:#2a3a5a;flex-shrink:0}
 .pp-theme .sb-user-name{font-size:11.5px;color:#c8d4e8}
-.pp-theme .sb-user-role{font-size:9.5px;color:#4a5a7a}
+.pp-theme .sb-user-role{font-size:9.5px;color:#4a5a7a;margin-top:2px}
+.pp-theme .pp-signout-form{margin:0}
+.pp-theme .pp-signout-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:6px;border:1px solid #3a3a55;
+  background:transparent;color:#8a9ab8;font-size:11px;font-family:var(--font-ui);
+  cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+}
+.pp-theme .pp-signout-btn:hover{background:#252540;color:#d0d8ee;border-color:#4a4a65}
+.pp-theme .topbar .pp-signout-btn{
+  padding:5px 12px;font-size:11.5px;border-color:#3a3a55;color:#9aa8c4;
+}
+.pp-theme .topbar .pp-signout-btn:hover{background:#252540;color:#e8ecf4}
 .pp-theme .sb-status{
   width:7px;height:7px;margin-left:auto;animation:none;
   background:#22c55e;box-shadow:none;

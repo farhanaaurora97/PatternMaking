@@ -20,6 +20,17 @@ public class PatternCreateViewModel
 
     public string Designer { get; set; } = "Pattern Designer";
 
+    /// <summary>PLM season (e.g. SS26). Empty = current season.</summary>
+    public string Season { get; set; } = string.Empty;
+
+    /// <summary>Style owner / merchandiser. Empty = same as designer.</summary>
+    public string Owner { get; set; } = string.Empty;
+
+    /// <summary>PLM lifecycle when the style row is created.</summary>
+    public string LifecycleStatus { get; set; } = Pattern.Core.Model.StyleLifecycle.Idea;
+
+    public static IEnumerable<(string Value, string Label)> LifecycleOptions => StyleLifecycleOptions.All;
+
     public static IEnumerable<(string Value, string Label)> CategoryOptions =>
     [
         ("denim", "Denim"),
@@ -33,7 +44,6 @@ public class PatternCreateViewModel
         ("shorts", "Shorts"),
         ("sweatpants", "Sweatpants"),
         ("corduroy", "Corduroy"),
-        ("dress", "Dress pants"),
         ("workwear", "Workwear"),
     ];
 

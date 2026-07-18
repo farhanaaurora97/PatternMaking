@@ -1,0 +1,55 @@
+@implements IDisposable
+@inject DesktopCanvasHost Host
+@inject IJSRuntime JS
+@using Microsoft.JSInterop
+
+<div @ref="_host" class="@CssClass" style="@Style"></div>
+
+@code {
+    [Parameter] public CanvasSurfaceMode Mode { get; set; }
+    [Parameter] public string CssClass { get; set; } = "cv-skia-host";
+    [Parameter] public string? Style { get; set; }
+
+    private ElementReference _host;
+    private DotNetObjectReference<NativeCanvasSlot>? _dotNetRef;
+    private bool _observing;
+
+    protected override void OnInitialized() => Host.Activate(Mode);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_observing)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("patternPro.observeElement", _host, _dotNetRef);
+            _observing = true;
+        }
+
+        await Host.UpdateSlotBoundsAsync(_host, JS);
+    }
+
+    [JSInvokable]
+    public async Task OnSlotResized() =>
+        await Host.UpdateSlotBoundsAsync(_host, JS);
+
+    public async Task RefreshBoundsAsync() =>
+        await Host.UpdateSlotBoundsAsync(_host, JS);
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_observing)
+                await JS.InvokeVoidAsync("patternPro.disconnectElement", _host);
+        }
+        catch
+        {
+            // WebView torn down.
+        }
+
+        _dotNetRef?.Dispose();
+        Host.Deactivate(Mode);
+    }
+
+    void IDisposable.Dispose() => _ = DisposeAsync();
+}

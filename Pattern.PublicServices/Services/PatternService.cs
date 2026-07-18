@@ -1,7 +1,8 @@
 using Pattern.Core.Model;
-using Pattern.PublicServices.Interfaces;
+using PatternPro.Core.IServices;
+using PatternPro.Core.Persistence.Repositories;
 
-namespace Pattern.PublicServices.Services;
+namespace PatternPro.Business.Services;
 
 public class PatternService : IPatternService
 {
@@ -19,11 +20,10 @@ public class PatternService : IPatternService
             ["shorts"] = ("SH", "Shorts"),
             ["sweatpants"] = ("SW", "Sweatpants"),
             ["corduroy"] = ("CD", "Corduroy"),
-            ["dress"] = ("DR", "Dress"),
             ["workwear"] = ("WK", "Workwear"),
         };
 
-    private static readonly List<Core.Model.Pattern> _defaultPatterns =
+    private static readonly List<Pattern.Core.Model.Pattern> _defaultPatterns =
     [
         new() { Id = 1,  Code = "DN-001", Name = "Skinny Classic",    Style = "Skinny",   BaseSize = "M", PieceCount = 9, Status = "Graded",     Date = "2025-01-14", Designer = "Pattern Designer", Category = "Denim",      CreatedAt = new DateTime(2026, 4, 2, 10, 0, 0), DueDate = null },
         new() { Id = 2,  Code = "DN-002", Name = "Slim Tapered",      Style = "Slim",     BaseSize = "M", PieceCount = 9, Status = "InProgress", Date = "2025-01-12", Designer = "Pattern Designer", Category = "Denim",      CreatedAt = new DateTime(2026, 4, 3, 14, 0, 0), DueDate = new DateTime(2026, 4, 4) },
@@ -48,29 +48,49 @@ public class PatternService : IPatternService
         new() { Id = 21, Code = "DN-005", Name = "Wide Leg Comfort",  Style = "Wide Leg", BaseSize = "M", PieceCount = 8, Status = "Pending",    Date = "2025-01-05", Designer = "Pattern Designer", Category = "Denim",      CreatedAt = new DateTime(2026, 3, 27, 9, 0, 0), DueDate = new DateTime(2026, 4, 4) },
     ];
 
-    private readonly JsonDataStore _store;
-    private readonly List<Core.Model.Pattern> _patterns;
+    private readonly IPatternRepository _patternRepo;
+    private readonly List<Pattern.Core.Model.Pattern> _patterns;
     private int _nextId;
 
     private static readonly string[] _statusCycle = ["Pending", "Draft", "InProgress", "Graded", "Done"];
 
-    public PatternService(JsonDataStore store)
+    public PatternService(IPatternRepository patternRepo)
     {
-        _store = store;
-        var saved = store.LoadPatternsStore();
+        _patternRepo = patternRepo;
+        var saved = patternRepo.Load();
         if (saved is not null && saved.Patterns.Count > 0)
         {
             _patterns = saved.Patterns;
             _nextId   = saved.NextId;
+            var maxId = _patterns.Max(p => p.Id);
+            if (_nextId <= maxId)
+                _nextId = maxId + 1;
+            NormalizeStyleSheetFields(_patterns);
         }
         else
         {
             _patterns = [.. _defaultPatterns];
             _nextId   = 22;
+            NormalizeStyleSheetFields(_patterns);
         }
     }
 
-    private void Persist() => _store.SavePatterns(_patterns, _nextId);
+    private static void NormalizeStyleSheetFields(IEnumerable<Pattern.Core.Model.Pattern> patterns)
+    {
+        foreach (var p in patterns)
+        {
+            if (string.IsNullOrWhiteSpace(p.Season))
+                p.Season = StyleLifecycle.DefaultSeason(p.CreatedAt == default ? null : p.CreatedAt);
+            if (string.IsNullOrWhiteSpace(p.LifecycleStatus) || !StyleLifecycle.IsValid(p.LifecycleStatus))
+                p.LifecycleStatus = StyleLifecycle.InferFromPatternStatus(p.Status);
+            if (string.IsNullOrWhiteSpace(p.Owner))
+                p.Owner = string.IsNullOrWhiteSpace(p.Designer) ? "Unassigned" : p.Designer;
+            if (string.IsNullOrWhiteSpace(p.Revision))
+                p.Revision = "Proto-1";
+        }
+    }
+
+    private void Persist() => _patternRepo.Save(_patterns, _nextId);
 
     private static readonly Dictionary<string, StyleDefinition> _styles = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -90,13 +110,38 @@ public class PatternService : IPatternService
         ["wideLeg"]  = "Wide Leg",
     };
 
-    public IReadOnlyList<Core.Model.Pattern> GetAll() => _patterns.AsReadOnly();
+    private void ReloadFromStoreIfAvailable()
+    {
+        var saved = _patternRepo.Load();
+        if (saved is not null && saved.Patterns.Count > 0)
+        {
+            _patterns.Clear();
+            _patterns.AddRange(saved.Patterns);
+            _nextId = saved.NextId;
+            var maxId = _patterns.Max(p => p.Id);
+            if (_nextId <= maxId)
+                _nextId = maxId + 1;
+            NormalizeStyleSheetFields(_patterns);
+        }
+    }
+
+    /// <summary>Reload from PostgreSQL/JSON before reads or writes so singleton cache cannot overwrite the store.</summary>
+    private void EnsureFresh() => ReloadFromStoreIfAvailable();
+
+    public IReadOnlyList<Pattern.Core.Model.Pattern> GetAll()
+    {
+        // Reload from PostgreSQL / JSON so external updates (DbTool, Export QC) appear on the dashboard without restart.
+        ReloadFromStoreIfAvailable();
+        return _patterns.AsReadOnly();
+    }
 
     public StyleDefinition GetStyleDefinition(string styleKey) =>
         _styles.TryGetValue(styleKey, out var def) ? def : _styles["skinny"];
 
-    public Core.Model.Pattern Create(string name, string styleKey, string baseSize, string designer, string categoryKey)
+    public Pattern.Core.Model.Pattern Create(string name, string styleKey, string baseSize, string designer, string categoryKey,
+        string? season = null, string? owner = null, string? lifecycleStatus = null)
     {
+        EnsureFresh();
         var def        = GetStyleDefinition(styleKey);
         var styleLabel = _styleLabels.TryGetValue(styleKey, out var lbl) ? lbl : styleKey;
 
@@ -106,20 +151,24 @@ public class PatternService : IPatternService
         var code = $"{cat.Prefix}-{_nextId:D3}";
 
         var now = DateTime.Now;
-        var pattern = new Core.Model.Pattern
+        var pattern = new Pattern.Core.Model.Pattern
         {
             Id         = _nextId++,
-            Code       = code,
-            Name       = name,
+            Code             = code,
+            Revision         = "Proto-1",
+            Name             = name,
             Style      = styleLabel,
             BaseSize   = baseSize,
             PieceCount = def.PieceCount,
             Status     = "Draft",
             Date       = DateTime.Today.ToString("yyyy-MM-dd"),
-            Designer   = designer,
-            Category   = cat.Label,
-            CreatedAt  = now,
-            DueDate    = null,
+            Designer         = string.IsNullOrWhiteSpace(designer) ? "Pattern Designer" : designer.Trim(),
+            Season           = string.IsNullOrWhiteSpace(season) ? StyleLifecycle.DefaultSeason(now) : season.Trim(),
+            Owner            = string.IsNullOrWhiteSpace(owner) ? (string.IsNullOrWhiteSpace(designer) ? "Unassigned" : designer.Trim()) : owner.Trim(),
+            LifecycleStatus  = StyleLifecycle.IsValid(lifecycleStatus) ? lifecycleStatus! : StyleLifecycle.Idea,
+            Category         = cat.Label,
+            CreatedAt        = now,
+            DueDate          = null,
         };
 
         _patterns.Insert(0, pattern);
@@ -127,8 +176,9 @@ public class PatternService : IPatternService
         return pattern;
     }
 
-    public Core.Model.Pattern? CycleStatus(int id)
+    public Pattern.Core.Model.Pattern? CycleStatus(int id)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
 
@@ -139,8 +189,9 @@ public class PatternService : IPatternService
         return pattern;
     }
 
-    public Core.Model.Pattern? SetStatus(int id, string status)
+    public Pattern.Core.Model.Pattern? SetStatus(int id, string status)
     {
+        EnsureFresh();
         if (Array.IndexOf(_statusCycle, status) < 0) return null;
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
@@ -153,6 +204,7 @@ public class PatternService : IPatternService
 
     public bool Delete(int id)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return false;
         _patterns.Remove(pattern);
@@ -160,8 +212,9 @@ public class PatternService : IPatternService
         return true;
     }
 
-    public Core.Model.Pattern? Duplicate(int id)
+    public Pattern.Core.Model.Pattern? Duplicate(int id)
     {
+        EnsureFresh();
         var source = _patterns.FirstOrDefault(p => p.Id == id);
         if (source is null) return null;
 
@@ -170,7 +223,7 @@ public class PatternService : IPatternService
             .Prefix ?? "XX";
         var code = $"{prefix}-{_nextId:D3}";
 
-        var copy = new Core.Model.Pattern
+        var copy = new Pattern.Core.Model.Pattern
         {
             Id         = _nextId++,
             Code       = code,
@@ -180,10 +233,13 @@ public class PatternService : IPatternService
             PieceCount = source.PieceCount,
             Status     = "Draft",
             Date       = DateTime.Today.ToString("yyyy-MM-dd"),
-            Designer   = source.Designer,
-            Category   = source.Category,
-            CreatedAt  = DateTime.Now,
-            DueDate    = null,
+            Designer          = source.Designer,
+            Season            = source.Season,
+            Owner             = source.Owner,
+            LifecycleStatus   = StyleLifecycle.Idea,
+            Category          = source.Category,
+            CreatedAt         = DateTime.Now,
+            DueDate           = null,
         };
 
         _patterns.Insert(0, copy);
@@ -191,8 +247,9 @@ public class PatternService : IPatternService
         return copy;
     }
 
-    public IReadOnlyList<Core.Model.Pattern> Search(string? query)
+    public IReadOnlyList<Pattern.Core.Model.Pattern> Search(string? query)
     {
+        EnsureFresh();
         if (string.IsNullOrWhiteSpace(query)) return _patterns.AsReadOnly();
 
         return _patterns
@@ -200,13 +257,18 @@ public class PatternService : IPatternService
                      || p.Style.Contains(query, StringComparison.OrdinalIgnoreCase)
                      || p.Status.Contains(query, StringComparison.OrdinalIgnoreCase)
                      || p.Code.Contains(query, StringComparison.OrdinalIgnoreCase)
-                     || (!string.IsNullOrEmpty(p.Category) && p.Category.Contains(query, StringComparison.OrdinalIgnoreCase)))
+                     || (!string.IsNullOrEmpty(p.Category) && p.Category.Contains(query, StringComparison.OrdinalIgnoreCase))
+                     || p.Season.Contains(query, StringComparison.OrdinalIgnoreCase)
+                     || p.Owner.Contains(query, StringComparison.OrdinalIgnoreCase)
+                     || p.LifecycleStatus.Contains(query, StringComparison.OrdinalIgnoreCase)
+                     || p.Designer.Contains(query, StringComparison.OrdinalIgnoreCase))
             .ToList()
             .AsReadOnly();
     }
 
-    public Core.Model.Pattern? SetDueDate(int id, DateTime? date)
+    public Pattern.Core.Model.Pattern? SetDueDate(int id, DateTime? date)
     {
+        EnsureFresh();
         var pattern = _patterns.FirstOrDefault(p => p.Id == id);
         if (pattern is null) return null;
         pattern.DueDate = date;
@@ -215,7 +277,7 @@ public class PatternService : IPatternService
         return pattern;
     }
 
-    public IReadOnlyList<Core.Model.Pattern> Sort(IEnumerable<Core.Model.Pattern> patterns, string column, bool ascending)
+    public IReadOnlyList<Pattern.Core.Model.Pattern> Sort(IEnumerable<Pattern.Core.Model.Pattern> patterns, string column, bool ascending)
     {
         var ordered = column.ToLower() switch
         {
@@ -225,9 +287,125 @@ public class PatternService : IPatternService
             "pieces" => ascending ? patterns.OrderBy(p => p.PieceCount) : patterns.OrderByDescending(p => p.PieceCount),
             "status" => ascending ? patterns.OrderBy(p => p.Status)     : patterns.OrderByDescending(p => p.Status),
             "date"   => ascending ? patterns.OrderBy(p => p.Date)       : patterns.OrderByDescending(p => p.Date),
-            "due"    => ascending ? patterns.OrderBy(p => p.DueDate ?? DateTime.MaxValue) : patterns.OrderByDescending(p => p.DueDate ?? DateTime.MinValue),
-            _        => patterns,
+            "due"        => ascending ? patterns.OrderBy(p => p.DueDate ?? DateTime.MaxValue) : patterns.OrderByDescending(p => p.DueDate ?? DateTime.MinValue),
+            "code"       => ascending ? patterns.OrderBy(p => p.Code) : patterns.OrderByDescending(p => p.Code),
+            "season"     => ascending ? patterns.OrderBy(p => p.Season) : patterns.OrderByDescending(p => p.Season),
+            "lifecycle"  => ascending ? patterns.OrderBy(p => p.LifecycleStatus) : patterns.OrderByDescending(p => p.LifecycleStatus),
+            "owner"      => ascending ? patterns.OrderBy(p => p.Owner) : patterns.OrderByDescending(p => p.Owner),
+            "designer"   => ascending ? patterns.OrderBy(p => p.Designer) : patterns.OrderByDescending(p => p.Designer),
+            _            => patterns,
         };
         return ordered.ToList().AsReadOnly();
+    }
+
+    public Pattern.Core.Model.Pattern? ApproveForCutting(int id, string approvedBy)
+    {
+        EnsureFresh();
+        var pattern = _patterns.FirstOrDefault(p => p.Id == id);
+        if (pattern is null) return null;
+        pattern.ApprovedForCutting = true;
+        pattern.ApprovedAt         = DateTime.UtcNow;
+        pattern.ApprovedBy         = string.IsNullOrWhiteSpace(approvedBy) ? "Pattern Designer" : approvedBy.Trim();
+        if (pattern.Status is "Draft" or "Pending")
+            pattern.Status = "Graded";
+        pattern.Date = DateTime.Today.ToString("yyyy-MM-dd");
+        Persist();
+        return pattern;
+    }
+
+    public Pattern.Core.Model.Pattern? RevokeCuttingApproval(int id)
+    {
+        EnsureFresh();
+        var pattern = _patterns.FirstOrDefault(p => p.Id == id);
+        if (pattern is null) return null;
+        pattern.ApprovedForCutting = false;
+        pattern.ApprovedAt         = null;
+        pattern.ApprovedBy         = string.Empty;
+        Persist();
+        return pattern;
+    }
+
+    public Pattern.Core.Model.Pattern? RecordCutterTest(int id, bool passed, string testedBy, string? notes)
+    {
+        EnsureFresh();
+        var pattern = _patterns.FirstOrDefault(p => p.Id == id);
+        if (pattern is null) return null;
+        pattern.CutterTestPassed = passed;
+        pattern.CutterTestedAt   = DateTime.UtcNow;
+        pattern.CutterTestedBy   = string.IsNullOrWhiteSpace(testedBy) ? "Factory" : testedBy.Trim();
+        pattern.CutterTestNotes  = notes?.Trim() ?? string.Empty;
+        pattern.Date             = DateTime.Today.ToString("yyyy-MM-dd");
+        Persist();
+        return pattern;
+    }
+
+    public Pattern.Core.Model.Pattern? SetCloReview(int id, bool completed, string? notes)
+    {
+        EnsureFresh();
+        var pattern = _patterns.FirstOrDefault(p => p.Id == id);
+        if (pattern is null) return null;
+        pattern.CloReviewCompleted = completed;
+        pattern.CloReviewNotes     = notes?.Trim() ?? string.Empty;
+        pattern.Date               = DateTime.Today.ToString("yyyy-MM-dd");
+        Persist();
+        return pattern;
+    }
+
+    public Pattern.Core.Model.Pattern? SetShrinkagePercent(int id, decimal percent)
+    {
+        EnsureFresh();
+        var pattern = _patterns.FirstOrDefault(p => p.Id == id);
+        if (pattern is null) return null;
+        pattern.ShrinkagePercent = Math.Clamp(percent, 0m, 15m);
+        Persist();
+        return pattern;
+    }
+
+    public Pattern.Core.Model.Pattern? SetLifecycleStatus(int id, string lifecycleStatus)
+    {
+        EnsureFresh();
+        if (!StyleLifecycle.IsValid(lifecycleStatus)) return null;
+        var pattern = _patterns.FirstOrDefault(p => p.Id == id);
+        if (pattern is null) return null;
+
+        if (lifecycleStatus == StyleLifecycle.Bulk)
+        {
+            if (!pattern.ApprovedForCutting || !pattern.CutterTestPassed)
+                return null;
+            if (pattern.Status is not "Graded" and not "Done")
+                return null;
+        }
+
+        pattern.LifecycleStatus = lifecycleStatus;
+        pattern.Date = DateTime.Today.ToString("yyyy-MM-dd");
+        Persist();
+        return pattern;
+    }
+
+    public Pattern.Core.Model.Pattern? SetRevision(int id, string revision)
+    {
+        EnsureFresh();
+        var pattern = _patterns.FirstOrDefault(p => p.Id == id);
+        if (pattern is null || string.IsNullOrWhiteSpace(revision)) return null;
+        pattern.Revision = revision.Trim();
+        pattern.Date = DateTime.Today.ToString("yyyy-MM-dd");
+        Persist();
+        return pattern;
+    }
+
+    public Pattern.Core.Model.Pattern? UpdateStyleSheet(int id, string? season, string? owner, string? designer)
+    {
+        EnsureFresh();
+        var pattern = _patterns.FirstOrDefault(p => p.Id == id);
+        if (pattern is null) return null;
+        if (season is not null)
+            pattern.Season = season.Trim();
+        if (owner is not null)
+            pattern.Owner = owner.Trim();
+        if (designer is not null)
+            pattern.Designer = designer.Trim();
+        pattern.Date = DateTime.Today.ToString("yyyy-MM-dd");
+        Persist();
+        return pattern;
     }
 }

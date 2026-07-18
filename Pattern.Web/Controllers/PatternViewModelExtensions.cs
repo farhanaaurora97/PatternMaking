@@ -45,7 +45,20 @@ internal static class PatternViewModelExtensions
         ["Done"]       = "Done",
     };
 
-    public static PatternViewModel ToViewModel(this Pattern.Core.Model.Pattern p) => new()
+    private static readonly Dictionary<string, string> _lifecycleLabels = new(StringComparer.Ordinal)
+    {
+        [Pattern.Core.Model.StyleLifecycle.Idea]       = "Idea",
+        [Pattern.Core.Model.StyleLifecycle.Sampling]   = "Sampling",
+        [Pattern.Core.Model.StyleLifecycle.Bulk]       = "Bulk",
+        [Pattern.Core.Model.StyleLifecycle.Cancelled]  = "Cancelled",
+    };
+
+    public static PatternViewModel ToViewModel(this Pattern.Core.Model.Pattern p)
+    {
+        var lifecycle = Pattern.Core.Model.StyleLifecycle.IsValid(p.LifecycleStatus)
+            ? p.LifecycleStatus
+            : Pattern.Core.Model.StyleLifecycle.InferFromPatternStatus(p.Status);
+        return new PatternViewModel
     {
         Id          = p.Id,
         Code        = p.Code,
@@ -56,9 +69,36 @@ internal static class PatternViewModelExtensions
         PieceCount  = p.PieceCount,
         Status      = p.Status,
         StatusLabel = _statusLabels.GetValueOrDefault(p.Status, p.Status),
-        Date        = p.Date,
+        Date             = p.Date,
+        Season           = string.IsNullOrWhiteSpace(p.Season) ? Pattern.Core.Model.StyleLifecycle.DefaultSeason() : p.Season,
+        Owner            = string.IsNullOrWhiteSpace(p.Owner) ? (p.Designer ?? "Unassigned") : p.Owner,
+        Designer         = p.Designer ?? string.Empty,
+        LifecycleStatus  = lifecycle,
+        LifecycleLabel   = _lifecycleLabels.GetValueOrDefault(lifecycle, lifecycle),
+        Revision         = string.IsNullOrWhiteSpace(p.Revision) ? "Proto-1" : p.Revision,
         DueDateLabel = p.DueDate?.ToString("MMM d", CultureInfo.InvariantCulture) ?? "—",
         DueDateIso   = p.DueDate?.ToString("yyyy-MM-dd") ?? string.Empty,
         Category    = InferCategory(p),
+        ApprovedForCutting = p.ApprovedForCutting,
+        CutterTestPassed   = p.CutterTestPassed,
+        IsProductionCertified = p.ApprovedForCutting && p.CutterTestPassed,
+        ProductionBadgeLabel = GetProductionBadgeLabel(p),
+        ProductionBadgeCss   = GetProductionBadgeCss(p),
     };
+    }
+
+    private static string GetProductionBadgeLabel(Pattern.Core.Model.Pattern p)
+    {
+        if (p.ApprovedForCutting && p.CutterTestPassed) return "Factory ready";
+        if (p.ApprovedForCutting) return "Approved";
+        if (p.CutterTestPassed) return "Cutter OK";
+        return string.Empty;
+    }
+
+    private static string GetProductionBadgeCss(Pattern.Core.Model.Pattern p)
+    {
+        if (p.ApprovedForCutting && p.CutterTestPassed) return "tag-green";
+        if (p.ApprovedForCutting || p.CutterTestPassed) return "tag-gold";
+        return "tag-purple";
+    }
 }

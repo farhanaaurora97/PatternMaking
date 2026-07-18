@@ -1,0 +1,33 @@
+<AuthGate>
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(MauiProgram).Assembly">
+            <Found Context="routeData">
+                <DesktopErrorBoundary>
+                    <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
+                        <NotAuthorized>
+                            @if (context.User.Identity?.IsAuthenticated != true)
+                            {
+                                <RedirectToLogin />
+                            }
+                            else
+                            {
+                                <LayoutView Layout="@typeof(Layout.MainLayout)">
+                                    <p class="alert-error" style="margin:32px">You do not have permission to view this page.</p>
+                                </LayoutView>
+                            }
+                        </NotAuthorized>
+                    </AuthorizeRouteView>
+                </DesktopErrorBoundary>
+            </Found>
+            <NotFound>
+                <LayoutView Layout="@typeof(Layout.MainLayout)">
+                    <div class="pp-error-panel">
+                        <div class="page-title">Page not found</div>
+                        <p class="pp-error-msg">That module route does not exist.</p>
+                        <NavLink class="btn btn-gold btn-sm" href="">Back to dashboard</NavLink>
+                    </div>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingAuthenticationState>
+</AuthGate>

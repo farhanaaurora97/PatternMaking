@@ -1,0 +1,74 @@
+@model global::Pattern.Web.Model.RegisterViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Register";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — PatternPro</title>
+  <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/patternpro-shell.css" asp-append-version="true" />
+  <style>
+    body.pp-theme { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0f0f1a; }
+    .login-wrap { width: 100%; max-width: 440px; padding: 24px; }
+    .login-card { background: #fff; border-radius: 16px; padding: 32px 28px; box-shadow: 0 24px 60px rgba(0,0,0,0.35); }
+    .login-brand { font-family: var(--font-display); font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .login-sub { color: var(--ink3); font-size: 13px; margin-bottom: 24px; }
+    .login-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 16px; }
+    .login-foot { margin-top: 20px; font-size: 13px; text-align: center; color: var(--ink3); }
+    .login-foot a { color: var(--gold); font-weight: 600; text-decoration: none; }
+  </style>
+</head>
+<body class="pp-theme">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">Create account</div>
+      <div class="login-sub">Register with your employee ID, then sign in after approval</div>
+
+      @if (!ViewData.ModelState.IsValid)
+      {
+        <div class="login-error" asp-validation-summary="All"></div>
+      }
+
+      <form asp-action="Register" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="form-row">
+          <label class="form-label" asp-for="EmployeeId"></label>
+          <input class="form-input" asp-for="EmployeeId" autocomplete="off" placeholder="e.g. EMP-1042" autofocus />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label" asp-for="DisplayName"></label>
+          <input class="form-input" asp-for="DisplayName" autocomplete="name" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label" asp-for="UserName"></label>
+          <input class="form-input" asp-for="UserName" autocomplete="username" placeholder="Leave blank to use employee ID" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label" asp-for="Password"></label>
+          <input class="form-input" asp-for="Password" autocomplete="new-password" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label" asp-for="ConfirmPassword"></label>
+          <input class="form-input" asp-for="ConfirmPassword" autocomplete="new-password" />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%">Register</button>
+      </form>
+
+      <div class="login-foot">
+        Already have an account? <a asp-action="Login">Sign in</a>
+      </div>
+    </div>
+  </div>
+  <partial name="_ValidationScriptsPartial" />
+</body>
+</html>

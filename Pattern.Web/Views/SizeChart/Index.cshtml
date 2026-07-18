@@ -39,7 +39,12 @@
           @for (var i = 0; i < row.Values.Count; i++)
           {
             var isBase = i < Model.ColumnLabels.Count && string.Equals(Model.ColumnLabels[i], "M", StringComparison.Ordinal);
-            <td class="td-mono @(isBase ? "td-base" : null)">@row.Values[i]</td>
+            <td class="td-mono @(isBase ? "td-base" : null)">
+              <input type="number" class="ss-inline sc-cell-input" step="0.1"
+                     data-measurement="@row.MeasurementPoint" data-col="@i"
+                     value="@row.Values[i].ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                     aria-label="@row.MeasurementPoint @Model.ColumnLabels[i] cm" />
+            </td>
           }
         </tr>
       }

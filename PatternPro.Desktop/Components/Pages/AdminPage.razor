@@ -1,0 +1,455 @@
+@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+@using Pattern.Core.Model
+@using PatternPro.Core.IServices
+@using PatternPro.Desktop.Services
+@inject IUserService UserService
+@inject DesktopToastService Toast
+@inject IJSRuntime JS
+
+<div class="pp-page">
+    <div class="pcs-header">
+        <div class="pcs-header-left">
+            <div class="pcs-eyebrow">
+                <span class="pcs-eyebrow-rule"></span>
+                <span>Administration</span>
+            </div>
+            <h1 class="page-title" style="margin:0">Admin panel</h1>
+            <p class="page-sub" style="margin:6px 0 0">Manage employees, roles, and account approval</p>
+        </div>
+        <div class="pcs-header-right">
+            <div class="pcs-summary">
+                <div class="pcs-stat">
+                    <div class="pcs-stat-val">@_users.Count</div>
+                    <div class="pcs-stat-label">Total users</div>
+                </div>
+                <div class="pcs-stat-div"></div>
+                <div class="pcs-stat">
+                    <div class="pcs-stat-val">@ActiveCount</div>
+                    <div class="pcs-stat-label">Active</div>
+                </div>
+                <div class="pcs-stat-div"></div>
+                <div class="pcs-stat">
+                    <div class="pcs-stat-val">@PendingCount</div>
+                    <div class="pcs-stat-label">Pending</div>
+                </div>
+            </div>
+            <div class="pcs-header-actions">
+                <button type="button" class="btn btn-gold btn-sm" @onclick="OpenCreateAsync">+ New user</button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="pcs-success">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert-error">@_error</div>
+    }
+
+    <div class="tbl-wrap">
+        <div class="admin-filter-bar">
+            <input type="search" placeholder="Search name, ID, or username…" @bind="_search" @bind:event="oninput" />
+            <span class="td-mono" style="color:var(--ink4);margin-left:auto">@FilteredUsers.Count() of @_users.Count</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Last login</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in FilteredUsers)
+                {
+                    <tr>
+                        <td>
+                            <div class="admin-user-cell">
+                                <div class="admin-user-avatar">@Initials(u.DisplayName)</div>
+                                <div>
+                                    <div class="admin-user-name">@u.DisplayName</div>
+                                    <div class="admin-user-sub">@u.EmployeeId · @u.UserName</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="tag tag-purple">@AppRoles.Label(u.Role)</span></td>
+                        <td>
+                            @if (u.IsActive)
+                            {
+                                <span class="tag tag-green">Active</span>
+                            }
+                            else if (!u.LastLoginAt.HasValue)
+                            {
+                                <span class="tag tag-gold">Pending approval</span>
+                            }
+                            else
+                            {
+                                <span class="tag tag-red">Disabled</span>
+                            }
+                        </td>
+                        <td class="td-mono" style="font-size:12px;color:var(--ink3)">@(u.LastLoginAt?.ToLocalTime().ToString("g") ?? "—")</td>
+                        <td style="text-align:right;white-space:nowrap">
+                            <div class="action-btns">
+                                <button type="button" class="btn btn-outline btn-sm" @onclick="() => OpenEditAsync(u)" disabled="@_busy">Edit</button>
+                                <button type="button" class="btn btn-outline btn-sm" @onclick="() => ToggleActive(u)" disabled="@_busy">
+                                    @(u.IsActive ? "Disable" : "Approve")
+                                </button>
+                                <button type="button" class="pp-btn-delete" @onclick="() => DeleteUserAsync(u)" disabled="@_busy">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="admin-roles-card">
+        <div class="acct-section-title">Roles</div>
+        <div class="admin-roles-grid">
+            <div class="admin-role-item">
+                <strong>Administrator</strong>
+                Full access + this panel
+            </div>
+            <div class="admin-role-item">
+                <strong>Pattern designer</strong>
+                Create/edit patterns, factory export
+            </div>
+            <div class="admin-role-item">
+                <strong>View only</strong>
+                Browse screens; cannot save or export factory files
+            </div>
+            <div class="admin-role-item">
+                <strong>Disabled</strong>
+                Cannot sign in
+            </div>
+        </div>
+    </div>
+</div>
+
+<dialog @ref="_createDialog" class="pp-create-dialog" @oncancel="CloseCreateAsync">
+    <div class="modal-header" style="padding:0 0 16px;border:none">
+        <div class="modal-title">New user</div>
+        <button class="modal-close-btn" type="button" @onclick="CloseCreateAsync">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+        </button>
+    </div>
+    @if (!string.IsNullOrEmpty(_createError))
+    {
+        <div class="modal-error show">@_createError</div>
+    }
+    <div class="form-field">
+        <label class="form-label">Employee ID</label>
+        <input class="form-input" @bind="_new.EmployeeId" />
+    </div>
+    <div class="form-field">
+        <label class="form-label">Full name</label>
+        <input class="form-input" @bind="_new.DisplayName" />
+    </div>
+    <div class="form-field">
+        <label class="form-label">Username</label>
+        <input class="form-input" @bind="_new.UserName" />
+    </div>
+    <div class="form-field">
+        <label class="form-label">Role</label>
+        <select class="form-input" @bind="_new.Role">
+            @foreach (var r in AppRoles.All)
+            {
+                <option value="@r">@AppRoles.Label(r)</option>
+            }
+        </select>
+    </div>
+    <div class="form-row-2">
+        <div class="form-field">
+            <label class="form-label">Password</label>
+            <input class="form-input" type="password" @bind="_new.Password" />
+        </div>
+        <div class="form-field">
+            <label class="form-label">Confirm password</label>
+            <input class="form-input" type="password" @bind="_new.ConfirmPassword" />
+        </div>
+    </div>
+    <div class="modal-actions" style="padding:16px 0 0;background:none;border:none">
+        <button type="button" class="btn btn-outline btn-sm" @onclick="CloseCreateAsync">Cancel</button>
+        <button type="button" class="btn btn-gold btn-sm" @onclick="CreateUserAsync" disabled="@_busy">Create user</button>
+    </div>
+</dialog>
+
+<dialog @ref="_editDialog" class="pp-create-dialog" @oncancel="CloseEditAsync">
+    <div class="modal-header" style="padding:0 0 16px;border:none">
+        <div class="modal-title">Edit user</div>
+        <button class="modal-close-btn" type="button" @onclick="CloseEditAsync">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+        </button>
+    </div>
+    @if (!string.IsNullOrEmpty(_editError))
+    {
+        <div class="modal-error show">@_editError</div>
+    }
+    <div class="form-field">
+        <label class="form-label">Employee ID</label>
+        <input class="form-input" @bind="_edit.EmployeeId" />
+    </div>
+    <div class="form-field">
+        <label class="form-label">Username</label>
+        <input class="form-input" value="@_edit.UserName" disabled />
+    </div>
+    <div class="form-field">
+        <label class="form-label">Full name</label>
+        <input class="form-input" @bind="_edit.DisplayName" />
+    </div>
+    <div class="form-field">
+        <label class="form-label">Role</label>
+        <select class="form-input" @bind="_edit.Role">
+            @foreach (var r in AppRoles.All)
+            {
+                <option value="@r">@AppRoles.Label(r)</option>
+            }
+        </select>
+    </div>
+    <div class="form-field">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+            <input type="checkbox" @bind="_edit.IsActive" />
+            Account active (can sign in)
+        </label>
+    </div>
+    <div class="form-row-2">
+        <div class="form-field">
+            <label class="form-label">New password <span class="form-opt">(blank = keep)</span></label>
+            <input class="form-input" type="password" @bind="_edit.Password" autocomplete="new-password" />
+        </div>
+        <div class="form-field">
+            <label class="form-label">Confirm password</label>
+            <input class="form-input" type="password" @bind="_edit.ConfirmPassword" autocomplete="new-password" />
+        </div>
+    </div>
+    <div class="modal-actions" style="padding:16px 0 0;background:none;border:none">
+        <button type="button" class="btn btn-outline btn-sm" @onclick="CloseEditAsync">Cancel</button>
+        <button type="button" class="btn btn-gold btn-sm" @onclick="SaveEditAsync" disabled="@_busy">Save changes</button>
+    </div>
+</dialog>
+
+@code {
+    private IReadOnlyList<AppUser> _users = [];
+    private ElementReference _createDialog;
+    private ElementReference _editDialog;
+    private string _search = "";
+    private bool _busy;
+    private string? _message;
+    private string? _error;
+
+    private string? _createError;
+    private readonly NewUserForm _new = new();
+
+    private string? _editError;
+    private readonly EditUserForm _edit = new();
+
+    private int ActiveCount => _users.Count(u => u.IsActive);
+    private int PendingCount => _users.Count(u => !u.IsActive && !u.LastLoginAt.HasValue);
+
+    private IEnumerable<AppUser> FilteredUsers
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_search))
+                return _users;
+            var s = _search.Trim();
+            return _users.Where(u =>
+                u.DisplayName.Contains(s, StringComparison.OrdinalIgnoreCase)
+                || u.EmployeeId.Contains(s, StringComparison.OrdinalIgnoreCase)
+                || u.UserName.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    protected override void OnInitialized() => Load();
+
+    private void Load() => _users = UserService.GetAll();
+
+    private static string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}"
+            : name.Trim()[..Math.Min(2, name.Trim().Length)].ToUpperInvariant();
+    }
+
+    private void ToggleActive(AppUser u)
+    {
+        _busy = true;
+        _message = null;
+        _error = null;
+        try
+        {
+            UserService.UpdateUser(u.Id, u.EmployeeId, u.DisplayName, u.Role, !u.IsActive);
+            _message = u.IsActive ? $"Disabled {u.DisplayName}." : $"Approved {u.DisplayName}.";
+            Load();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        _new.Reset();
+        _createError = null;
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _createDialog);
+    }
+
+    private async Task CloseCreateAsync()
+    {
+        _createError = null;
+        await JS.InvokeVoidAsync("patternPro.closeDialog", _createDialog);
+    }
+
+    private async Task CreateUserAsync()
+    {
+        _createError = null;
+        if (string.IsNullOrWhiteSpace(_new.EmployeeId) || string.IsNullOrWhiteSpace(_new.UserName) ||
+            string.IsNullOrWhiteSpace(_new.DisplayName) || string.IsNullOrWhiteSpace(_new.Password))
+        {
+            _createError = "All fields are required.";
+            return;
+        }
+        if (_new.Password.Length < 6)
+        {
+            _createError = "Password must be at least 6 characters.";
+            return;
+        }
+        if (_new.Password != _new.ConfirmPassword)
+        {
+            _createError = "Passwords do not match.";
+            return;
+        }
+        _busy = true;
+        try
+        {
+            UserService.CreateUser(_new.EmployeeId.Trim(), _new.UserName.Trim(), _new.DisplayName.Trim(), _new.Role, _new.Password);
+            _message = $"Created user {_new.DisplayName.Trim()}.";
+            Toast.Show("User created", _new.DisplayName.Trim(), DesktopToastType.Success, "✓");
+            Load();
+            await CloseCreateAsync();
+        }
+        catch (Exception ex)
+        {
+            _createError = ex.Message;
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task OpenEditAsync(AppUser u)
+    {
+        _editError = null;
+        _edit.Id = u.Id;
+        _edit.EmployeeId = u.EmployeeId;
+        _edit.UserName = u.UserName;
+        _edit.DisplayName = u.DisplayName;
+        _edit.Role = u.Role;
+        _edit.IsActive = u.IsActive;
+        _edit.Password = "";
+        _edit.ConfirmPassword = "";
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("patternPro.openDialog", _editDialog);
+    }
+
+    private async Task CloseEditAsync()
+    {
+        _editError = null;
+        await JS.InvokeVoidAsync("patternPro.closeDialog", _editDialog);
+    }
+
+    private async Task SaveEditAsync()
+    {
+        _editError = null;
+        if (string.IsNullOrWhiteSpace(_edit.EmployeeId) || string.IsNullOrWhiteSpace(_edit.DisplayName))
+        {
+            _editError = "Employee ID and full name are required.";
+            return;
+        }
+        var wantsPassword = !string.IsNullOrEmpty(_edit.Password);
+        if (wantsPassword)
+        {
+            if (_edit.Password.Length < 6)
+            {
+                _editError = "New password must be at least 6 characters.";
+                return;
+            }
+            if (_edit.Password != _edit.ConfirmPassword)
+            {
+                _editError = "Passwords do not match.";
+                return;
+            }
+        }
+        _busy = true;
+        try
+        {
+            UserService.UpdateUser(_edit.Id, _edit.EmployeeId.Trim(), _edit.DisplayName.Trim(), _edit.Role, _edit.IsActive);
+            if (wantsPassword)
+                UserService.ResetPassword(_edit.Id, _edit.Password);
+            _message = $"Saved changes for {_edit.DisplayName.Trim()}.";
+            Toast.Show("User updated", _edit.DisplayName.Trim(), DesktopToastType.Success, "✓");
+            Load();
+            await CloseEditAsync();
+        }
+        catch (Exception ex)
+        {
+            _editError = ex.Message;
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task DeleteUserAsync(AppUser u)
+    {
+        if (!await DesktopConfirm.DeleteAsync(JS, $"user {u.DisplayName} ({u.UserName})"))
+            return;
+        try
+        {
+            if (!UserService.DeleteUser(u.Id))
+            {
+                _error = "Could not delete user.";
+                return;
+            }
+            _message = $"Deleted {u.DisplayName}.";
+            Toast.Show("User deleted", u.DisplayName, DesktopToastType.Success, "🗑");
+            Load();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Toast.Show("Delete failed", ex.Message, DesktopToastType.Error, "⚠");
+        }
+    }
+
+    private sealed class NewUserForm
+    {
+        public string EmployeeId { get; set; } = "";
+        public string UserName { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Role { get; set; } = AppRoles.Designer;
+        public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+
+        public void Reset()
+        {
+            EmployeeId = UserName = DisplayName = Password = ConfirmPassword = "";
+            Role = AppRoles.Designer;
+        }
+    }
+
+    private sealed class EditUserForm
+    {
+        public int Id { get; set; }
+        public string EmployeeId { get; set; } = "";
+        public string UserName { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Role { get; set; } = AppRoles.Designer;
+        public bool IsActive { get; set; } = true;
+        public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

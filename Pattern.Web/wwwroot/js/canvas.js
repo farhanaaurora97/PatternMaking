@@ -19,6 +19,8 @@
     cf:      (def.cf     || []).map(a => [...a]),
     notches: (def.notches|| []).map(a => [...a]),
     ox: def.ox, oy: def.oy,
+    sa:      Number(def.sa || 0),
+    saJoin:  (def.saJoin || 'miter'),
   }));
 
   // ── 2. STATE ─────────────────────────────────────────────────────
@@ -39,6 +41,8 @@
 
   // draft-mode state
   let draftedSizes = null;   // { 'S': pieces[], 'M': pieces[], ... }
+  let draftPreviewActive = false; // true while multi-size draft overlay is shown (hides saved pieces)
+  let activeDraftSize = null;     // last size applied to the editor via "Use {size}"
   const DRAFT_SIZE_COLORS = {
     XS: '#dc2626', S: '#d97706', M: '#16a34a',
     L:  '#0284c7', XL: '#7c3aed', XXL: '#0891b2',
@@ -340,6 +344,8 @@
     drawPoints = []; drawCursor = null;
     hideCreateForm();
     draftedSizes = null;
+    draftPreviewActive = false;
+    activeDraftSize = null;
     const list = document.getElementById('cpl-list');
     if (list) list.innerHTML = '';
     ['cp-piece','cp-pts','cp-w','cp-h','cp-perim'].forEach(id => {
@@ -374,6 +380,8 @@
           pts:     p.pts.map(pt => [Math.round(pt.x), Math.round(pt.y)]),
           ox:      Math.round(p.ox), oy: Math.round(p.oy),
           grain:   p.grain, cf: p.cf, notches: p.notches,
+          sa:      Number(p.sa || 0),
+          saJoin:  p.saJoin || 'miter',
         }),
       });
       showSaveStatus(r.ok ? 'Saved ✓' : 'Save failed', r.ok ? 'ok' : 'error');
@@ -394,6 +402,8 @@
             pts:     p.pts.map(pt => [Math.round(pt.x), Math.round(pt.y)]),
             ox:      Math.round(p.ox), oy: Math.round(p.oy),
             grain:   p.grain, cf: p.cf, notches: p.notches,
+            sa:      Number(p.sa || 0),
+            saJoin:  p.saJoin || 'miter',
           })),
         }),
       });
@@ -434,13 +444,21 @@
     if (!p) { set('cp-piece', '—'); set('cp-pts', '—'); return; }
     set('cp-piece', p.name);
     set('cp-pts',   p.pts.length);
+
+    const saEl = document.getElementById('sa-value');
+    if (saEl) saEl.value = String(p.sa ?? 0);
+    const joinEl = document.getElementById('sa-join');
+    if (joinEl) joinEl.value = p.saJoin || 'miter';
   }
 
   // ── 12. DRAW ─────────────────────────────────────────────────────
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (draftedSizes) drawAllDraftSizes();
-    pieces.forEach((p, i) => drawPiece(p, i === selectedPiece));
+    if (draftPreviewActive && draftedSizes) {
+      drawAllDraftSizes();
+    } else {
+      pieces.forEach((p, i) => drawPiece(p, i === selectedPiece));
+    }
     if (tool === 'draw') drawInProgress();
   }
 
@@ -477,20 +495,29 @@
   }
 
   function drawPiece(p, sel) {
-    const { ox, oy, pts, grain, cf, notches, col } = p;
+    const { ox, oy, pts, grain, cf, notches, col, sa, saJoin } = p;
     if (!pts.length) return;
     const ts = (x, y) => toScreen(x + ox, y + oy);
     ctx.save();
 
-    // Seam allowance ghost
-    if (showSA) {
-      ctx.beginPath();
-      const [sx0, sy0] = ts(pts[0].x, pts[0].y); ctx.moveTo(sx0, sy0);
-      pts.forEach(pt => { const [x, y] = ts(pt.x, pt.y); ctx.lineTo(x, y); });
-      ctx.closePath();
-      ctx.strokeStyle = 'rgba(185,28,28,0.12)'; ctx.lineWidth = 16 * scale;
-      ctx.lineJoin = 'miter'; ctx.miterLimit = 1.5; ctx.stroke();
-      ctx.strokeStyle = 'rgba(248,247,245,0.88)'; ctx.lineWidth = 16 * scale - 2; ctx.stroke();
+    // Seam allowance contour (offset)
+    if (showSA && sa > 0.01 && pts.length >= 3) {
+      const base = pts.map(pt => ({ x: pt.x + ox, y: pt.y + oy }));
+      const off  = offsetClosedPolyline(base, sa, saJoin || 'miter');
+      if (off.length >= 3) {
+        ctx.beginPath();
+        const [sx0, sy0] = toScreen(off[0].x, off[0].y); ctx.moveTo(sx0, sy0);
+        for (let i = 1; i < off.length; i++) {
+          const [x, y] = toScreen(off[i].x, off[i].y);
+          ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(185,28,28,0.85)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([7, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
 
     // Shape
@@ -563,6 +590,114 @@
 
     ctx.restore();
   }
+
+  function offsetClosedPolyline(pts, offset, join) {
+    if (!pts || pts.length < 3 || !offset) return pts || [];
+    const n = pts.length;
+    const area2 = signedArea2(pts);
+    const ccw = area2 > 0;
+    const d = offset * (ccw ? 1 : -1);
+
+    const normals = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const a = pts[i], b = pts[(i + 1) % n];
+      let ex = b.x - a.x, ey = b.y - a.y;
+      const len = Math.hypot(ex, ey) || 1;
+      ex /= len; ey /= len;
+      normals[i] = { x: -ey, y: ex }; // left normal
+    }
+
+    const out = [];
+    const j = (join || 'miter').toLowerCase();
+    const roundSteps = 10;
+    const miterLimit = 6.0;
+
+    for (let i = 0; i < n; i++) {
+      const prev = (i - 1 + n) % n;
+      const next = (i + 1) % n;
+      const p = pts[i];
+      const n0 = normals[prev], n1 = normals[i];
+
+      const a0 = pts[prev], a1 = pts[i], b1 = pts[next];
+      let d0x = a1.x - a0.x, d0y = a1.y - a0.y;
+      let d1x = b1.x - a1.x, d1y = b1.y - a1.y;
+      const l0 = Math.hypot(d0x, d0y) || 1;
+      const l1 = Math.hypot(d1x, d1y) || 1;
+      d0x /= l0; d0y /= l0;
+      d1x /= l1; d1y /= l1;
+
+      const l0p = { x: p.x + n0.x * d, y: p.y + n0.y * d };
+      const l1p = { x: p.x + n1.x * d, y: p.y + n1.y * d };
+
+      const denom = cross(d0x, d0y, d1x, d1y);
+      const bevelA = { x: p.x + n0.x * d, y: p.y + n0.y * d };
+      const bevelB = { x: p.x + n1.x * d, y: p.y + n1.y * d };
+
+      if (Math.abs(denom) < 1e-9) {
+        out.push(bevelB);
+        continue;
+      }
+
+      const rx = l1p.x - l0p.x, ry = l1p.y - l0p.y;
+      const t = cross(rx, ry, d1x, d1y) / denom;
+      const ix = l0p.x + t * d0x;
+      const iy = l0p.y + t * d0y;
+      const mlen = Math.hypot(ix - p.x, iy - p.y);
+
+      const tooLong = mlen > Math.abs(d) * miterLimit;
+      if (j === 'miter' && !tooLong) {
+        out.push({ x: ix, y: iy });
+      } else if (j === 'bevel' || tooLong) {
+        out.push(bevelA, bevelB);
+      } else { // round
+        addRound(out, p, bevelA, bevelB, roundSteps, ccw);
+      }
+    }
+    return out;
+  }
+
+  function signedArea2(pts) {
+    let s = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      s += (a.x * b.y) - (b.x * a.y);
+    }
+    return s;
+  }
+  function cross(ax, ay, bx, by) { return ax * by - ay * bx; }
+  function addRound(out, center, a, b, steps, ccw) {
+    const ax = a.x - center.x, ay = a.y - center.y;
+    const bx = b.x - center.x, by = b.y - center.y;
+    const r = Math.hypot(ax, ay) || 1;
+    let angA = Math.atan2(ay, ax);
+    let angB = Math.atan2(by, bx);
+    let delta = angB - angA;
+    if (ccw) { while (delta <= 0) delta += Math.PI * 2; }
+    else     { while (delta >= 0) delta -= Math.PI * 2; }
+    const n = Math.max(3, steps);
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const ang = angA + delta * t;
+      out.push({ x: center.x + Math.cos(ang) * r, y: center.y + Math.sin(ang) * r });
+    }
+  }
+
+  // Seam allowance UI wiring
+  document.getElementById('sa-value')?.addEventListener('input', (e) => {
+    const p = pieces[selectedPiece];
+    if (!p) return;
+    const v = Math.max(0, Number(e.target.value || 0));
+    p.sa = v;
+    draw();
+    scheduleSave(selectedPiece);
+  });
+  document.getElementById('sa-join')?.addEventListener('change', (e) => {
+    const p = pieces[selectedPiece];
+    if (!p) return;
+    p.saJoin = (e.target.value || 'miter');
+    draw();
+    scheduleSave(selectedPiece);
+  });
 
   function drawArrow(x1, y1, x2, y2, col) {
     const len = Math.hypot(x2 - x1, y2 - y1);
@@ -640,8 +775,9 @@
   function fitAll() {
     const PAD = 60, W = canvas.width, H = canvas.height;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const allForFit = [...pieces];
-    if (draftedSizes) Object.values(draftedSizes).forEach(ps => allForFit.push(...ps));
+    const allForFit = draftPreviewActive && draftedSizes
+      ? Object.values(draftedSizes).flat()
+      : [...pieces];
     allForFit.forEach(p => p.pts.forEach(pt => {
       const wx = pt.x + p.ox, wy = pt.y + p.oy;
       if (wx < minX) minX = wx; if (wy < minY) minY = wy;
@@ -790,6 +926,53 @@
     updatePieceCount();
   }
 
+  async function resetFromStyleTemplate() {
+    if (!patternId || !window.RESET_FROM_STYLE_URL) return;
+    if (!confirm('Replace this pattern’s pieces with the style template? Unsaved canvas edits will be lost.')) return;
+    showSaveStatus('Loading template…', 'pending');
+    try {
+      const r = await fetch(window.RESET_FROM_STYLE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patternId, style }),
+      });
+      if (!r.ok) {
+        showSaveStatus('Template load failed', 'error');
+        return;
+      }
+      const data = await r.json();
+      pieces.length = 0;
+      (data.pieces || []).forEach(def => pieces.push({
+        name: def.name,
+        cut: def.cut,
+        col: def.col,
+        pts: (def.pts || []).map(([x, y]) => ({ x, y })),
+        grain: (def.grain || []).map(a => [...a]),
+        cf: (def.cf || []).map(a => [...a]),
+        notches: (def.notches || []).map(a => [...a]),
+        ox: def.ox, oy: def.oy,
+        sa: Number(def.sa || 0),
+        saJoin: def.saJoin || 'miter',
+      }));
+      const list = document.getElementById('cpl-list');
+      if (list) {
+        list.innerHTML = '';
+        pieces.forEach((p, i) => addPieceToSidebar(i, p));
+      }
+      hideEmptyState();
+      updatePieceCount();
+      history.length = 0;
+      selectPiece(0);
+      fitAll();
+      showSaveStatus(`Style template loaded (${data.pieceCount || pieces.length} pieces) ✓`, 'ok');
+      toast('Style template', `${pieces.length} pieces loaded — edit and save`, 'success', '↺');
+    } catch {
+      showSaveStatus('Template load failed', 'error');
+    }
+  }
+
+  document.getElementById('btn-reset-from-style')?.addEventListener('click', resetFromStyleTemplate);
+
   // ── 16. INIT ─────────────────────────────────────────────────────
   selectPiece(selectedPiece);
   fitAll();
@@ -803,7 +986,8 @@
     const checks = document.getElementById('draft-size-checks');
     const autoPill = document.getElementById('auto-size-pill');
     if (panel) panel.style.display = e.target.checked ? '' : 'none';
-    if (checks) checks.style.display = e.target.checked ? 'none' : 'flex';
+    // Keep grid layout from .draft-size-grid — 'flex' here forced a horizontal strip / scroll.
+    if (checks) checks.style.display = e.target.checked ? 'none' : '';
     if (!e.target.checked && autoPill) autoPill.style.display = 'none';
   });
   document.getElementById('btn-recommend-size')?.addEventListener('click', recommendSize);
@@ -863,6 +1047,8 @@
         }));
       }
 
+      activeDraftSize = null;
+      draftPreviewActive = true;
       document.getElementById('btn-clear-draft').style.display = '';
       document.getElementById('btn-export-draft').style.display = '';
       buildApplyButtons(sizes);
@@ -917,6 +1103,8 @@
 
   function clearDraft() {
     draftedSizes = null;
+    draftPreviewActive = false;
+    activeDraftSize = null;
     document.getElementById('btn-clear-draft').style.display        = 'none';
     document.getElementById('btn-export-draft').style.display       = 'none';
     document.getElementById('draft-apply-list').style.display       = 'none';
@@ -988,7 +1176,7 @@
     const checks = document.getElementById('draft-size-checks');
     const autoPill = document.getElementById('auto-size-pill');
     if (panel) panel.style.display = customOn ? '' : 'none';
-    if (checks) checks.style.display = customOn ? 'none' : 'flex';
+    if (checks) checks.style.display = customOn ? 'none' : '';
     if (!customOn && autoPill) autoPill.style.display = 'none';
   }
 
@@ -1076,9 +1264,10 @@
     container.innerHTML = '<div style="font-size:11px;color:#64748b;margin-bottom:4px">Apply to editor:</div>';
     sizes.forEach(size => {
       const btn         = document.createElement('button');
-      btn.className     = 'btn btn-outline btn-sm';
+      const isActive    = activeDraftSize === size;
+      btn.className     = 'btn btn-outline btn-sm' + (isActive ? ' active' : '');
       btn.style.cssText = `margin:2px 2px 2px 0;border-color:${DRAFT_SIZE_COLORS[size] ?? '#64748b'};color:${DRAFT_SIZE_COLORS[size] ?? '#64748b'}`;
-      btn.textContent   = `Use ${size}`;
+      btn.textContent   = isActive ? `✓ ${size}` : `Use ${size}`;
       btn.addEventListener('click', () => applyDraftSize(size));
       container.appendChild(btn);
     });
@@ -1121,7 +1310,9 @@
       });
     }
 
-    clearDraft();
+    draftPreviewActive = false;
+    activeDraftSize = size;
+    buildApplyButtons(Object.keys(draftedSizes));
     history.length = 0;
     selectPiece(0);
     saveAllPieces();

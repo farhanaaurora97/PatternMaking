@@ -1,0 +1,192 @@
+@page "/module/block-generator"
+@attribute [Authorize]
+@using Pattern.Web.Model
+@using PatternPro.Desktop.Helpers
+@inject IBlockGeneratorService BlockGen
+@inject NavigationManager Navigation
+
+<div class="bg-page">
+    <div class="cv-toolbar">
+        <div>
+            <div class="page-title" style="font-size:1.35rem">Block Generator</div>
+            <div class="page-sub">Ease allowances &amp; drafting formulas — @_styleLabel</div>
+        </div>
+        <div class="cv-toolbar-actions">
+            <button type="button" class="btn btn-outline btn-sm" @onclick="ResetEase" disabled="@_busy">↺ Reset to default</button>
+            <button type="button" class="btn btn-gold btn-sm" @onclick="GenerateBlock" disabled="@_busy">⊞ Generate block</button>
+            <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert-error" style="margin-bottom:12px">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <div class="pcs-success" style="margin-bottom:12px">@_success</div>
+    }
+
+    <nav class="fit-tabs">
+        @foreach (var opt in StyleOptions)
+        {
+            <button type="button"
+                    class="fit-tab @(_styleKey == opt.Key ? "active" : "")"
+                    @onclick="() => SelectStyle(opt.Key)">
+                @opt.Label
+            </button>
+        }
+    </nav>
+
+    <div class="pp-grid-2">
+        <div>
+            <div class="pp-section">
+                <div class="pp-section-title pp-section-title--row">
+                    <span>Ease allowances</span>
+                    <span class="bg-hint">Edit values in cm</span>
+                </div>
+                @foreach (var (key, value) in _easeValues)
+                {
+                    var cls = value < 0 ? "ease-neg" : value > 0 ? "ease-pos" : "ease-zero";
+                    <div class="ease-row">
+                        <span class="ease-key">@key</span>
+                        <input type="number"
+                               class="ease-input @cls"
+                               step="0.1"
+                               value="@value.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                               @onchange="e => OnEaseChanged(key, e)" />
+                    </div>
+                }
+            </div>
+
+            <div class="pp-section">
+                <div class="pp-section-title">Fit profile</div>
+                <div class="bg-fit-profile">@_fitProfile</div>
+            </div>
+        </div>
+
+        <div class="pp-section">
+            <div class="pp-section-title">Drafting formulas — M base size</div>
+            @foreach (var f in _formulas)
+            {
+                <div class="formula-item">
+                    <span class="formula-key">@f.Key</span>
+                    <span class="formula-eq">@f.Equation</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _styleKey = "skinny";
+    private string _styleLabel = "";
+    private string _fitProfile = "";
+    private Dictionary<string, decimal> _easeValues = new();
+    private List<DraftingFormulaViewModel> _formulas = [];
+    private string? _message;
+    private string? _success;
+    private bool _busy;
+
+    private static readonly (string Key, string Label)[] StyleOptions =
+    [
+        ("skinny", "Skinny"),
+        ("slim", "Slim"),
+        ("straight", "Straight"),
+        ("bootcut", "Bootcut"),
+        ("wideLeg", "Wide Leg"),
+    ];
+
+    protected override void OnInitialized()
+    {
+        ParseQuery();
+        LoadVm();
+    }
+
+    private void ParseQuery()
+    {
+        var uri = Navigation.Uri;
+        var q = uri.IndexOf('?', StringComparison.Ordinal);
+        if (q < 0) return;
+        foreach (var part in uri[(q + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith("style=", StringComparison.Ordinal))
+                _styleKey = FitStyleKeys.Normalize(Uri.UnescapeDataString(part["style=".Length..]));
+        }
+    }
+
+    private void LoadVm()
+    {
+        _message = null;
+        _styleKey = FitStyleKeys.Normalize(_styleKey);
+        var def = BlockGen.GetDefinition(_styleKey);
+        _styleLabel = def.Label;
+        _fitProfile = def.FitProfile;
+        _easeValues = BlockGen.GetEffectiveEase(_styleKey);
+        _formulas = def.Formulas.Select(f => new DraftingFormulaViewModel
+        {
+            Key = f.Key,
+            Equation = f.Equation,
+        }).ToList();
+    }
+
+    private void SelectStyle(string key)
+    {
+        _styleKey = key;
+        _success = null;
+        LoadVm();
+    }
+
+    private void OnEaseChanged(string key, ChangeEventArgs e)
+    {
+        if (!decimal.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var value)
+            && !decimal.TryParse(e.Value?.ToString(), out value))
+        {
+            _message = "Invalid number.";
+            LoadVm();
+            return;
+        }
+
+        BlockGen.SetEaseOverride(_styleKey, key, value);
+        _easeValues = BlockGen.GetEffectiveEase(_styleKey);
+        _message = null;
+        _success = $"{key} ease set to {FormatEase(value)}.";
+    }
+
+    private void ResetEase()
+    {
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            BlockGen.ResetEase(_styleKey);
+            LoadVm();
+            _success = "Ease values reset to defaults.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void GenerateBlock()
+    {
+        _busy = true;
+        _message = null;
+        _success = null;
+        try
+        {
+            var result = BlockGen.GenerateBlock(_styleKey);
+            _success = $"{result.StyleLabel} block created ({result.PieceCount} formulas) with current ease values.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string FormatEase(decimal v) =>
+        (v > 0 ? "+" : "") + v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " cm";
+}

@@ -1,0 +1,146 @@
+@page "/module/library"
+@attribute [Authorize]
+@using Pattern.Web.Model
+@using PatternPro.Desktop.Helpers
+@using PatternPro.Desktop.Services
+@inject IPatternService PatternService
+@inject IPieceService PieceService
+@inject IJSRuntime JS
+@inject DesktopToastService Toast
+
+<div class="lib-page">
+    <div class="cv-toolbar">
+        <div>
+            <div class="page-title" style="font-size:1.35rem">Pattern Library</div>
+            <div class="page-sub">Patterns with saved canvas data — open any to continue editing</div>
+        </div>
+        <div class="cv-toolbar-actions">
+            <span class="lib-stats">
+                <strong>@_saved.Count</strong> saved · <strong>@_unsaved.Count</strong> not in canvas
+            </span>
+            <NavLink class="btn btn-gold btn-sm" href="module/canvas">+ New canvas</NavLink>
+            <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+        </div>
+    </div>
+
+    @if (_saved.Count > 0)
+    {
+        <div class="lib-section-title">
+            <span class="lib-section-dot lib-dot-saved"></span>
+            Saved canvas patterns
+        </div>
+        <div class="lib-grid">
+            @foreach (var e in _saved)
+            {
+                <div class="lib-card lib-card--saved">
+                    <div class="lib-card-top">
+                        <div class="lib-card-code">@e.Code</div>
+                        <span class="lib-status-dot lib-dot-saved" title="Canvas data saved"></span>
+                    </div>
+                    <div class="lib-card-name">@e.Name</div>
+                    <div class="lib-card-meta">
+                        <span class="lib-meta-tag">@e.Style</span>
+                        <span class="lib-meta-tag">@e.BaseSize</span>
+                        <span class="lib-meta-tag">@e.Category</span>
+                    </div>
+                    <div class="lib-card-pieces">@e.PieceCount piece@(e.PieceCount == 1 ? "" : "s") saved</div>
+                    <div class="lib-card-footer">
+                        <span class="lib-date">@e.Date</span>
+                        <NavLink class="btn btn-gold btn-sm" href="@CanvasHref(e)">Open canvas</NavLink>
+                        <button type="button" class="pp-btn-delete" style="margin-left:6px" @onclick="() => DeletePatternAsync(e)">Delete</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="lib-empty-saved">
+            <div class="lib-empty-title">No canvas data saved yet</div>
+            <div class="lib-empty-sub">Open a pattern in Canvas and click <strong>Save all</strong> — it will appear here.</div>
+            <NavLink class="btn btn-gold btn-sm" href="module/canvas" style="margin-top:16px">Open canvas</NavLink>
+        </div>
+    }
+
+    @if (_unsaved.Count > 0)
+    {
+        <div class="lib-section-title" style="margin-top:28px">
+            <span class="lib-section-dot lib-dot-unsaved"></span>
+            Not yet in canvas
+        </div>
+        <div class="lib-grid lib-grid--muted">
+            @foreach (var e in _unsaved)
+            {
+                <div class="lib-card lib-card--unsaved">
+                    <div class="lib-card-top">
+                        <div class="lib-card-code">@e.Code</div>
+                    </div>
+                    <div class="lib-card-name">@e.Name</div>
+                    <div class="lib-card-meta">
+                        <span class="lib-meta-tag">@e.Style</span>
+                        <span class="lib-meta-tag">@e.BaseSize</span>
+                    </div>
+                    <div class="lib-card-footer">
+                        <span class="lib-date">@e.Date</span>
+                        <NavLink class="btn btn-outline btn-sm" href="@CanvasHref(e)">Start in canvas</NavLink>
+                        <button type="button" class="pp-btn-delete" style="margin-left:6px" @onclick="() => DeletePatternAsync(e)">Delete</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<LibraryEntryViewModel> _saved = [];
+    private List<LibraryEntryViewModel> _unsaved = [];
+
+    protected override void OnInitialized() => LoadEntries();
+
+    private void LoadEntries()
+    {
+        var savedIds = PieceService.GetSavedPatternIds();
+        var entries = PatternService.GetAll().Select(p =>
+        {
+            var styleKey = FitStyleKeys.Normalize(p.Style);
+            var hasSaved = savedIds.Contains(p.Id);
+            var pieceCount = hasSaved
+                ? PieceService.GetPieceDefinitions(p.Id, styleKey).Count
+                : 0;
+
+            return new LibraryEntryViewModel
+            {
+                Id = p.Id,
+                Code = p.Code,
+                Name = p.Name,
+                Style = p.Style,
+                StyleKey = styleKey,
+                BaseSize = p.BaseSize,
+                Category = p.Category,
+                Status = p.Status,
+                Date = p.Date,
+                HasCanvas = hasSaved,
+                PieceCount = pieceCount,
+            };
+        }).ToList();
+
+        _saved = entries.Where(e => e.HasCanvas).ToList();
+        _unsaved = entries.Where(e => !e.HasCanvas).ToList();
+    }
+
+    private static string CanvasHref(LibraryEntryViewModel e) =>
+        $"module/canvas?patternId={e.Id}&style={Uri.EscapeDataString(e.StyleKey)}";
+
+    private async Task DeletePatternAsync(LibraryEntryViewModel e)
+    {
+        if (!await DesktopConfirm.DeleteAsync(JS, $"pattern {e.Code} ({e.Name})"))
+            return;
+        if (!PatternService.Delete(e.Id))
+        {
+            Toast.Show("Delete failed", "Could not delete pattern.", DesktopToastType.Error, "⚠");
+            return;
+        }
+        Toast.Show("Pattern deleted", $"{e.Code} removed.", DesktopToastType.Success, "🗑");
+        LoadEntries();
+    }
+}

@@ -1,0 +1,202 @@
+@using Pattern.Web.Model
+@{
+    var layout  = ViewData["Layout"] as LayoutViewModel ?? new LayoutViewModel();
+    var active  = layout.ActiveController;
+    var style   = layout.CurrentStyle;
+    var pending = layout.PendingBadgeCount;
+    var lockStyleSwitcher = layout.CurrentPatternId is int boundPid && boundPid > 0
+        && active is "Export" or "Canvas" or "Pieces";
+
+    string Nav(string ctrl) => active == ctrl ? "sb-item active" : "sb-item";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@(ViewData["Title"] ?? layout.PageTitle) — PatternPro</title>
+  <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/patternpro-shell.css" asp-append-version="true" />
+</head>
+<body class="pp-theme">
+
+<!-- Editorial top bar (M.Mueller & Sohn–inspired publishing accent) -->
+<div class="brand-accent" aria-hidden="true"></div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ══ NEW PATTERN MODAL ══ -->
+@await Html.PartialAsync("_NewPatternModal")
+
+<div class="app">
+
+  <!-- ══ SIDEBAR ══ -->
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">
+        <div class="sb-logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3L4 8v8l8 5 8-5V8l-8-5z" stroke="white" stroke-width="1.6" stroke-linejoin="round" fill="none" opacity=".95"/>
+            <path d="M12 3v18M4 8l16 8M20 8L4 16" stroke="white" stroke-width="1.1" stroke-linecap="round" opacity=".45"/>
+          </svg>
+        </div>
+        <div>
+          <div class="sb-brand-name">PatternPro</div>
+        </div>
+      </div>
+      <div class="sb-brand-sub">Technical patterns · Bottom wear</div>
+    </div>
+
+    <nav class="sb-nav">
+      <div class="sb-section">Module</div>
+
+      <a class="@Nav("Home")" asp-controller="Home" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" fill="currentColor"/><rect x="8" y="1" width="6" height="5" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="8" width="5" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="8" y="8" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/></svg>
+        Dashboard
+        @if (pending > 0)
+        {
+          <span class="sb-badge" id="sb-notif-badge">@pending</span>
+        }
+      </a>
+
+      <a class="@Nav("StyleSheet")" asp-controller="StyleSheet" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="2" width="13" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M4 5h7M4 7.5h5M4 10h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Style Sheet
+      </a>
+
+      <a class="@Nav("SizeChart")" asp-controller="SizeChart" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="3" width="13" height="1.5" rx=".75" fill="currentColor" opacity=".7"/><rect x="1" y="7" width="13" height="1.5" rx=".75" fill="currentColor" opacity=".7"/><rect x="1" y="11" width="13" height="1.5" rx=".75" fill="currentColor" opacity=".7"/><rect x="4.5" y="1" width="1.5" height="13" rx=".75" fill="currentColor" opacity=".4"/></svg>
+        Size Chart
+      </a>
+
+      <a class="@Nav("BlockGenerator")" asp-controller="BlockGenerator" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2L13 12H2L7.5 2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="none" opacity=".85"/></svg>
+        Block Generator
+      </a>
+
+      <a class="@Nav("Grading")" asp-controller="Grading" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.4" fill="none" opacity=".85"/><path d="M5 7.5h5M7.5 5v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+        Grading
+      </a>
+
+      <a class="@Nav("Pieces")" asp-controller="Pieces" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="5" height="8" rx="1.2" fill="currentColor" opacity=".7"/><rect x="8" y="1" width="6" height="8" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="11" width="13" height="3" rx="1.2" fill="currentColor" opacity=".4"/></svg>
+        Pattern Pieces
+      </a>
+
+      <a class="@Nav("Library")" asp-controller="Library" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="2" width="3" height="11" rx="1" fill="currentColor" opacity=".7"/><rect x="5" y="2" width="3" height="11" rx="1" fill="currentColor" opacity=".5"/><rect x="9" y="2" width="5" height="11" rx="1" fill="currentColor" opacity=".4"/></svg>
+        Library
+      </a>
+
+      <div class="sb-divider"></div>
+      <div class="sb-section">Tools</div>
+
+      @if (layout.CurrentPatternId is int canvasPid && canvasPid > 0)
+      {
+      <a class="@Nav("Canvas")" asp-controller="Canvas" asp-action="Index" asp-route-style="@style" asp-route-patternId="@canvasPid">
+        <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.4" fill="none" opacity=".85"/><path d="M4.5 8L6.5 10L10.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/></svg>
+        Canvas Editor
+      </a>
+      }
+      else
+      {
+      <a class="@Nav("Canvas")" asp-controller="Canvas" asp-action="Index" asp-route-style="@style">
+        <svg viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.4" fill="none" opacity=".85"/><path d="M4.5 8L6.5 10L10.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/></svg>
+        Canvas Editor
+      </a>
+      }
+
+      <a class="@Nav("Nest")" asp-controller="Nest" asp-action="Index" asp-route-style="@style">
+        <svg viewBox="0 0 15 15" fill="none"><path d="M3 12V6L7.5 3L12 6V12H9V9H6V12H3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="none" opacity=".75"/></svg>
+        Graded Nest
+      </a>
+
+      @if (layout.CurrentPatternId is int exportPid && exportPid > 0)
+      {
+      <a class="@Nav("Export")" asp-controller="Export" asp-action="Index" asp-route-patternId="@exportPid" asp-route-style="@style">
+        <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2V10M4.5 7L7.5 10L10.5 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/><path d="M2 11V13H13V11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+        Export / DXF
+      </a>
+      }
+      else
+      {
+      <a class="@Nav("Export")" asp-controller="Export" asp-action="Index">
+        <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2V10M4.5 7L7.5 10L10.5 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/><path d="M2 11V13H13V11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+        Export / DXF
+      </a>
+      }
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-avatar">PD</div>
+      <div style="flex:1;min-width:0">
+        <div class="sb-user-name">Pattern Designer</div>
+        <div class="sb-user-role">Bottom wear · Senior</div>
+      </div>
+      <div class="sb-status" title="Online"></div>
+    </div>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="tb-breadcrumb">
+        <span>PatternPro</span><span class="tb-sep">›</span>
+        <span>Patterns</span><span class="tb-sep">›</span>
+        <span>@layout.PageTitle</span>
+      </div>
+      <div class="tb-clock" id="tb-clock">00:00:00</div>
+
+      <div class="tb-notif" id="notif-btn" title="Notifications">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6v3l-1.5 2h12l-1.5-2V6C12.5 3.5 10.5 1.5 8 1.5Z" stroke="var(--ink3)" stroke-width="1.3" fill="none"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="var(--ink3)" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <div class="tb-notif-dot" id="notif-dot"></div>
+        <div class="notif-panel" id="notif-panel">
+          <div class="notif-header">
+            <div class="notif-title-text">Notifications</div>
+            <div class="notif-clear" id="notif-clear-btn">Clear all</div>
+          </div>
+          <div id="notif-list">
+            <div class="notif-item"><div style="display:flex;gap:10px;align-items:flex-start"><div class="notif-dot"></div><div><div class="notif-item-title">Grading complete — Skinny XS→XXL</div><div class="notif-item-sub">All sizes graded and verified</div><div class="notif-time">2h ago</div></div></div></div>
+            <div class="notif-item"><div style="display:flex;gap:10px;align-items:flex-start"><div class="notif-dot"></div><div><div class="notif-item-title">DXF export ready — Slim Tapered</div><div class="notif-item-sub">54 files packaged for download</div><div class="notif-time">1d ago</div></div></div></div>
+            <div class="notif-item"><div style="display:flex;gap:10px;align-items:flex-start"><div class="notif-dot"></div><div><div class="notif-item-title">Review needed — Back leg crotch</div><div class="notif-item-sub">Curve adjustment flagged</div><div class="notif-time">2d ago</div></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="style-switcher @(lockStyleSwitcher ? "style-switcher--locked" : "")"
+           id="style-switcher"
+           data-current="@style"
+           @(lockStyleSwitcher ? "data-lock=\"1\" title=\"Fit is fixed to this pattern — pick another row on Dashboard to export a different fit.\"" : "")>
+        @foreach (var (key, label) in new[] { ("skinny","Skinny"),("slim","Slim"),("straight","Straight"),("bootcut","Bootcut"),("wideLeg","Wide Leg") })
+        {
+          <button type="button"
+                  class="style-pill @(style == key ? "active" : "")"
+                  data-style="@key"
+                  @(lockStyleSwitcher && style != key ? "disabled aria-disabled=\"true\"" : "")>@label</button>
+        }
+      </div>
+
+      <div class="tb-actions">
+        <button class="btn btn-outline btn-sm" id="btn-import">↑ Import</button>
+        <button class="btn btn-outline btn-sm" id="btn-library">⊞ Library</button>
+        <button class="btn btn-gold btn-sm"    id="btn-new-pattern">＋ New Pattern</button>
+      </div>
+    </div>
+
+    <!-- Page content -->
+    <div class="content @(active == "Canvas" ? "content--canvas" : "")">
+      @RenderBody()
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>
