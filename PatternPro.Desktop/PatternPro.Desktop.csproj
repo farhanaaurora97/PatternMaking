@@ -2,11 +2,14 @@
 
     <PropertyGroup>
         <!-- Day 1: Windows pilot target (maui-windows workload). Add mobile TFs later if needed. -->
-        <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+        <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+        <!-- Match installed .NET 10 SDK + maui-windows workload. -->
+        <MauiVersion>10.0.80</MauiVersion>
         <!-- None for dotnet run. Publish script sets CreateWindowsInstaller=true for MSIX. -->
         <WindowsPackageType Condition="'$(CreateWindowsInstaller)' == 'true'">MSIX</WindowsPackageType>
         <WindowsPackageType Condition="'$(CreateWindowsInstaller)' != 'true'">None</WindowsPackageType>
-        <WindowsAppSDKSelfContained Condition="'$(CreateWindowsInstaller)' == 'true'">true</WindowsAppSDKSelfContained>
+        <!-- Bundle WinUI/Windows App SDK for dotnet run (no system MSIX runtime required). -->
+        <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 
         <OutputType>Exe</OutputType>
         <RootNamespace>PatternPro.Desktop</RootNamespace>
@@ -15,6 +18,9 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
+        <!-- Explicit version: workload MauiVersion is not always imported when only maui-windows is installed. -->
+        <!-- Windows pilot only; .NET 10 uses win-x64 (not win10-x64). -->
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
         <!-- Display name -->
         <ApplicationTitle>PatternPro</ApplicationTitle>
@@ -56,12 +62,12 @@
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.11" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
         <PackageReference Include="SkiaSharp" Version="3.116.1" />
         <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.116.1" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -77,6 +83,9 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="appsettings.Development.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="appsettings.Team.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>

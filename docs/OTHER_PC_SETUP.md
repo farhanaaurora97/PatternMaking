@@ -135,6 +135,53 @@ PatternPro.Web (optional second app): **http://localhost:5002**
 | Postgres error | Start Postgres; fix `appsettings.Development.json` |
 | Missing Development json | Copy from `appsettings.Development.example.json` |
 | Only slim in ZIP | One pattern + one fit per export — use Dashboard Export per row |
+| **Main PC shows ~62 patterns, this PC shows ~21** | See [Missing patterns (21 vs 62)](#missing-patterns-21-vs-62) below |
+
+---
+
+## Missing patterns (21 vs 62)
+
+The **exe/ZIP is only the app**. Patterns live in **PostgreSQL** (or local `App_Data`), not inside the exe.
+
+| Where | Typical count |
+|-------|----------------|
+| Main PC database (`192.168.1.15:5433`) | ~62 |
+| This PC local JSON (`%LocalAppData%\PatternPro\...\App_Data`) | ~21 seed styles |
+| This PC local Postgres (`localhost:5432`) | ~25 |
+
+### Option A — Live shared database (recommended)
+
+**1. On the MAIN PC** (Admin PowerShell, from the repo):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\allow-lan-postgres.ps1
+```
+
+**2. On THIS PC:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\use-team-database.ps1
+```
+
+Restart PatternPro. Dashboard should match the main PC count.
+
+If step 2 fails with `no pg_hba.conf entry for host "192.168.1.14"`, step 1 was not done on the main PC yet.
+
+### Option B — USB dump (no network)
+
+**On MAIN PC:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\export-patternpro-db.ps1
+```
+
+Copy the Desktop folder `PatternPro-DB-Export` to this PC (USB).
+
+**On THIS PC:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\import-patternpro-db.ps1 -DumpFile "D:\path\to\patternpro-....dump"
+```
 
 ## Quick copy-paste (other PC)
 
