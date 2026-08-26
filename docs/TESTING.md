@@ -127,7 +127,7 @@ powershell -ExecutionPolicy Bypass -File tools/publish-desktop-windows.ps1
 | File | Purpose |
 |------|---------|
 | `PatternPro-Desktop-win-x64/` | Portable folder — run `PatternPro.Desktop.exe` |
-| `PatternPro-Desktop-1.0-win-x64.zip` | Share this ZIP with other Windows PCs |
+| `PatternPro-Desktop-1.0-win-x64.zip` | Share this ZIP with other Windows PCs (self-contained + WebView2 loader) |
 | `PatternPro-Desktop-1.0-win-x64.msix` | Optional Windows app package (if MSIX step succeeds) |
 
 **Install shortcuts on a PC:** unzip, then inside the folder:
@@ -139,6 +139,8 @@ powershell -ExecutionPolicy Bypass -File Install-PatternPro.ps1
 Creates Start menu + Desktop shortcut under `%LocalAppData%\Programs\PatternPro`.
 
 Configure PostgreSQL in `appsettings.Development.json` (copy from example) before distributing.
+
+**Target PC requirements:** Windows 10/11 x64, Edge WebView2 Runtime (usually preinstalled), PostgreSQL reachable from `appsettings.Development.json`. If SmartScreen appears: **More info → Run anyway**.
 
 ### Desktop manual checklist (~15 min)
 
@@ -160,6 +162,8 @@ Walk through once per release. Check **toast** (bottom-right) on create/export w
 | 12 | Account | Change password (optional) | Success message |
 
 **Note:** Automated `tools/qa-*.ps1` scripts target **Pattern.Web** HTTP APIs. Desktop reuses the same services but has no HTTP smoke script yet — use this checklist for UI/dialog/canvas verification.
+
+**Multi-PC (shared PostgreSQL):** see [MULTI_PC_SETUP.md](MULTI_PC_SETUP.md) and run `tools/setup-postgres-server.ps1` + `tools/setup-desktop-client.ps1`.
 
 ---
 

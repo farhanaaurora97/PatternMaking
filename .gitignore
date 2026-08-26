@@ -12,6 +12,7 @@ tmp-export-*.zip
 
 # Local dev secrets (copy from *.example.json)
 **/appsettings.Development.json
+**/appsettings.Team.json
 
 # Tooling / IDE (machine-specific)
 .claude/settings.local.json

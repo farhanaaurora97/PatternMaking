@@ -23,19 +23,24 @@
       <div class="form-row" style="margin-bottom:0">
         <label class="form-label">Base Size</label>
         <select class="form-input" id="m-base">
-          @foreach (var sz in PatternCreateViewModel.SizeOptions)
+          @foreach (var (value, label) in PatternCreateViewModel.BaseSizeOptions)
           {
-            if (sz == "M")
+            if (value == "M")
             {
-              <option value="@sz" selected="selected">@sz</option>
+              <option value="@value" selected="selected">@label</option>
             }
             else
             {
-              <option value="@sz">@sz</option>
+              <option value="@value">@label</option>
             }
           }
         </select>
       </div>
+    </div>
+
+    <div class="form-row" id="m-custom-base-row" hidden>
+      <label class="form-label">Custom base size</label>
+      <input class="form-input" id="m-custom-base" type="text" placeholder="e.g. 32, W32, 40, 3XL" autocomplete="off" />
     </div>
 
     <div class="form-row">

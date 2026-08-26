@@ -23,7 +23,7 @@ public class ExportViewModel
 
     public static IReadOnlyList<ExportFormatViewModel> Formats =>
     [
-        new("DXF", "📐", "Industry standard CAD format. Compatible with Gerber, Lectra, Optitex & all major CAM systems.", true),
+        new("DXF", "📐", "AAMA-style DXF for Optitex 24. Units: centimeters (cm). Closed polylines, one block per piece.", true),
         new("HPGL", "🖨", "Hewlett-Packard Graphics Language for plotters and many CAM cutters. Pen layers: CUT, SA, GRAIN, NOTCH.", false),
         new("PLT", "✂", "HPGL command stream with .plt extension for legacy plotter and cutter drivers.", false),
         new("PDF", "🖨", "One PDF per piece — print paper patterns (mm scale). Open in Reader and print at 100%.", false),

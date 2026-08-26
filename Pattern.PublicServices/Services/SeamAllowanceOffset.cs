@@ -2,18 +2,18 @@ using System.Globalization;
 
 namespace PatternPro.Business.Services;
 
-internal static class SeamAllowanceOffset
+public static class SeamAllowanceOffset
 {
-    internal enum JoinStyle
+    public enum JoinStyle
     {
         Miter,
         Bevel,
         Round,
     }
 
-    internal readonly record struct Pt(double X, double Y);
+    public readonly record struct Pt(double X, double Y);
 
-    internal static JoinStyle ParseJoin(string? join) =>
+    public static JoinStyle ParseJoin(string? join) =>
         (join ?? string.Empty).Trim().ToLowerInvariant() switch
         {
             "bevel" => JoinStyle.Bevel,
@@ -21,14 +21,29 @@ internal static class SeamAllowanceOffset
             _ => JoinStyle.Miter,
         };
 
-    internal static IReadOnlyList<Pt> OffsetClosed(
+    public static IReadOnlyList<Pt> OffsetClosed(
         IReadOnlyList<Pt> pts,
         double offset,
         JoinStyle join,
         int roundSegments = 10,
+        double miterLimit = 6.0) =>
+        OffsetClosed(pts, offset, join, null, roundSegments, miterLimit);
+
+    public static IReadOnlyList<Pt> OffsetClosed(
+        IReadOnlyList<Pt> pts,
+        double offset,
+        JoinStyle join,
+        IReadOnlyList<double>? perEdgeOffsets,
+        int roundSegments = 10,
         double miterLimit = 6.0)
     {
-        if (pts.Count < 3 || Math.Abs(offset) < 0.0001)
+        if (pts.Count < 3)
+            return pts;
+
+        var hasPerEdge = perEdgeOffsets is not null
+            && perEdgeOffsets.Count >= pts.Count
+            && perEdgeOffsets.Any(v => Math.Abs(v - offset) > 0.0001);
+        if (!hasPerEdge && Math.Abs(offset) < 0.0001)
             return pts;
 
         // Ensure polygon is CCW so "outward" is consistent.
@@ -41,7 +56,18 @@ internal static class SeamAllowanceOffset
         }
         var ccw = signedArea > 0;
         var outSign = ccw ? 1d : -1d;
-        var d = offset * outSign;
+
+        double EdgeOffset(int edgeIndex)
+        {
+            if (perEdgeOffsets is not null && edgeIndex >= 0 && edgeIndex < perEdgeOffsets.Count)
+            {
+                var v = perEdgeOffsets[edgeIndex];
+                if (Math.Abs(v) > 0.0001)
+                    return v * outSign;
+            }
+
+            return offset * outSign;
+        }
 
         // Precompute edge unit normals (left normals for CCW).
         var n = pts.Count;
@@ -67,6 +93,9 @@ internal static class SeamAllowanceOffset
             var curr = i;
             var next = (i + 1) % n;
 
+            var d0 = EdgeOffset(prev);
+            var d1 = EdgeOffset(curr);
+
             var p = pts[curr];
             var n0 = edgeNormals[prev];
             var n1 = edgeNormals[curr];
@@ -87,21 +116,21 @@ internal static class SeamAllowanceOffset
             var len1 = Math.Sqrt(dir1x * dir1x + dir1y * dir1y);
             if (len0 < 1e-9 || len1 < 1e-9)
             {
-                outPts.Add(new Pt(p.X + n1.nx * d, p.Y + n1.ny * d));
+                outPts.Add(new Pt(p.X + n1.nx * d1, p.Y + n1.ny * d1));
                 continue;
             }
             dir0x /= len0; dir0y /= len0;
             dir1x /= len1; dir1y /= len1;
 
-            var l0p = new Pt(p.X + n0.nx * d, p.Y + n0.ny * d);
-            var l1p = new Pt(p.X + n1.nx * d, p.Y + n1.ny * d);
+            var l0p = new Pt(p.X + n0.nx * d0, p.Y + n0.ny * d0);
+            var l1p = new Pt(p.X + n1.nx * d1, p.Y + n1.ny * d1);
 
             // Intersect the two offset rays. If parallel or miter too long, fallback.
             var denom = Cross(dir0x, dir0y, dir1x, dir1y);
             var isParallel = Math.Abs(denom) < 1e-9;
 
-            var bevelA = new Pt(p.X + n0.nx * d, p.Y + n0.ny * d);
-            var bevelB = new Pt(p.X + n1.nx * d, p.Y + n1.ny * d);
+            var bevelA = new Pt(p.X + n0.nx * d0, p.Y + n0.ny * d0);
+            var bevelB = new Pt(p.X + n1.nx * d1, p.Y + n1.ny * d1);
 
             if (isParallel)
             {
@@ -120,7 +149,7 @@ internal static class SeamAllowanceOffset
             var mx = ix - p.X;
             var my = iy - p.Y;
             var mLen = Math.Sqrt(mx * mx + my * my);
-            if (mLen > Math.Abs(d) * miterLimit)
+            if (mLen > Math.Max(Math.Abs(d0), Math.Abs(d1)) * miterLimit)
             {
                 // Too spiky — bevel/round instead.
                 if (join == JoinStyle.Round)

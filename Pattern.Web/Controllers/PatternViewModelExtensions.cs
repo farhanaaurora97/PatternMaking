@@ -64,7 +64,9 @@ internal static class PatternViewModelExtensions
         Code        = p.Code,
         Name        = p.Name,
         Style       = p.Style,
-        StyleKey    = _styleKeys.TryGetValue(p.Style, out var sk) ? sk : p.Style.ToLower(),
+        StyleKey    = _styleKeys.TryGetValue(p.Style, out var sk)
+            ? sk
+            : Pattern.Core.Model.StyleOptionCatalog.StyleKeyFromDisplayLabel(p.Style),
         BaseSize    = p.BaseSize,
         PieceCount  = p.PieceCount,
         Status      = p.Status,

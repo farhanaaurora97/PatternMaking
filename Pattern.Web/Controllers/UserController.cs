@@ -47,12 +47,12 @@ public class UserController(IUserService userService) : Controller
             return View(model);
         }
 
-        var id = CurrentUserId();
-        if (id <= 0) return Challenge();
+        var user = CurrentUser();
+        if (user is null) return Challenge();
 
         try
         {
-            userService.ChangePassword(id, model.CurrentPassword, model.NewPassword);
+            userService.ChangePassword(user.Id, model.CurrentPassword, model.NewPassword);
             TempData["UserMessage"] = "Password updated successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -67,7 +67,16 @@ public class UserController(IUserService userService) : Controller
     private AppUser? CurrentUser()
     {
         var id = CurrentUserId();
-        return id > 0 ? userService.GetById(id) : null;
+        if (id > 0)
+        {
+            var byId = userService.GetById(id);
+            if (byId is not null) return byId;
+        }
+
+        var name = User.Identity?.Name;
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        return userService.GetAll().FirstOrDefault(u =>
+            string.Equals(u.UserName, name, StringComparison.OrdinalIgnoreCase));
     }
 
     private int CurrentUserId()

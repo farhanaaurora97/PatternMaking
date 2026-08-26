@@ -45,7 +45,9 @@ internal static class PatternMapper
             Code = p.Code,
             Name = p.Name,
             Style = p.Style,
-            StyleKey = StyleKeys.TryGetValue(p.Style, out var sk) ? sk : p.Style.ToLowerInvariant(),
+            StyleKey = StyleKeys.TryGetValue(p.Style, out var sk)
+                ? sk
+                : StyleOptionCatalog.StyleKeyFromDisplayLabel(p.Style),
             BaseSize = p.BaseSize,
             PieceCount = p.PieceCount,
             Status = p.Status,

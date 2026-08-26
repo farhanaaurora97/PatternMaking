@@ -4,7 +4,7 @@ using PatternPro.Core.Persistence.Repositories;
 
 namespace PatternPro.Business.Services;
 
-public class PatternService : IPatternService
+public class PatternService : IPatternService, IReloadableAppData
 {
     private static readonly Dictionary<string, (string Prefix, string Label)> Categories =
         new(StringComparer.OrdinalIgnoreCase)
@@ -125,30 +125,46 @@ public class PatternService : IPatternService
         }
     }
 
+    /// <summary>Reload from PostgreSQL / JSON so external updates (DbTool, Export QC) appear on the dashboard without restart.</summary>
+    public void ReloadFromStore() => ReloadFromStoreIfAvailable();
+
     /// <summary>Reload from PostgreSQL/JSON before reads or writes so singleton cache cannot overwrite the store.</summary>
     private void EnsureFresh() => ReloadFromStoreIfAvailable();
 
     public IReadOnlyList<Pattern.Core.Model.Pattern> GetAll()
     {
-        // Reload from PostgreSQL / JSON so external updates (DbTool, Export QC) appear on the dashboard without restart.
-        ReloadFromStoreIfAvailable();
+        EnsureFresh();
         return _patterns.AsReadOnly();
     }
 
     public StyleDefinition GetStyleDefinition(string styleKey) =>
-        _styles.TryGetValue(styleKey, out var def) ? def : _styles["skinny"];
+        GetStyleDefinition(styleKey, null);
+
+    internal StyleDefinition GetStyleDefinition(string styleKey, string? displayLabel)
+    {
+        var key = StyleOptionCatalog.NormalizeStyleKey(styleKey);
+        if (_styles.TryGetValue(key, out var def))
+            return def;
+
+        var template = _styles[StyleOptionCatalog.TemplateStyleKey(key)];
+        return new StyleDefinition
+        {
+            Label = StyleOptionCatalog.FormatFitDisplayLabel(key, displayLabel),
+            PieceCount = template.PieceCount,
+            PieceList = [.. template.PieceList],
+        };
+    }
 
     public Pattern.Core.Model.Pattern Create(string name, string styleKey, string baseSize, string designer, string categoryKey,
-        string? season = null, string? owner = null, string? lifecycleStatus = null)
+        string? season = null, string? owner = null, string? lifecycleStatus = null,
+        string? customFitLabel = null, string? customCategoryLabel = null)
     {
         EnsureFresh();
-        var def        = GetStyleDefinition(styleKey);
-        var styleLabel = _styleLabels.TryGetValue(styleKey, out var lbl) ? lbl : styleKey;
+        var (fitKey, styleLabel) = StyleOptionCatalog.ResolveFit(styleKey, customFitLabel);
+        var (_, catLabel, catPrefix) = StyleOptionCatalog.ResolveCategory(categoryKey, customCategoryLabel);
+        var def = GetStyleDefinition(fitKey, styleLabel);
 
-        if (!Categories.TryGetValue(categoryKey ?? "denim", out var cat))
-            cat = Categories["denim"];
-
-        var code = $"{cat.Prefix}-{_nextId:D3}";
+        var code = $"{catPrefix}-{_nextId:D3}";
 
         var now = DateTime.Now;
         var pattern = new Pattern.Core.Model.Pattern
@@ -166,7 +182,7 @@ public class PatternService : IPatternService
             Season           = string.IsNullOrWhiteSpace(season) ? StyleLifecycle.DefaultSeason(now) : season.Trim(),
             Owner            = string.IsNullOrWhiteSpace(owner) ? (string.IsNullOrWhiteSpace(designer) ? "Unassigned" : designer.Trim()) : owner.Trim(),
             LifecycleStatus  = StyleLifecycle.IsValid(lifecycleStatus) ? lifecycleStatus! : StyleLifecycle.Idea,
-            Category         = cat.Label,
+            Category         = catLabel,
             CreatedAt        = now,
             DueDate          = null,
         };

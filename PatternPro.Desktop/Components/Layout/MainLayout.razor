@@ -1,4 +1,7 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Navigation
+@inject DesktopCanvasHost CanvasHost
 
 <div class="pp-accent"></div>
 <div class="pp-app">
@@ -10,3 +13,20 @@
     </main>
 </div>
 <ToastHost />
+
+@code {
+    protected override void OnInitialized() =>
+        Navigation.LocationChanged += OnLocationChanged;
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        var path = Navigation.ToBaseRelativePath(e.Location).Split('?', '#')[0];
+        if (!path.StartsWith("module/canvas", StringComparison.OrdinalIgnoreCase)
+            && !path.StartsWith("module/nest", StringComparison.OrdinalIgnoreCase))
+        {
+            CanvasHost.HideOverlayForNavigation();
+        }
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+}

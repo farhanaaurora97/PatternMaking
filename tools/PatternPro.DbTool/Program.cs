@@ -9,9 +9,14 @@ using PatternModel = Pattern.Core.Model.Pattern;
 //
 //   dotnet run --project tools/PatternPro.DbTool -- sync
 //   dotnet run --project tools/PatternPro.DbTool -- sync 23 24
+//   dotnet run --project tools/PatternPro.DbTool -- verify-connection
+//   dotnet run --project tools/PatternPro.DbTool -- verify-login admin Admin@123
+//   dotnet run --project tools/PatternPro.DbTool -- seed-grading
+//   dotnet run --project tools/PatternPro.DbTool -- seed-size-chart
 //   dotnet run --project tools/PatternPro.DbTool -- certify-factory 23 24
 //   dotnet run --project tools/PatternPro.DbTool -- seed-style 23 slim
 
+using PatternPro.Business.Services;
 var command = args.Length > 0 ? args[0].ToLowerInvariant() : "sync";
 var patternIds = new List<int>();
 string? appDataOverride = null;
@@ -37,6 +42,7 @@ var config = new ConfigurationBuilder()
     .SetBasePath(Path.Combine(repoRoot, "Pattern.Web"))
     .AddJsonFile("appsettings.json", optional: false)
     .AddJsonFile("appsettings.Development.json", optional: true)
+    .AddEnvironmentVariables()
     .Build();
 
 var conn = config.GetConnectionString("Postgres");
@@ -53,6 +59,36 @@ db.Database.Migrate();
 
 var json = new JsonAppDataStore(appData);
 var pg = new PostgreSqlAppDataStore(new PgFactory(options));
+
+if (command is "reset-admin-password")
+{
+    ResetAdminPassword(config, options);
+    return 0;
+}
+
+if (command is "verify-login")
+{
+    VerifyLogin(config, options, args.Length > 1 ? args[1] : "admin", args.Length > 2 ? args[2] : "Admin@123");
+    return 0;
+}
+
+if (command is "verify-connection")
+{
+    VerifyConnection(conn, options);
+    return 0;
+}
+
+if (command is "seed-grading")
+{
+    SeedDefaultGrading(pg);
+    return 0;
+}
+
+if (command is "seed-size-chart")
+{
+    SeedDefaultSizeChart(pg);
+    return 0;
+}
 
 if (command is "certify-factory")
 {
@@ -107,6 +143,7 @@ if (pgPatterns is null || pgPatterns.Patterns.Count == 0)
     Console.WriteLine("[DbTool] PostgreSQL patterns empty — importing all patterns and pieces from JSON...");
     pg.SavePatterns(jsonPatterns.Patterns, jsonPatterns.NextId);
     pg.SavePieces(jsonPieces);
+    SeedDefaultSizeChart(pg);
     PrintCertifiedCount(pg);
     return 0;
 }
@@ -132,8 +169,143 @@ foreach (var id in patternIds)
 }
 
 pg.SavePatterns(pgPatterns.Patterns, pgPatterns.NextId);
+SeedDefaultSizeChart(pg);
+SeedDefaultGrading(pg);
 PrintCertifiedCount(pg);
 return 0;
+
+static string ResolveSeedPassword(IConfiguration config) =>
+    string.IsNullOrWhiteSpace(config["Auth:SeedAdminPassword"])
+        ? "Admin@123"
+        : config["Auth:SeedAdminPassword"]!.Trim();
+
+static void ResetAdminPassword(IConfiguration config, DbContextOptions<PatternProDbContext> options)
+{
+    using var db = new PatternProDbContext(options);
+    var userName = (config["Auth:SeedAdminUserName"] ?? "admin").Trim();
+    var password = ResolveSeedPassword(config);
+    var entity = db.AppUsers.FirstOrDefault(u => u.UserName.ToLower() == userName.ToLower());
+    if (entity is null)
+    {
+        Console.Error.WriteLine($"[DbTool] User '{userName}' not found.");
+        return;
+    }
+
+    var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AppUser>();
+    entity.PasswordHash = hasher.HashPassword(new AppUser(), password);
+    db.SaveChanges();
+    var verify = hasher.VerifyHashedPassword(new AppUser { PasswordHash = entity.PasswordHash }, entity.PasswordHash, password);
+    Console.WriteLine($"[DbTool] Reset password for '{entity.UserName}' (active={entity.IsActive}, verify={verify}).");
+}
+
+static void VerifyLogin(IConfiguration config, DbContextOptions<PatternProDbContext> options, string userName, string password)
+{
+    using var db = new PatternProDbContext(options);
+    var key = userName.Trim().ToLowerInvariant();
+    var entity = db.AppUsers.AsNoTracking()
+        .FirstOrDefault(u => u.UserName.ToLower() == key)
+        ?? db.AppUsers.AsNoTracking()
+            .FirstOrDefault(u => u.EmployeeId.ToUpper() == userName.Trim().ToUpperInvariant());
+    if (entity is null)
+    {
+        Console.WriteLine($"[DbTool] User '{userName}' not found in DB.");
+        return;
+    }
+
+    var user = new AppUser
+    {
+        Id = entity.Id,
+        EmployeeId = entity.EmployeeId,
+        UserName = entity.UserName,
+        DisplayName = entity.DisplayName,
+        Role = entity.Role,
+        IsActive = entity.IsActive,
+        PasswordHash = entity.PasswordHash,
+        CreatedAt = entity.CreatedAt,
+        LastLoginAt = entity.LastLoginAt,
+    };
+
+    Console.WriteLine($"[DbTool] DB user: id={user.Id}, user={user.UserName}, emp={user.EmployeeId}, active={user.IsActive}, hashLen={user.PasswordHash?.Length ?? 0}");
+
+    if (!user.IsActive)
+    {
+        Console.WriteLine("[DbTool] ValidateLogin: FAILED (inactive)");
+        return;
+    }
+
+    var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AppUser>();
+    var result = hasher.VerifyHashedPassword(user, user.PasswordHash, password);
+    Console.WriteLine($"[DbTool] ValidateLogin('{userName}'): {(result is Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed ? "FAILED" : "OK")} ({result})");
+}
+
+static void VerifyConnection(string conn, DbContextOptions<PatternProDbContext> options)
+{
+    var host = ParseConnPart(conn, "Host") ?? "?";
+    var port = ParseConnPart(conn, "Port") ?? "5432";
+    var db = ParseConnPart(conn, "Database") ?? "patternpro";
+    Console.WriteLine($"[DbTool] Testing PostgreSQL {db} @ {host}:{port} ...");
+
+    try
+    {
+        using var dbCtx = new PatternProDbContext(options);
+        if (!dbCtx.Database.CanConnect())
+        {
+            Console.Error.WriteLine("[DbTool] FAILED: CanConnect returned false.");
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        var userCount = dbCtx.AppUsers.Count();
+        var patternCount = dbCtx.Patterns.Count();
+        Console.WriteLine($"[DbTool] OK — connected. Users={userCount}, Patterns={patternCount}.");
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[DbTool] FAILED: {ex.Message}");
+        Environment.ExitCode = 1;
+    }
+}
+
+static string? ParseConnPart(string conn, string key)
+{
+    foreach (var part in conn.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        var eq = part.IndexOf('=');
+        if (eq <= 0) continue;
+        if (part[..eq].Equals(key, StringComparison.OrdinalIgnoreCase))
+            return part[(eq + 1)..].Trim();
+    }
+
+    return null;
+}
+
+static void SeedDefaultGrading(PostgreSqlAppDataStore pg)
+{
+    var grading = pg.LoadGrading();
+    if (!AppDataDefaults.NeedsDefaultSeed(grading))
+    {
+        Console.WriteLine($"[DbTool] Grading OK: {grading.Styles.Count} fits, {grading.Columns.Count} columns.");
+        return;
+    }
+
+    var defaults = AppDataDefaults.CreateDefaultGrading();
+    pg.SaveGrading(defaults);
+    Console.WriteLine($"[DbTool] Seeded default grading: {defaults.Styles.Count} fits, {defaults.Columns.Count} columns (M base, Waist L = +2 cm).");
+}
+
+static void SeedDefaultSizeChart(PostgreSqlAppDataStore pg)
+{
+    var chart = pg.LoadSizeChart();
+    if (!AppDataDefaults.NeedsDefaultSeed(chart) && !AppDataDefaults.IsLegacyDefaultSizeChart(chart))
+    {
+        Console.WriteLine($"[DbTool] Size chart OK: {chart.Rows.Count} rows, {chart.Columns.Count} columns.");
+        return;
+    }
+
+    var defaults = AppDataDefaults.CreateDefaultSizeChart();
+    pg.SaveSizeChart(defaults);
+    Console.WriteLine($"[DbTool] Seeded default size chart: {defaults.Rows.Count} rows, {defaults.Columns.Count} columns (Waist M = 84 cm).");
+}
 
 static bool MarkFactoryReady(PatternsStore pg, int patternId)
 {

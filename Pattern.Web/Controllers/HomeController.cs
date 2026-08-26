@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+using Pattern.Core.Model;
 using PatternPro.Core.IServices;
 using Pattern.Web.Model;
 
 namespace Pattern.Web.Controllers;
 
-public class HomeController(IPatternService patternService) : Controller
+public class HomeController(IPatternService patternService, ISizeChartService sizeChartService) : Controller
 {
     public IActionResult Index(string style = "skinny")
     {
@@ -61,9 +62,27 @@ public class HomeController(IPatternService patternService) : Controller
         if (!ModelState.IsValid)
             return BadRequest(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 
+        string resolvedBase;
+        try
+        {
+            resolvedBase = StyleOptionCatalog.ResolveBaseSize(
+                form.BaseSize,
+                form.BaseSize == StyleOptionCatalog.CustomBaseSizeOption ? form.CustomBaseSizeLabel : null);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new[] { ex.Message });
+        }
+
         var created = patternService.Create(
-            form.Name, form.StyleKey, form.BaseSize, form.Designer, form.CategoryKey,
-            form.Season, form.Owner, form.LifecycleStatus);
+            form.Name, form.StyleKey, resolvedBase, form.Designer, form.CategoryKey,
+            form.Season, form.Owner, form.LifecycleStatus,
+            form.CustomFitLabel, form.CustomCategoryLabel);
+
+        var columns = sizeChartService.GetColumnLabels(created.Id);
+        if (!columns.Any(c => c.Equals(resolvedBase, StringComparison.OrdinalIgnoreCase)))
+            sizeChartService.TryAddSizeColumn(resolvedBase, created.Id);
+
         return Ok(created.ToViewModel());
     }
 

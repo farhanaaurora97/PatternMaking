@@ -5,6 +5,7 @@
 @using PatternPro.Desktop.Mapping
 @using PatternPro.Desktop.Services
 @inject IPatternService PatternService
+@inject ISizeChartService SizeChartService
 @inject DesktopToastService Toast
 @inject IJSRuntime JS
 
@@ -141,21 +142,48 @@
     </div>
     <div class="form-row">
         <label>Fit</label>
-        <select class="status-select" style="width:100%" @bind="_createStyleKey">
+        <select class="status-select" style="width:100%" @bind="_createStyleKey" @bind:after="OnCreateStyleChanged">
             @foreach (var opt in PatternCreateViewModel.StyleOptions)
             {
                 <option value="@opt.Value">@opt.Label</option>
             }
         </select>
     </div>
+    <div class="form-row" hidden="@(_createStyleKey != StyleOptionCatalog.CustomFitOption)">
+        <label>Custom fit name</label>
+        <input class="cp-input" style="width:100%" @bind="_customFitLabel" @bind:event="oninput"
+               @onkeydown:stopPropagation="true" @ref="_customFitInput"
+               placeholder="e.g. Relaxed taper, High rise wide" />
+    </div>
     <div class="form-row">
         <label>Pant type</label>
-        <select class="status-select" style="width:100%" @bind="_createCategoryKey">
+        <select class="status-select" style="width:100%" @bind="_createCategoryKey" @bind:after="OnCreateCategoryChanged">
             @foreach (var opt in PatternCreateViewModel.CategoryOptions)
             {
                 <option value="@opt.Value">@opt.Label</option>
             }
         </select>
+    </div>
+    <div class="form-row" hidden="@(_createCategoryKey != StyleOptionCatalog.CustomCategoryOption)">
+        <label>Custom pant type</label>
+        <input class="cp-input" style="width:100%" @bind="_customCategoryLabel" @bind:event="oninput"
+               @onkeydown:stopPropagation="true" @ref="_customCategoryInput"
+               placeholder="e.g. Cargo jogger, Work pant, Athleisure" />
+    </div>
+    <div class="form-row">
+        <label>Base size</label>
+        <select class="status-select" style="width:100%" @bind="_createBaseSize" @bind:after="OnCreateBaseSizeChanged">
+            @foreach (var opt in PatternCreateViewModel.BaseSizeOptions)
+            {
+                <option value="@opt.Value">@opt.Label</option>
+            }
+        </select>
+    </div>
+    <div class="form-row" hidden="@(_createBaseSize != StyleOptionCatalog.CustomBaseSizeOption)">
+        <label>Custom base size</label>
+        <input class="cp-input" style="width:100%" @bind="_customBaseSizeLabel" @bind:event="oninput"
+               @onkeydown:stopPropagation="true" @ref="_customBaseSizeInput"
+               placeholder="e.g. 32, W32, 40, 3XL" />
     </div>
     <div class="form-row">
         <label>Season</label>
@@ -191,6 +219,12 @@
 @code {
     private List<PatternViewModel> _rows = [];
     private ElementReference _createDialog;
+    private ElementReference _customFitInput;
+    private ElementReference _customCategoryInput;
+    private ElementReference _customBaseSizeInput;
+    private bool _focusCustomFit;
+    private bool _focusCustomCategory;
+    private bool _focusCustomBaseSize;
     private string _search = "";
     private string _lifecycleTab = "All";
     private string _sortCol = "code";
@@ -199,6 +233,9 @@
     private string _createName = "";
     private string _createStyleKey = "skinny";
     private string _createCategoryKey = "denim";
+    private string _customFitLabel = "";
+    private string _customCategoryLabel = "";
+    private string _customBaseSizeLabel = "";
     private string _createBaseSize = "M";
     private string _createDesigner = "Pattern Designer";
     private string _createSeason = "";
@@ -230,6 +267,43 @@
     private static string LifecycleCssFor(string lifecycle) => $"lc-{lifecycle}";
 
     protected override void OnInitialized() => Reload();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusCustomFit)
+        {
+            _focusCustomFit = false;
+            await JS.InvokeVoidAsync("patternPro.focusElement", _customFitInput);
+        }
+        else if (_focusCustomCategory)
+        {
+            _focusCustomCategory = false;
+            await JS.InvokeVoidAsync("patternPro.focusElement", _customCategoryInput);
+        }
+        else if (_focusCustomBaseSize)
+        {
+            _focusCustomBaseSize = false;
+            await JS.InvokeVoidAsync("patternPro.focusElement", _customBaseSizeInput);
+        }
+    }
+
+    private void OnCreateStyleChanged()
+    {
+        if (_createStyleKey == StyleOptionCatalog.CustomFitOption)
+            _focusCustomFit = true;
+    }
+
+    private void OnCreateCategoryChanged()
+    {
+        if (_createCategoryKey == StyleOptionCatalog.CustomCategoryOption)
+            _focusCustomCategory = true;
+    }
+
+    private void OnCreateBaseSizeChanged()
+    {
+        if (_createBaseSize == StyleOptionCatalog.CustomBaseSizeOption)
+            _focusCustomBaseSize = true;
+    }
 
     private void Reload()
     {
@@ -301,6 +375,9 @@
         _createName = "";
         _createStyleKey = "skinny";
         _createCategoryKey = "denim";
+        _customFitLabel = "";
+        _customCategoryLabel = "";
+        _customBaseSizeLabel = "";
         _createBaseSize = "M";
         _createDesigner = "Pattern Designer";
         _createSeason = "";
@@ -322,11 +399,41 @@
         _createBusy = true;
         try
         {
+            if (_createStyleKey == StyleOptionCatalog.CustomFitOption && string.IsNullOrWhiteSpace(_customFitLabel))
+            {
+                _createError = "Enter a custom fit name.";
+                return;
+            }
+            if (_createCategoryKey == StyleOptionCatalog.CustomCategoryOption && string.IsNullOrWhiteSpace(_customCategoryLabel))
+            {
+                _createError = "Enter a custom pant type.";
+                return;
+            }
+
+            string resolvedBase;
+            try
+            {
+                resolvedBase = StyleOptionCatalog.ResolveBaseSize(
+                    _createBaseSize,
+                    _createBaseSize == StyleOptionCatalog.CustomBaseSizeOption ? _customBaseSizeLabel : null);
+            }
+            catch (ArgumentException ex)
+            {
+                _createError = ex.Message;
+                return;
+            }
+
             var season = string.IsNullOrWhiteSpace(_createSeason) ? null : _createSeason.Trim();
             var owner = string.IsNullOrWhiteSpace(_createOwner) ? null : _createOwner.Trim();
             var created = PatternService.Create(
-                _createName.Trim(), _createStyleKey, _createBaseSize, _createDesigner, _createCategoryKey,
-                season, owner, _createLifecycle);
+                _createName.Trim(), _createStyleKey, resolvedBase, _createDesigner, _createCategoryKey,
+                season, owner, _createLifecycle,
+                string.IsNullOrWhiteSpace(_customFitLabel) ? null : _customFitLabel.Trim(),
+                string.IsNullOrWhiteSpace(_customCategoryLabel) ? null : _customCategoryLabel.Trim());
+
+            var columns = SizeChartService.GetColumnLabels(created.Id);
+            if (!columns.Any(c => c.Equals(resolvedBase, StringComparison.OrdinalIgnoreCase)))
+                SizeChartService.TryAddSizeColumn(resolvedBase, created.Id);
             Toast.Show("Style created", $"{created.Code} {created.Name} added to the register",
                 DesktopToastType.Success, "✨");
             Reload();

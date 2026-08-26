@@ -32,8 +32,16 @@ public static class MauiProgram
 #endif
 
 		var app = builder.Build();
-		app.Services.MigratePatternProDatabase();
-		DesktopStartup.SeedAdminUser(app.Services, builder.Configuration);
+		try
+		{
+			DesktopTeamSetup.ClearStaleLocalJsonCache(builder.Configuration);
+			app.Services.MigratePatternProDatabase();
+			DesktopStartup.SeedAdminUser(app.Services, builder.Configuration);
+		}
+		catch (Exception ex)
+		{
+			DesktopStartupError.ShowAndExit(ex);
+		}
 
 		return app;
 	}

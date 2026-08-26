@@ -150,7 +150,7 @@ public class ExportService(
     {
         "HPGL" or "PLT" => "Plotter pens: SP1=CUT, SP2=SA, SP3=GRAIN, SP4=NOTCH. Coordinates in standard HPGL units (1016/in).",
         "PDF" => "One PDF per piece per size (mm scale). Open and print from Adobe Reader or any PDF viewer.",
-        _ => "Notches: rule-based from style assembly catalog plus drafted piece notches; grain line auto if missing. DXF layers: CUT, SA, GRAIN, NOTCH.",
+        _ => "AAMA DXF: layer 1=cut (closed polyline), 14=net/stitch, 7=grain, 4=notch points. One BLOCK per piece. Units: cm ($INSUNITS=5).",
     };
 
     private static void AddCloReadme(ZipArchive zip)
@@ -195,31 +195,16 @@ public class ExportService(
         return sb.ToString();
     }
 
-    private static string NormalizeStyleKey(string style)
-    {
-        if (string.IsNullOrWhiteSpace(style)) return "skinny";
-        var s = style.Trim();
-        if (string.Equals(s, "wide leg", StringComparison.OrdinalIgnoreCase)) return "wideLeg";
-        return s.ToLowerInvariant() switch
-        {
-            "skinny" => "skinny",
-            "slim" => "slim",
-            "straight" => "straight",
-            "bootcut" => "bootcut",
-            "wideleg" => "wideLeg",
-            "wideLeg" => "wideLeg",
-            _ => "skinny",
-        };
-    }
+    private static string NormalizeStyleKey(string style) => StyleOptionCatalog.NormalizeStyleKey(style);
 
     private static void AddZipReadmeForPlotter(ZipArchive zip)
     {
         const string readme =
             "PATTERN EXPORT — FACTORY / PLOTTER\r\n" +
             "1) Extract this ZIP.\r\n" +
-            "2) DXF: open in Gerber, Lectra, Optitex, or AutoCAD-compatible CAM.\r\n" +
+            "2) DXF: AAMA-style for Optitex, Gerber, Lectra — File > Import, format AAMA, units cm.\r\n" +
             "3) HPGL / PLT: send to HPGL-compatible plotter or cutter (pen order: CUT, SA, GRAIN, NOTCH).\r\n" +
-            "4) Units: DXF in mm ($INSUNITS=4); HPGL/PLT in standard plotter units (1016 per inch).\r\n";
+            "4) Units: DXF in cm ($INSUNITS=5); HPGL/PLT in standard plotter units (1016 per inch).\r\n";
         AddTextEntry(zip, "README-PLOTTER.txt", readme);
     }
 
@@ -264,7 +249,7 @@ public class ExportService(
             }
             else
             {
-                AddGeometryEntry(zip, $"canvas/{styleKey}_{size}{FileExtension(safeFormat)}", safeFormat, gradedList, $"Pattern {patternId} {size}");
+                AddGeometryEntry(zip, $"canvas/{styleKey}_{size}{FileExtension(safeFormat)}", safeFormat, gradedList, size);
             }
         }
     }
@@ -274,13 +259,13 @@ public class ExportService(
         string path,
         string safeFormat,
         IReadOnlyList<PieceDefinition> pieces,
-        string sizeLabel)
+        string sizeCode)
     {
         var content = safeFormat switch
         {
-            "DXF" => BuildCombinedDxf(pieces, sizeLabel),
-            "HPGL" => BuildCombinedHpgl(pieces, sizeLabel),
-            "PLT" => BuildCombinedPlt(pieces, sizeLabel),
+            "DXF" => AamaDxfExporter.Build(pieces, sizeCode),
+            "HPGL" => BuildCombinedHpgl(pieces, sizeCode),
+            "PLT" => BuildCombinedPlt(pieces, sizeCode),
             _ => $"Unsupported format '{safeFormat}'.",
         };
         AddTextEntry(zip, path, content);
@@ -357,7 +342,7 @@ public class ExportService(
                 gfx.DrawPath(new XPen(XColors.Black, 1.2), XBrushes.Transparent, path);
             }
 
-            if (piece.SeamAllowance > 0.0001)
+            if (PieceSeamAllowanceHelper.EffectiveSeamAllowance(piece) > 0.0001)
             {
                 var basePts = piece.Points.Select(pt => new SeamAllowanceOffset.Pt(
                     pt[0] + piece.OffsetX,
@@ -366,7 +351,8 @@ public class ExportService(
                 var saPts = SeamAllowanceOffset.OffsetClosed(
                     basePts,
                     piece.SeamAllowance,
-                    SeamAllowanceOffset.ParseJoin(piece.SeamAllowanceJoin));
+                    SeamAllowanceOffset.ParseJoin(piece.SeamAllowanceJoin),
+                    PieceSeamAllowanceHelper.BuildEdgeOffsets(piece));
 
                 if (saPts.Count >= 3)
                 {
@@ -388,85 +374,6 @@ public class ExportService(
         using var pdfMs = new MemoryStream();
         doc.Save(pdfMs, false);
         return pdfMs.ToArray();
-    }
-
-    /// <summary>
-    /// AutoCAD R12-style ASCII DXF using only LINE entities.
-    /// </summary>
-    private static string BuildCombinedDxf(IReadOnlyList<PieceDefinition> pieces, string _sizeName)
-    {
-        const double gap = 40;
-        const double mmScale = 10.0 / SeamGeometry.PixelsPerCm;
-        var nl = "\r\n";
-        var sb = new StringBuilder();
-
-        sb.Append($"0{nl}SECTION{nl}2{nl}HEADER{nl}9{nl}$ACADVER{nl}1{nl}AC1009{nl}9{nl}$INSUNITS{nl}70{nl}4{nl}0{nl}ENDSEC{nl}");
-        sb.Append($"0{nl}SECTION{nl}2{nl}TABLES{nl}0{nl}ENDSEC{nl}");
-        sb.Append($"0{nl}SECTION{nl}2{nl}ENTITIES{nl}");
-
-        double curX = 0;
-        foreach (var p in pieces)
-        {
-            var xs = p.Points.Select(pt => pt[0] + p.OffsetX).ToArray();
-            var ys = p.Points.Select(pt => pt[1] + p.OffsetY).ToArray();
-            var minX = xs.Min();
-            var minY = ys.Min();
-            var w = xs.Max() - minX;
-            var dx = curX - minX;
-            var dy = -minY;
-
-            var n = p.Points.Count;
-            if (n < 2) { curX += w + gap; continue; }
-
-            for (var i = 0; i < n; i++)
-            {
-                var j = (i + 1) % n;
-                var x1 = (p.Points[i][0] + p.OffsetX + dx) * mmScale;
-                var y1 = (p.Points[i][1] + p.OffsetY + dy) * mmScale;
-                var x2 = (p.Points[j][0] + p.OffsetX + dx) * mmScale;
-                var y2 = (p.Points[j][1] + p.OffsetY + dy) * mmScale;
-                sb.Append($"0{nl}LINE{nl}8{nl}CUT{nl}");
-                sb.Append($"10{nl}{x1.ToString(CultureInfo.InvariantCulture)}{nl}");
-                sb.Append($"20{nl}{y1.ToString(CultureInfo.InvariantCulture)}{nl}");
-                sb.Append($"11{nl}{x2.ToString(CultureInfo.InvariantCulture)}{nl}");
-                sb.Append($"21{nl}{y2.ToString(CultureInfo.InvariantCulture)}{nl}");
-            }
-
-            if (p.SeamAllowance > 0.0001)
-            {
-                var basePts = p.Points.Select(pt => new SeamAllowanceOffset.Pt(
-                    pt[0] + p.OffsetX + dx,
-                    pt[1] + p.OffsetY + dy)).ToList();
-
-                var saPts = SeamAllowanceOffset.OffsetClosed(
-                    basePts,
-                    p.SeamAllowance,
-                    SeamAllowanceOffset.ParseJoin(p.SeamAllowanceJoin));
-
-                if (saPts.Count >= 3)
-                {
-                    for (var i = 0; i < saPts.Count; i++)
-                    {
-                        var j = (i + 1) % saPts.Count;
-                        var a = saPts[i];
-                        var b = saPts[j];
-                        sb.Append($"0{nl}LINE{nl}8{nl}SA{nl}");
-                        sb.Append($"10{nl}{(a.X * mmScale).ToString(CultureInfo.InvariantCulture)}{nl}");
-                        sb.Append($"20{nl}{(a.Y * mmScale).ToString(CultureInfo.InvariantCulture)}{nl}");
-                        sb.Append($"11{nl}{(b.X * mmScale).ToString(CultureInfo.InvariantCulture)}{nl}");
-                        sb.Append($"21{nl}{(b.Y * mmScale).ToString(CultureInfo.InvariantCulture)}{nl}");
-                    }
-                }
-            }
-
-            ExportAnnotations.AppendGrainDxf(sb, p, dx, dy, mmScale);
-            ExportAnnotations.AppendNotchesDxf(sb, p, dx, dy, mmScale);
-
-            curX += (w + gap) * mmScale;
-        }
-
-        sb.Append($"0{nl}ENDSEC{nl}0{nl}EOF{nl}");
-        return sb.ToString();
     }
 
     /// <summary>HPGL plotter file — standard 1016 units/inch, pens SP1–SP4 for CUT/SA/GRAIN/NOTCH.</summary>
@@ -513,7 +420,7 @@ public class ExportService(
                 HpglHelpers.ClosedPolygon(sb, cutPts);
             }
 
-            if (p.SeamAllowance > 0.0001)
+            if (PieceSeamAllowanceHelper.EffectiveSeamAllowance(p) > 0.0001)
             {
                 var basePts = p.Points.Select(pt => new SeamAllowanceOffset.Pt(
                     pt[0] + p.OffsetX + dx,
@@ -522,7 +429,8 @@ public class ExportService(
                 var saPts = SeamAllowanceOffset.OffsetClosed(
                     basePts,
                     p.SeamAllowance,
-                    SeamAllowanceOffset.ParseJoin(p.SeamAllowanceJoin));
+                    SeamAllowanceOffset.ParseJoin(p.SeamAllowanceJoin),
+                    PieceSeamAllowanceHelper.BuildEdgeOffsets(p));
 
                 if (saPts.Count >= 3)
                 {

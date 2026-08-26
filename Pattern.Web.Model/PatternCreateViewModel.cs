@@ -31,31 +31,33 @@ public class PatternCreateViewModel
 
     public static IEnumerable<(string Value, string Label)> LifecycleOptions => StyleLifecycleOptions.All;
 
+    /// <summary>User-entered fit name when <see cref="StyleKey"/> is <see cref="StyleOptionCatalog.CustomFitOption"/>.</summary>
+    public string? CustomFitLabel { get; set; }
+
+    /// <summary>User-entered pant type when <see cref="CategoryKey"/> is <see cref="StyleOptionCatalog.CustomCategoryOption"/>.</summary>
+    public string? CustomCategoryLabel { get; set; }
+
     public static IEnumerable<(string Value, string Label)> CategoryOptions =>
     [
-        ("denim", "Denim"),
-        ("chinos", "Chinos"),
-        ("trousers", "Trousers"),
-        ("cargo", "Cargo"),
-        ("joggers", "Joggers"),
-        ("linen", "Linen"),
-        ("leather", "Leather"),
-        ("palazzo", "Palazzo"),
-        ("shorts", "Shorts"),
-        ("sweatpants", "Sweatpants"),
-        ("corduroy", "Corduroy"),
-        ("workwear", "Workwear"),
+        .. Pattern.Core.Model.StyleOptionCatalog.BuiltInCategoryOptions.Select(c => (c.Key, c.Label)),
+        (Pattern.Core.Model.StyleOptionCatalog.CustomCategoryOption, "Custom type…"),
     ];
 
     public static IEnumerable<(string Value, string Label)> StyleOptions =>
     [
-        ("skinny",   "Skinny Fit"),
-        ("slim",     "Slim Fit"),
-        ("straight", "Straight Fit"),
-        ("bootcut",  "Bootcut Fit"),
-        ("wideLeg",  "Wide Leg Fit"),
+        .. Pattern.Core.Model.StyleOptionCatalog.BuiltInFitOptions,
+        (Pattern.Core.Model.StyleOptionCatalog.CustomFitOption, "Custom fit…"),
+    ];
+
+    /// <summary>User-entered base size when <see cref="BaseSize"/> is <see cref="StyleOptionCatalog.CustomBaseSizeOption"/>.</summary>
+    public string? CustomBaseSizeLabel { get; set; }
+
+    public static IEnumerable<(string Value, string Label)> BaseSizeOptions =>
+    [
+        .. Pattern.Core.Model.StyleOptionCatalog.BuiltInBaseSizes.Select(s => (s, s)),
+        (Pattern.Core.Model.StyleOptionCatalog.CustomBaseSizeOption, "Custom size…"),
     ];
 
     public static IEnumerable<string> SizeOptions =>
-        ["XS", "S", "M", "L", "XL", "XXL"];
+        Pattern.Core.Model.StyleOptionCatalog.BuiltInBaseSizes;
 }

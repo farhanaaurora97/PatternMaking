@@ -54,7 +54,17 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
   const btnCancel = document.getElementById('btn-modal-cancel');
   const btnCreate = document.getElementById('btn-modal-create');
   const errEl   = document.getElementById('modal-error');
+  const baseSelect = document.getElementById('m-base');
+  const customBaseRow = document.getElementById('m-custom-base-row');
   if (!overlay) return;
+
+  function syncCustomFields() {
+    const customBase = baseSelect?.value === '__custom_base__';
+    if (customBaseRow) customBaseRow.hidden = !customBase;
+  }
+
+  baseSelect?.addEventListener('change', syncCustomFields);
+  syncCustomFields();
 
   function open()  { overlay.classList.add('open'); setTimeout(() => document.getElementById('m-name')?.focus(), 200); }
   function close() { overlay.classList.remove('open'); errEl?.classList.remove('show'); }
@@ -69,11 +79,16 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
     const categoryKey = document.getElementById('m-category')?.value ?? 'denim';
     const styleKey   = document.getElementById('m-style')?.value;
     const base       = document.getElementById('m-base')?.value;
+    const customBaseSizeLabel = document.getElementById('m-custom-base')?.value.trim() || null;
     const designer   = document.getElementById('m-designer')?.value.trim();
     const season     = document.getElementById('m-season')?.value.trim() || null;
     const owner      = document.getElementById('m-owner')?.value.trim() || null;
     const lifecycleStatus = document.getElementById('m-lifecycle')?.value || 'Idea';
     if (!name) { errEl?.classList.add('show'); return; }
+    if (base === '__custom_base__' && !customBaseSizeLabel) {
+      if (errEl) { errEl.textContent = 'Enter a custom base size.'; errEl.classList.add('show'); }
+      return;
+    }
     errEl?.classList.remove('show');
 
     const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
@@ -84,7 +99,7 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
         'Accept': 'application/json',
         ...(token ? { 'RequestVerificationToken': token } : {}),
       },
-      body: JSON.stringify({ name, categoryKey, styleKey, baseSize: base, designer, season, owner, lifecycleStatus }),
+      body: JSON.stringify({ name, categoryKey, styleKey, baseSize: base, designer, season, owner, lifecycleStatus, customBaseSizeLabel }),
     });
     if (!res.ok) {
       let msg = 'Check your connection and try again.';

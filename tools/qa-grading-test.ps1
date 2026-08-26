@@ -85,11 +85,22 @@ function Get-GradingCsv($Session, [string]$Style = "slim") {
 }
 
 function Get-WaistLDelta([string]$Csv) {
-    $waistLine = ($Csv -split "`n") | Where-Object { $_ -match "^Waist," } | Select-Object -First 1
+    $lines = $Csv -split "`n"
+    $header = $lines | Select-Object -First 1
+    if (-not $header) { throw "CSV header missing" }
+    $headers = ($header -split ",")[1..100]
+    $lIdx = -1
+    for ($i = 0; $i -lt $headers.Count; $i++) {
+        $label = $headers[$i].Trim()
+        if ($label -eq "L") { $lIdx = $i; break }
+    }
+    if ($lIdx -lt 0) { throw "L column not found in header: $header" }
+
+    $waistLine = $lines | Where-Object { $_ -match "^Waist," } | Select-Object -First 1
     if (-not $waistLine) { throw "Waist row not found" }
     $parts = $waistLine -split ","
-    if ($parts.Count -lt 5) { throw "Waist row too short: $waistLine" }
-    $raw = $parts[4].Trim().TrimStart('+')
+    if ($parts.Count -le ($lIdx + 1)) { throw "Waist row too short: $waistLine" }
+    $raw = $parts[$lIdx + 1].Trim().TrimStart('+')
     return [double]$raw
 }
 

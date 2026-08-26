@@ -58,12 +58,30 @@ public static class DependencyInjection
             return;
         }
 
-        using var db = factory.CreateDbContext();
-        db.Database.Migrate();
+        try
+        {
+            using var db = factory.CreateDbContext();
+            db.Database.Migrate();
 
-        services.GetService<PostgreSqlAppDataStore>()?.ImportLegacyAppKvIfNeeded();
+            services.GetService<PostgreSqlAppDataStore>()?.ImportLegacyAppKvIfNeeded();
 
-        var conn = db.Database.GetDbConnection();
-        Console.WriteLine($"[PatternPro] Data store: PostgreSQL {conn.Database} @ {conn.DataSource}");
+            var conn = db.Database.GetDbConnection();
+            Console.WriteLine($"[PatternPro] Data store: PostgreSQL {conn.Database} @ {conn.DataSource}");
+        }
+        catch (Exception ex)
+        {
+            var logDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "PatternPro");
+            Directory.CreateDirectory(logDir);
+            var logPath = Path.Combine(logDir, "startup-error.txt");
+            File.WriteAllText(logPath, ex.ToString());
+            Console.WriteLine($"[PatternPro] Database startup failed: {ex.Message}");
+            Console.WriteLine($"[PatternPro] Details: {logPath}");
+            throw new InvalidOperationException(
+                "Could not connect to PostgreSQL. Check appsettings.Development.json or remove it to use local JSON storage. " +
+                $"Details: {logPath}",
+                ex);
+        }
     }
 }

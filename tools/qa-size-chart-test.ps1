@@ -69,12 +69,37 @@ function Get-SizeChartCsv($Session) {
     return (Invoke-WebRequest -Uri "$BaseUrl/SizeChart/ExportCsv" -WebSession $Session -UseBasicParsing).Content
 }
 
+function Parse-CsvLine([string]$Line) {
+    $result = [System.Collections.Generic.List[string]]::new()
+    $current = ""
+    $inQuotes = $false
+    for ($i = 0; $i -lt $Line.Length; $i++) {
+        $c = $Line[$i]
+        if ($c -eq '"') {
+            if ($inQuotes -and $i + 1 -lt $Line.Length -and $Line[$i + 1] -eq '"') {
+                $current += '"'
+                $i++
+            } else {
+                $inQuotes = -not $inQuotes
+            }
+        } elseif ($c -eq ',' -and -not $inQuotes) {
+            $result.Add($current)
+            $current = ""
+        } else {
+            $current += $c
+        }
+    }
+    $result.Add($current)
+    return $result
+}
+
 function Get-WaistMValue([string]$Csv) {
     $waistLine = ($Csv -split "`n") | Where-Object { $_ -match "^Waist," } | Select-Object -First 1
     if (-not $waistLine) { throw "Waist row not found in CSV" }
-    $parts = $waistLine -split ","
-    if ($parts.Count -lt 4) { throw "Waist row too short: $waistLine" }
-    return [decimal]$parts[3]
+    $parts = Parse-CsvLine $waistLine
+    # Measurement, ± cm, Method, XS, S, M, ...
+    if ($parts.Count -lt 6) { throw "Waist row too short: $waistLine" }
+    return [decimal]$parts[5]
 }
 
 Write-Host ""

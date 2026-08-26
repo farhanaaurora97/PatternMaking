@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Pattern.Core.Model;
 using PatternPro.Core.IServices;
 using Pattern.Web.Model;
 
@@ -46,9 +47,6 @@ public class LibraryController(
         return View(entries);
     }
 
-    private static string StyleKey(string style) => style.ToLowerInvariant() switch
-    {
-        "wide leg" => "wideLeg",
-        var s      => s.Replace(" ", ""),
-    };
+    private static string StyleKey(string style) =>
+        StyleOptionCatalog.StyleKeyFromDisplayLabel(style);
 }

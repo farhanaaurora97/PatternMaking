@@ -33,12 +33,14 @@ internal static class CanvasPieceSaver
                     patternId, style, piece.Name,
                     pts, piece.OffsetX, piece.OffsetY,
                     piece.Grain, piece.Cf, piece.Notches,
-                    piece.SeamAllowance, piece.SeamAllowanceJoin)
+                    piece.SeamAllowance, piece.SeamAllowanceJoin,
+                    piece.Edges, piece.InternalLines)
                 : pieceService.UpdatePieceGeometry(
                     style, piece.Name,
                     pts, piece.OffsetX, piece.OffsetY,
                     piece.Grain, piece.Cf, piece.Notches,
-                    piece.SeamAllowance, piece.SeamAllowanceJoin);
+                    piece.SeamAllowance, piece.SeamAllowanceJoin,
+                    piece.Edges, piece.InternalLines);
 
             if (ok) saved++;
             else if (!string.IsNullOrWhiteSpace(error))

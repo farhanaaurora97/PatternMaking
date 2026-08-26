@@ -15,9 +15,13 @@ public class PieceDefinition
     public string         GrainLine   { get; set; } = "Straight";
     public string         Description { get; set; } = string.Empty;
     public List<int[]>    Points      { get; set; } = [];
+    /// <summary>Edge i connects Points[i] → Points[(i+1) % Count]. Omitted entries are straight lines.</summary>
+    public List<PieceEdge>? Edges     { get; set; }
     public List<int[]>?   Grain       { get; set; }
     public List<int[]>?   Cf          { get; set; }
     public List<int[]>?   Notches     { get; set; }
+    /// <summary>Internal construction guides (pocket, fly, etc.) — not cut lines.</summary>
+    public List<PieceInternalLine>? InternalLines { get; set; }
     public int            OffsetX     { get; set; }
     public int            OffsetY     { get; set; }
 

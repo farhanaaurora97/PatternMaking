@@ -5,8 +5,15 @@ public enum CanvasToolMode
     Select,
     Pan,
     Point,
+    DeletePoint,
     Notch,
     Draw,
+    Curve,
+    Smooth,
+    Measure,
+    Arc,
+    InternalLine,
+    WalkSeam,
 }
 
 public sealed class CanvasLayerOptions
@@ -15,4 +22,5 @@ public sealed class CanvasLayerOptions
     public bool ShowGrain { get; set; } = true;
     public bool ShowLabels { get; set; } = true;
     public bool ShowNotches { get; set; } = true;
+    public bool ShowInternalLines { get; set; } = true;
 }

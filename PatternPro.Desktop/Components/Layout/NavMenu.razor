@@ -1,8 +1,11 @@
 @implements IDisposable
 @using PatternPro.Desktop.Auth
+@using PatternPro.Desktop.Services
 @inject DesktopAuthService Auth
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
+@inject DesktopToastService Toast
+@inject DesktopDataRefreshService DataRefresh
 
 <div class="pp-brand">
     <div class="pp-brand-name">PatternPro</div>
@@ -54,6 +57,9 @@
                 <div class="pp-user-role">@_role@(string.IsNullOrWhiteSpace(_employeeId) ? "" : $" · {_employeeId}")</div>
             </div>
         </div>
+        <button type="button" class="btn btn-outline btn-sm pp-refresh" @onclick="RefreshPage" disabled="@_refreshing" title="Reload this page from the shared database">
+            ↻ Refresh
+        </button>
         <button type="button" class="btn btn-outline btn-sm pp-logout" @onclick="Logout">⇥ Sign out</button>
     </div>
 }
@@ -61,6 +67,7 @@
 @code {
     private bool _isAuthenticated;
     private bool _isAdmin;
+    private bool _refreshing;
     private string _displayName = "";
     private string _role = "";
     private string _employeeId = "";
@@ -96,6 +103,16 @@
         return parts.Length >= 2
             ? $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}"
             : name.Trim()[..Math.Min(2, name.Trim().Length)].ToUpperInvariant();
+    }
+
+    private void RefreshPage()
+    {
+        if (_refreshing) return;
+        _refreshing = true;
+        DataRefresh.ReloadAllFromStore();
+        Toast.Show("Refreshing", "Loading latest data from the shared database…", DesktopToastType.Info, "↻");
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+        Navigation.NavigateTo(string.IsNullOrWhiteSpace(relative) ? "" : relative, forceLoad: true);
     }
 
     private void Logout()

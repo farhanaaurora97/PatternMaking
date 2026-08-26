@@ -31,17 +31,21 @@ public interface IPieceService
         int patternId, string styleKey, string name, string category, string cut, string color,
         List<int[]> points, int ox, int oy);
 
-    /// <summary>Persists full geometry edits (points, offset, grain, CF, notches) for a style-shared piece.</summary>
+    /// <summary>Persists full geometry edits (points, offset, grain, CF, notches, edges) for a style-shared piece.</summary>
     (bool Ok, string? Error) UpdatePieceGeometry(
         string styleKey, string pieceName,
         List<int[]> points, int offsetX, int offsetY,
         List<int[]>? grain, List<int[]>? cf, List<int[]>? notches,
-        double seamAllowance = 0, string? seamAllowanceJoin = null);
+        double seamAllowance = 0, string? seamAllowanceJoin = null,
+        List<PieceEdge>? edges = null,
+        List<PieceInternalLine>? internalLines = null);
     (bool Ok, string? Error) UpdatePatternPieceGeometry(
         int patternId, string styleKey, string pieceName,
         List<int[]> points, int offsetX, int offsetY,
         List<int[]>? grain, List<int[]>? cf, List<int[]>? notches,
-        double seamAllowance = 0, string? seamAllowanceJoin = null);
+        double seamAllowance = 0, string? seamAllowanceJoin = null,
+        List<PieceEdge>? edges = null,
+        List<PieceInternalLine>? internalLines = null);
 
     /// <summary>Replaces all pieces for a specific pattern with a freshly drafted set.</summary>
     void ReplacePatternPieces(int patternId, IEnumerable<PieceDefinition> pieces);

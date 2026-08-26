@@ -7,7 +7,8 @@ public interface IPatternService
     IReadOnlyList<Pattern.Core.Model.Pattern> GetAll();
     StyleDefinition                    GetStyleDefinition(string styleKey);
     Pattern.Core.Model.Pattern         Create(string name, string styleKey, string baseSize, string designer, string categoryKey,
-        string? season = null, string? owner = null, string? lifecycleStatus = null);
+        string? season = null, string? owner = null, string? lifecycleStatus = null,
+        string? customFitLabel = null, string? customCategoryLabel = null);
     Pattern.Core.Model.Pattern?        CycleStatus(int id);
     Pattern.Core.Model.Pattern?        SetStatus(int id, string status);
     bool                               Delete(int id);

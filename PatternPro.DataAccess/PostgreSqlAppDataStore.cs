@@ -24,6 +24,13 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
     private const string KindGrain = "grain";
     private const string KindCf = "cf";
     private const string KindNotch = "notch";
+    private const string KindEdgeQuad = "edge_q";
+    private const string KindEdgeCubic1 = "edge_c1";
+    private const string KindEdgeCubic2 = "edge_c2";
+    private const string KindEdgeSa = "edge_sa";
+    private const string KindIlineStart = "iline_s";
+    private const string KindIlineEnd = "iline_e";
+    private const string KindIlineLabel = "iline_l";
 
     private readonly IDbContextFactory<PatternProDbContext> _factory;
 
@@ -140,10 +147,10 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
     public SizeChartStore LoadSizeChart()
     {
         using var db = _factory.CreateDbContext();
-        if (!db.SizeChartColumns.Any())
+        if (!db.SizeChartColumns.Any() || !db.SizeChartRows.Any())
             TryImportSizeChartFromKv(db);
 
-        if (!db.SizeChartColumns.Any())
+        if (!db.SizeChartColumns.Any() || !db.SizeChartRows.Any())
             return new SizeChartStore();
 
         var columns = db.SizeChartColumns.AsNoTracking().ToList();
@@ -386,9 +393,11 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
             GrainLine = entity.GrainLine,
             Description = entity.Description,
             Points = ToPoints(vertices, KindOutline),
+            Edges = ToEdges(vertices, ToPoints(vertices, KindOutline).Count),
             Grain = ToOptionalPoints(vertices, KindGrain),
             Cf = ToOptionalPoints(vertices, KindCf),
             Notches = ToOptionalPoints(vertices, KindNotch),
+            InternalLines = ToInternalLines(vertices),
             OffsetX = entity.OffsetX,
             OffsetY = entity.OffsetY,
             SeamAllowance = entity.SeamAllowance,
@@ -438,10 +447,75 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
         };
 
         AddVertices(entity.Vertices, KindOutline, piece.Points);
+        AddEdgeVertices(entity.Vertices, piece);
         AddVertices(entity.Vertices, KindGrain, piece.Grain);
         AddVertices(entity.Vertices, KindCf, piece.Cf);
         AddVertices(entity.Vertices, KindNotch, piece.Notches);
+        AddInternalLineVertices(entity.Vertices, piece.InternalLines);
         return entity;
+    }
+
+    private static List<PieceInternalLine>? ToInternalLines(IReadOnlyCollection<PieceVertexEntity> vertices)
+    {
+        var starts = vertices
+            .Where(v => v.Kind.Equals(KindIlineStart, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(v => v.PointOrder)
+            .ToList();
+        if (starts.Count == 0) return null;
+
+        var ends = vertices
+            .Where(v => v.Kind.Equals(KindIlineEnd, StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(v => v.PointOrder);
+
+        var labelChars = vertices
+            .Where(v => v.Kind.Equals(KindIlineLabel, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(v => v.PointOrder / 20)
+            .ToDictionary(g => g.Key, g => new string(g.OrderBy(v => v.PointOrder % 20).Select(v => (char)v.X).ToArray()));
+
+        var lines = new List<PieceInternalLine>();
+        foreach (var s in starts)
+        {
+            if (!ends.TryGetValue(s.PointOrder, out var e)) continue;
+            var label = labelChars.TryGetValue(s.PointOrder, out var lbl) && !string.IsNullOrWhiteSpace(lbl)
+                ? lbl
+                : "Guide";
+            lines.Add(new PieceInternalLine
+            {
+                Label = label,
+                X1 = s.X,
+                Y1 = s.Y,
+                X2 = e.X,
+                Y2 = e.Y,
+            });
+        }
+
+        return lines.Count == 0 ? null : lines;
+    }
+
+    private static void AddInternalLineVertices(ICollection<PieceVertexEntity> target, List<PieceInternalLine>? lines)
+    {
+        if (lines is null || lines.Count == 0) return;
+
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            target.Add(new PieceVertexEntity { Kind = KindIlineStart, PointOrder = i, X = line.X1, Y = line.Y1 });
+            target.Add(new PieceVertexEntity { Kind = KindIlineEnd, PointOrder = i, X = line.X2, Y = line.Y2 });
+
+            var label = (line.Label ?? "Guide").Trim();
+            if (string.IsNullOrEmpty(label)) label = "Guide";
+            if (label.Length > 16) label = label[..16];
+            for (var c = 0; c < label.Length; c++)
+            {
+                target.Add(new PieceVertexEntity
+                {
+                    Kind = KindIlineLabel,
+                    PointOrder = i * 20 + c,
+                    X = label[c],
+                    Y = 0,
+                });
+            }
+        }
     }
 
     private static void AddVertices(ICollection<PieceVertexEntity> target, string kind, List<int[]>? points)
@@ -476,6 +550,80 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
     {
         var list = ToPoints(vertices, kind);
         return list.Count == 0 ? null : list;
+    }
+
+    private static List<PieceEdge>? ToEdges(IReadOnlyCollection<PieceVertexEntity> vertices, int pointCount)
+    {
+        if (pointCount == 0)
+            return null;
+
+        var edges = Enumerable.Range(0, pointCount).Select(_ => new PieceEdge { Kind = "line" }).ToList();
+
+        foreach (var v in vertices.Where(x => x.Kind.Equals(KindEdgeQuad, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (v.PointOrder < 0 || v.PointOrder >= edges.Count) continue;
+            var sa = edges[v.PointOrder].SeamAllowance;
+            edges[v.PointOrder] = new PieceEdge { Kind = "quad", C1 = [v.X, v.Y], SeamAllowance = sa };
+        }
+
+        foreach (var group in vertices
+                     .Where(x => x.Kind.Equals(KindEdgeCubic1, StringComparison.OrdinalIgnoreCase))
+                     .GroupBy(x => x.PointOrder))
+        {
+            if (group.Key < 0 || group.Key >= edges.Count) continue;
+            var c1 = group.First();
+            var c2 = vertices.FirstOrDefault(x =>
+                x.Kind.Equals(KindEdgeCubic2, StringComparison.OrdinalIgnoreCase) && x.PointOrder == group.Key);
+            if (c2 is null) continue;
+            edges[group.Key] = new PieceEdge
+            {
+                Kind = "cubic",
+                C1 = [c1.X, c1.Y],
+                C2 = [c2.X, c2.Y],
+                SeamAllowance = edges[group.Key].SeamAllowance,
+            };
+        }
+
+        foreach (var v in vertices.Where(x => x.Kind.Equals(KindEdgeSa, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (v.PointOrder < 0 || v.PointOrder >= edges.Count) continue;
+            edges[v.PointOrder].SeamAllowance = v.X / 100.0;
+        }
+
+        return edges.Any(e => e.Kind != "line" || e.SeamAllowance > 0.0001) ? edges : null;
+    }
+
+    private static void AddEdgeVertices(ICollection<PieceVertexEntity> target, PieceDefinition piece)
+    {
+        if (piece.Edges is null || piece.Points.Count == 0)
+            return;
+
+        for (var i = 0; i < piece.Edges.Count && i < piece.Points.Count; i++)
+        {
+            var edge = piece.Edges[i];
+            if (edge.Kind == "quad" && edge.C1 is { Length: >= 2 } c1)
+            {
+                target.Add(new PieceVertexEntity { Kind = KindEdgeQuad, PointOrder = i, X = c1[0], Y = c1[1] });
+                continue;
+            }
+
+            if (edge.Kind == "cubic" && edge.C1 is { Length: >= 2 } cc1 && edge.C2 is { Length: >= 2 } cc2)
+            {
+                target.Add(new PieceVertexEntity { Kind = KindEdgeCubic1, PointOrder = i, X = cc1[0], Y = cc1[1] });
+                target.Add(new PieceVertexEntity { Kind = KindEdgeCubic2, PointOrder = i, X = cc2[0], Y = cc2[1] });
+            }
+
+            if (edge.SeamAllowance > 0.0001)
+            {
+                target.Add(new PieceVertexEntity
+                {
+                    Kind = KindEdgeSa,
+                    PointOrder = i,
+                    X = (int)Math.Round(edge.SeamAllowance * 100),
+                    Y = 0,
+                });
+            }
+        }
     }
 
     private void TryImportPiecesFromKv(PatternProDbContext db)

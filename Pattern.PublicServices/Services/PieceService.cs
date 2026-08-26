@@ -4,7 +4,7 @@ using PatternPro.Core.Persistence.Repositories;
 
 namespace PatternPro.Business.Services;
 
-public class PieceService : IPieceService
+public class PieceService : IPieceService, IReloadableAppData
 {
     private static readonly Dictionary<string, StyleDefinition> _styles =
         new(StringComparer.OrdinalIgnoreCase)
@@ -60,16 +60,50 @@ public class PieceService : IPieceService
             PatternGeometry = _defsPerPattern,
         });
 
+    private void EnsureFresh() => ReloadFromStoreIfAvailable();
+
+    public void ReloadFromStore() => ReloadFromStoreIfAvailable();
+
+    private void ReloadFromStoreIfAvailable()
+    {
+        var saved = _pieces.Load();
+        _defsPerStyle.Clear();
+        foreach (var (key, list) in saved.StyleGeometry)
+            _defsPerStyle[key] = list.Select(CloneDef).ToList();
+
+        _defsPerPattern.Clear();
+        foreach (var (key, list) in saved.PatternGeometry)
+            _defsPerPattern[key] = list.Select(CloneDef).ToList();
+
+        if (_defsPerStyle.Count == 0)
+        {
+            _defsPerStyle["skinny"] = _skinnyDefaults.Select(CloneDef).ToList();
+        }
+    }
+
     // ── Queries ──────────────────────────────────────────────────────
 
-    public StyleDefinition GetStyleDefinition(string styleKey) =>
-        _styles.TryGetValue(styleKey, out var s) ? s : _styles["skinny"];
+    public StyleDefinition GetStyleDefinition(string styleKey)
+    {
+        var key = StyleOptionCatalog.NormalizeStyleKey(styleKey);
+        if (_styles.TryGetValue(key, out var s))
+            return s;
+
+        var template = _styles[StyleOptionCatalog.TemplateStyleKey(key)];
+        return new StyleDefinition
+        {
+            Label = StyleOptionCatalog.FormatFitDisplayLabel(key),
+            PieceCount = template.PieceCount,
+            PieceList = [.. template.PieceList],
+        };
+    }
 
     public IReadOnlyList<string> GetPieceList(string styleKey) =>
         GetStyleDefinition(styleKey).PieceList;
 
     public IReadOnlyList<PieceDefinition> GetPieceDefinitions(string styleKey)
     {
+        EnsureFresh();
         if (_defsPerStyle.TryGetValue(styleKey, out var list))
             return list.AsReadOnly();
 
@@ -163,6 +197,7 @@ public class PieceService : IPieceService
 
     public IReadOnlyList<PieceDefinition> GetPieceDefinitions(int patternId, string styleKey)
     {
+        EnsureFresh();
         if (_defsPerPattern.TryGetValue(patternId, out var list))
             return list.AsReadOnly();
 
@@ -191,7 +226,9 @@ public class PieceService : IPieceService
         string styleKey, string pieceName,
         List<int[]> points, int offsetX, int offsetY,
         List<int[]>? grain, List<int[]>? cf, List<int[]>? notches,
-        double seamAllowance = 0, string? seamAllowanceJoin = null)
+        double seamAllowance = 0, string? seamAllowanceJoin = null,
+        List<PieceEdge>? edges = null,
+        List<PieceInternalLine>? internalLines = null)
     {
         if (!_defsPerStyle.TryGetValue(styleKey, out var list))
             return (false, $"Style '{styleKey}' not found.");
@@ -209,6 +246,10 @@ public class PieceService : IPieceService
         piece.SeamAllowance = seamAllowance;
         if (!string.IsNullOrWhiteSpace(seamAllowanceJoin))
             piece.SeamAllowanceJoin = seamAllowanceJoin.Trim().ToLowerInvariant();
+        if (edges is not null)
+            piece.Edges = PieceSeamAllowanceHelper.CloneEdges(edges);
+        if (internalLines is not null)
+            piece.InternalLines = PieceInternalLine.CloneList(internalLines);
         Persist();
         return (true, null);
     }
@@ -217,7 +258,9 @@ public class PieceService : IPieceService
         int patternId, string styleKey, string pieceName,
         List<int[]> points, int offsetX, int offsetY,
         List<int[]>? grain, List<int[]>? cf, List<int[]>? notches,
-        double seamAllowance = 0, string? seamAllowanceJoin = null)
+        double seamAllowance = 0, string? seamAllowanceJoin = null,
+        List<PieceEdge>? edges = null,
+        List<PieceInternalLine>? internalLines = null)
     {
         if (!_defsPerPattern.ContainsKey(patternId))
             _ = GetPieceDefinitions(patternId, styleKey);
@@ -236,6 +279,10 @@ public class PieceService : IPieceService
         piece.SeamAllowance = seamAllowance;
         if (!string.IsNullOrWhiteSpace(seamAllowanceJoin))
             piece.SeamAllowanceJoin = seamAllowanceJoin.Trim().ToLowerInvariant();
+        if (edges is not null)
+            piece.Edges = PieceSeamAllowanceHelper.CloneEdges(edges);
+        if (internalLines is not null)
+            piece.InternalLines = PieceInternalLine.CloneList(internalLines);
         Persist();
         return (true, null);
     }
@@ -338,8 +385,11 @@ public class PieceService : IPieceService
         Persist();
     }
 
-    public IReadOnlySet<int> GetSavedPatternIds() =>
-        _defsPerPattern.Keys.ToHashSet();
+    public IReadOnlySet<int> GetSavedPatternIds()
+    {
+        EnsureFresh();
+        return _defsPerPattern.Keys.ToHashSet();
+    }
 
     // ── Helpers ──────────────────────────────────────────────────────
 
@@ -400,9 +450,11 @@ public class PieceService : IPieceService
         Color       = d.Color,
         Description = d.Description,
         Points      = [.. d.Points],
+        Edges       = d.Edges is null ? null : PieceSeamAllowanceHelper.CloneEdges(d.Edges),
         Grain       = d.Grain   is null ? null : [.. d.Grain],
         Cf          = d.Cf      is null ? null : [.. d.Cf],
         Notches     = d.Notches is null ? null : [.. d.Notches],
+        InternalLines = d.InternalLines is null ? null : PieceInternalLine.CloneList(d.InternalLines),
         OffsetX     = d.OffsetX,
         OffsetY     = d.OffsetY,
         SeamAllowance = d.SeamAllowance,

@@ -54,7 +54,27 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
   const btnCancel = document.getElementById('btn-modal-cancel');
   const btnCreate = document.getElementById('btn-modal-create');
   const errEl   = document.getElementById('modal-error');
+  const styleSelect = document.getElementById('m-style');
+  const categorySelect = document.getElementById('m-category');
+  const customFitRow = document.getElementById('m-custom-fit-row');
+  const customCategoryRow = document.getElementById('m-custom-category-row');
+  const customBaseRow = document.getElementById('m-custom-base-row');
+  const baseSelect = document.getElementById('m-base');
   if (!overlay) return;
+
+  function syncCustomFields() {
+    const customFit = styleSelect?.value === '__custom_fit__';
+    const customCat = categorySelect?.value === '__custom_category__';
+    const customBase = baseSelect?.value === '__custom_base__';
+    if (customFitRow) customFitRow.hidden = !customFit;
+    if (customCategoryRow) customCategoryRow.hidden = !customCat;
+    if (customBaseRow) customBaseRow.hidden = !customBase;
+  }
+
+  styleSelect?.addEventListener('change', syncCustomFields);
+  categorySelect?.addEventListener('change', syncCustomFields);
+  baseSelect?.addEventListener('change', syncCustomFields);
+  syncCustomFields();
 
   function open()  { overlay.classList.add('open'); setTimeout(() => document.getElementById('m-name')?.focus(), 200); }
   function close() { overlay.classList.remove('open'); errEl?.classList.remove('show'); }
@@ -68,13 +88,29 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
     const name       = document.getElementById('m-name')?.value.trim();
     const categoryKey = document.getElementById('m-category')?.value ?? 'denim';
     const styleKey   = document.getElementById('m-style')?.value;
+    const customFitLabel = document.getElementById('m-custom-fit')?.value.trim() || null;
+    const customCategoryLabel = document.getElementById('m-custom-category')?.value.trim() || null;
+    const customBaseSizeLabel = document.getElementById('m-custom-base')?.value.trim() || null;
     const base       = document.getElementById('m-base')?.value;
     const designer   = document.getElementById('m-designer')?.value.trim();
     const season     = document.getElementById('m-season')?.value.trim() || null;
     const owner      = document.getElementById('m-owner')?.value.trim() || null;
     const lifecycleStatus = document.getElementById('m-lifecycle')?.value || 'Idea';
     if (!name) { errEl?.classList.add('show'); return; }
+    if (styleKey === '__custom_fit__' && !customFitLabel) {
+      if (errEl) { errEl.textContent = 'Enter a custom fit name.'; errEl.classList.add('show'); }
+      return;
+    }
+    if (categoryKey === '__custom_category__' && !customCategoryLabel) {
+      if (errEl) { errEl.textContent = 'Enter a custom pant type.'; errEl.classList.add('show'); }
+      return;
+    }
+    if (base === '__custom_base__' && !customBaseSizeLabel) {
+      if (errEl) { errEl.textContent = 'Enter a custom base size.'; errEl.classList.add('show'); }
+      return;
+    }
     errEl?.classList.remove('show');
+    if (errEl) errEl.textContent = 'Please enter a pattern name.';
 
     const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
     const res = await fetch('/Home/Create', {
@@ -84,7 +120,7 @@ window.toast = function(title, msg, type = 'success', icon = '✅') {
         'Accept': 'application/json',
         ...(token ? { 'RequestVerificationToken': token } : {}),
       },
-      body: JSON.stringify({ name, categoryKey, styleKey, baseSize: base, designer, season, owner, lifecycleStatus }),
+      body: JSON.stringify({ name, categoryKey, styleKey, baseSize: base, designer, season, owner, lifecycleStatus, customFitLabel, customCategoryLabel, customBaseSizeLabel }),
     });
     if (!res.ok) {
       let msg = 'Check your connection and try again.';

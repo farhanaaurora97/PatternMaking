@@ -43,6 +43,13 @@ window.patternPro = window.patternPro || {
     }
   },
 
+  focusElement: function (element) {
+    if (element && typeof element.focus === 'function') {
+      element.focus();
+      if (typeof element.select === 'function') element.select();
+    }
+  },
+
   openDialog: function (element) {
     if (element && typeof element.showModal === 'function') {
       element.showModal();

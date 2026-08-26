@@ -4,7 +4,7 @@ using PatternPro.Core.Persistence.Repositories;
 
 namespace PatternPro.Business.Services;
 
-public class GradingService : IGradingService
+public class GradingService : IGradingService, IReloadableAppData
 {
     private readonly object _lock = new();
     private readonly IGradingRepository _grading;
@@ -16,9 +16,11 @@ public class GradingService : IGradingService
     {
         _grading = grading;
         var persisted = grading.Load();
-        var source = persisted.Styles.Count > 0 ? persisted : AppDataDefaults.CreateDefaultGrading();
+        var source = persisted.Styles.Count > 0 && !AppDataDefaults.NeedsDefaultSeed(persisted)
+            ? persisted
+            : AppDataDefaults.CreateDefaultGrading();
 
-        if (persisted.Styles.Count == 0)
+        if (AppDataDefaults.NeedsDefaultSeed(persisted))
             grading.Save(source);
 
         _columns  = [.. source.Columns];
@@ -29,25 +31,54 @@ public class GradingService : IGradingService
             StringComparer.OrdinalIgnoreCase);
     }
 
+    public void ReloadFromStore() => ReloadFromStoreIfAvailable();
+
+    private void EnsureFresh() => ReloadFromStoreIfAvailable();
+
+    private void ReloadFromStoreIfAvailable()
+    {
+        var persisted = _grading.Load();
+        if (persisted.Styles.Count == 0)
+            return;
+
+        lock (_lock)
+        {
+            _columns.Clear();
+            _columns.AddRange(persisted.Columns);
+            _baseIdx = persisted.BaseIndex;
+            _data.Clear();
+            foreach (var s in persisted.Styles)
+            {
+                _data[s.StyleKey] = (s.Label, s.Rows.Select(CloneRow).ToList());
+            }
+        }
+    }
+
     public IReadOnlyList<string> GetColumnLabels()
     {
+        EnsureFresh();
         lock (_lock) return _columns.ToList();
     }
 
     public IReadOnlyList<GradingRow> GetGradingTable(string styleKey)
     {
+        EnsureFresh();
         lock (_lock)
-            return _data.TryGetValue(styleKey, out var d) ? d.Rows.Select(CloneRow).ToList() : _data["skinny"].Rows.Select(CloneRow).ToList();
+            return _data.TryGetValue(styleKey, out var d)
+                ? d.Rows.Select(CloneRow).ToList()
+                : _data[StyleOptionCatalog.TemplateStyleKey(styleKey)].Rows.Select(CloneRow).ToList();
     }
 
     public string GetStyleLabel(string styleKey)
     {
+        EnsureFresh();
         lock (_lock)
             return _data.TryGetValue(styleKey, out var d) ? d.Label : "Skinny Fit";
     }
 
     public void AddColumn(string label)
     {
+        EnsureFresh();
         lock (_lock)
         {
             foreach (var (_, rows) in _data.Values)
@@ -71,7 +102,9 @@ public class GradingService : IGradingService
     {
         lock (_lock)
         {
-            var rows = _data.TryGetValue(styleKey, out var d) ? d.Rows : _data["skinny"].Rows;
+            var rows = _data.TryGetValue(styleKey, out var d)
+                ? d.Rows
+                : _data[StyleOptionCatalog.TemplateStyleKey(styleKey)].Rows;
             var header = "Measurement," + string.Join(",", _columns.Select((c, i) =>
                 i == _baseIdx ? $"{c}(Base)" : c));
             var lines = new List<string> { header };
@@ -202,7 +235,7 @@ public class GradingService : IGradingService
             if (row is null) return (false, "Measurement row not found.");
             if (columnIndex < 0 || columnIndex >= row.Deltas.Count)
                 return (false, "Invalid size column.");
-            if (columnIndex == row.BaseIndex)
+            if (columnIndex == _baseIdx || columnIndex == row.BaseIndex)
                 return (false, "Base size delta is always zero.");
 
             row.Deltas[columnIndex] = delta;

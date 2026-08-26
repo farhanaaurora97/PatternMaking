@@ -115,7 +115,7 @@
                         <div class="page-sub">By @_pattern.ApprovedBy</div>
                     }
                     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-                        <button type="button" class="btn btn-gold btn-sm" @onclick="ApproveForCutting" disabled="@_busy">Approve for cutting</button>
+                        <button type="button" class="btn btn-gold btn-sm" @onclick="ApproveForCutting" disabled="@(_busy || _pattern?.ApprovedForCutting == true)">Approve for cutting</button>
                         <button type="button" class="btn btn-outline btn-sm" @onclick="RevokeApproval" disabled="@(_busy || _pattern?.ApprovedForCutting != true)">Revoke</button>
                     </div>
                 </div>
@@ -131,7 +131,7 @@
                         <div class="page-sub">By @_pattern.CutterTestedBy</div>
                     }
                     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-                        <button type="button" class="btn btn-gold btn-sm" @onclick="() => RecordCutterTest(true)" disabled="@_busy">Record pass</button>
+                        <button type="button" class="btn btn-gold btn-sm" @onclick="() => RecordCutterTest(true)" disabled="@(_busy || _pattern?.CutterTestPassed == true)">Record pass</button>
                         <button type="button" class="btn btn-outline btn-sm" @onclick="() => RecordCutterTest(false)" disabled="@_busy">Record fail</button>
                     </div>
                 </div>

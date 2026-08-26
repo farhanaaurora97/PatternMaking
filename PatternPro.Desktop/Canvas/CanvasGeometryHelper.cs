@@ -90,25 +90,29 @@ internal static class CanvasGeometryHelper
 
         for (var i = 0; i < piece.Points.Count; i++)
         {
-            var a = piece.Points[i];
-            var b = piece.Points[(i + 1) % piece.Points.Count];
-            if (a.Length < 2 || b.Length < 2) continue;
-            var (t, d) = ClosestOnSegment(lx, ly, a[0], a[1], b[0], b[1]);
-            if (d >= bestDist) continue;
-            bestDist = d;
-            bestIdx = i;
-            bestT = t;
+            var edgePts = PiecePathBuilder.TessellateEdge(piece, i);
+            for (var s = 1; s < edgePts.Count; s++)
+            {
+                var (tSeg, d) = ClosestOnSegment(
+                    lx, ly,
+                    edgePts[s - 1].X, edgePts[s - 1].Y,
+                    edgePts[s].X, edgePts[s].Y);
+                var t = (s - 1 + tSeg) / Math.Max(1, edgePts.Count - 1);
+                if (d >= bestDist) continue;
+                bestDist = d;
+                bestIdx = i;
+                bestT = t;
+            }
         }
 
         if (bestIdx < 0 || bestDist > maxDistPx / scale) return false;
 
         var edgeA = piece.Points[bestIdx];
         var edgeB = piece.Points[(bestIdx + 1) % piece.Points.Count];
-        piece.Points.Insert(bestIdx + 1,
-        [
-            (int)Math.Round(edgeA[0] + (edgeB[0] - edgeA[0]) * bestT),
-            (int)Math.Round(edgeA[1] + (edgeB[1] - edgeA[1]) * bestT),
-        ]);
+        var insertX = (int)Math.Round(edgeA[0] + (edgeB[0] - edgeA[0]) * bestT);
+        var insertY = (int)Math.Round(edgeA[1] + (edgeB[1] - edgeA[1]) * bestT);
+        piece.Points.Insert(bestIdx + 1, [insertX, insertY]);
+        PiecePathBuilder.SplitEdgeOnInsert(piece, bestIdx, bestT);
         return true;
     }
 
@@ -118,31 +122,33 @@ internal static class CanvasGeometryHelper
         var lx = wx - piece.OffsetX;
         var ly = wy - piece.OffsetY;
         var bestDist = float.MaxValue;
-        var bestT = 0f;
-        int[]? edgeA = null;
-        int[]? edgeB = null;
+        var bestX = 0;
+        var bestY = 0;
 
         for (var i = 0; i < piece.Points.Count; i++)
         {
-            var a = piece.Points[i];
-            var b = piece.Points[(i + 1) % piece.Points.Count];
-            if (a.Length < 2 || b.Length < 2) continue;
-            var (t, d) = ClosestOnSegment(lx, ly, a[0], a[1], b[0], b[1]);
-            if (d >= bestDist) continue;
-            bestDist = d;
-            bestT = t;
-            edgeA = a;
-            edgeB = b;
+            var edgePts = PiecePathBuilder.TessellateEdge(piece, i);
+            for (var s = 1; s < edgePts.Count; s++)
+            {
+                var (_, d) = ClosestOnSegment(
+                    lx, ly,
+                    edgePts[s - 1].X, edgePts[s - 1].Y,
+                    edgePts[s].X, edgePts[s].Y);
+                if (d >= bestDist) continue;
+                bestDist = d;
+                var (t, _) = ClosestOnSegment(
+                    lx, ly,
+                    edgePts[s - 1].X, edgePts[s - 1].Y,
+                    edgePts[s].X, edgePts[s].Y);
+                bestX = (int)Math.Round(edgePts[s - 1].X + (edgePts[s].X - edgePts[s - 1].X) * t);
+                bestY = (int)Math.Round(edgePts[s - 1].Y + (edgePts[s].Y - edgePts[s - 1].Y) * t);
+            }
         }
 
-        if (edgeA is null || edgeB is null || bestDist > maxDistPx / scale) return false;
+        if (bestDist > maxDistPx / scale) return false;
 
         piece.Notches ??= [];
-        piece.Notches.Add(
-        [
-            (int)Math.Round(edgeA[0] + (edgeB[0] - edgeA[0]) * bestT),
-            (int)Math.Round(edgeA[1] + (edgeB[1] - edgeA[1]) * bestT),
-        ]);
+        piece.Notches.Add([bestX, bestY]);
         return true;
     }
 }

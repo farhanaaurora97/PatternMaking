@@ -5,7 +5,7 @@
 @using PatternPro.Desktop.Components.Canvas
 @using PatternPro.Desktop.Helpers
 @using PatternPro.Desktop.Services
-@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.Maui.Storage
 @inject IPieceService PieceService
 @inject IPatternService PatternService
 @inject IPatternDraftingService DraftingService
@@ -75,6 +75,10 @@
             <div class="cpl-header">
                 <span>Pieces</span>
                 <span class="cpl-count-badge">@_pieces.Count</span>
+                @if (_pieces.Count > 0)
+                {
+                    <button type="button" class="cpl-select-all" @onclick="SelectAllPieces">All</button>
+                }
             </div>
             @if (_pieces.Count == 0)
             {
@@ -89,8 +93,8 @@
                 {
                     var idx = i;
                     var p = _pieces[idx];
-                    <div class="cpl-item @(_selectedIndex == idx ? "active" : "")"
-                         @onclick="() => SelectPiece(idx)">
+                    <div class="cpl-item @(_selectedIndices.Contains(idx) ? "active" : "")"
+                         @onclick="e => SelectPiece(idx, e.CtrlKey)">
                         <span class="cpl-num">@(idx + 1)</span>
                         <div class="cpl-dot" style="background:@p.Color"></div>
                         <div>
@@ -104,16 +108,62 @@
 
         <div class="canvas-main">
             <div class="canvas-toolbar">
-                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Select ? "active" : "")"
-                        @onclick="() => SetTool(CanvasToolMode.Select)">↖ Select</button>
-                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Pan ? "active" : "")"
-                        @onclick="() => SetTool(CanvasToolMode.Pan)">✥ Pan</button>
-                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Point ? "active" : "")"
-                        @onclick="() => SetTool(CanvasToolMode.Point)">● Point</button>
-                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Notch ? "active" : "")"
-                        @onclick="() => SetTool(CanvasToolMode.Notch)">◆ Notch</button>
-                <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Draw ? "active" : "")"
-                        @onclick="() => SetTool(CanvasToolMode.Draw)">✏ Draw</button>
+                <div class="ctb-group">
+                    <span class="ctb-group-label">Navigate</span>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Select ? "active" : "")"
+                            title="Select and move (S)" @onclick="() => SetTool(CanvasToolMode.Select)">↖ Select</button>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Pan ? "active" : "")"
+                            title="Pan (P)" @onclick="() => SetTool(CanvasToolMode.Pan)">✥ Pan</button>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Measure ? "active" : "")"
+                            title="Measure distance (M)" @onclick="() => SetTool(CanvasToolMode.Measure)">📏 Measure</button>
+                </div>
+                <div class="ctb-sep"></div>
+                <div class="ctb-group">
+                    <span class="ctb-group-label">Draw</span>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Draw ? "active" : "")"
+                            title="Draw polygon (D)" @onclick="() => SetTool(CanvasToolMode.Draw)">✏ Draw</button>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Point ? "active" : "")"
+                            title="Add point on edge (A)" @onclick="() => SetTool(CanvasToolMode.Point)">● Point</button>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.DeletePoint ? "active" : "")"
+                            title="Delete point (X)" @onclick="() => SetTool(CanvasToolMode.DeletePoint)">✕ Del Pt</button>
+                </div>
+                <div class="ctb-sep"></div>
+                <div class="ctb-group">
+                    <span class="ctb-group-label">Curves</span>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Curve ? "active" : "")"
+                            title="Curve edge / drag handle (C)" @onclick="() => SetTool(CanvasToolMode.Curve)">⌇ Curve</button>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Arc ? "active" : "")"
+                            title="Arc edge — click edge and drag (K)" @onclick="() => SetTool(CanvasToolMode.Arc)">◠ Arc</button>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Smooth ? "active" : "")"
+                            title="Smooth corner (U)" @onclick="() => SetTool(CanvasToolMode.Smooth)">∿ Smooth</button>
+                    <button type="button" class="ctb-btn" title="Straighten edge under cursor"
+                            @onclick="StraightenEdge">— Line</button>
+                </div>
+                <div class="ctb-sep"></div>
+                <div class="ctb-group">
+                    <span class="ctb-group-label">Transform</span>
+                    <button type="button" class="ctb-btn" title="Mirror horizontal (H)" @onclick="MirrorHorizontalAsync">⇋ Mirror H</button>
+                    <button type="button" class="ctb-btn" title="Mirror vertical (V)" @onclick="MirrorVerticalAsync">⇅ Mirror V</button>
+                    <button type="button" class="ctb-btn" title="Rotate 90° (R)" @onclick="Rotate90Async">↻ Rot 90°</button>
+                    <button type="button" class="ctb-btn" title="Duplicate selected piece" @onclick="DuplicateSelectedAsync">⧉ Duplicate</button>
+                </div>
+                <div class="ctb-sep"></div>
+                <div class="ctb-group">
+                    <span class="ctb-group-label">Marks</span>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.Notch ? "active" : "")"
+                            title="Notch (N)" @onclick="() => SetTool(CanvasToolMode.Notch)">◆ Notch</button>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.InternalLine ? "active" : "")"
+                            title="Internal construction line (I)" @onclick="() => SetTool(CanvasToolMode.InternalLine)">┄ Guide</button>
+                    <button type="button" class="ctb-btn @(CanvasHost.ToolMode == CanvasToolMode.WalkSeam ? "active" : "")"
+                            title="Walk seam — compare two edge lengths (W)" @onclick="() => SetTool(CanvasToolMode.WalkSeam)">⇄ Walk</button>
+                </div>
+                <div class="ctb-sep"></div>
+                <button type="button" class="ctb-btn @(CanvasHost.EditorOptions.SnapEnabled ? "active" : "")"
+                        title="Snap to grid, points, edges (G)" @onclick="ToggleSnap">⊞ Snap</button>
+                <button type="button" class="ctb-btn @(CanvasHost.EditorOptions.SymmetryEnabled ? "active" : "")"
+                        title="Half-pattern symmetry — edits mirror live (Y)" @onclick="ToggleSymmetry">⇔ Symmetry</button>
+                <button type="button" class="ctb-btn" title="Import DXF from Optitex or other CAD"
+                        @onclick="ImportDxfAsync">↓ Import DXF</button>
                 <div class="ctb-sep"></div>
                 <button type="button" class="ctb-btn @(CanvasHost.Layers.ShowSeamAllowance ? "active" : "")"
                         @onclick='() => ToggleLayer("sa")'>⬜ SA</button>
@@ -121,6 +171,8 @@
                         @onclick='() => ToggleLayer("grain")'>⇅ Grain</button>
                 <button type="button" class="ctb-btn @(CanvasHost.Layers.ShowLabels ? "active" : "")"
                         @onclick='() => ToggleLayer("labels")'>T Labels</button>
+                <button type="button" class="ctb-btn @(CanvasHost.Layers.ShowInternalLines ? "active" : "")"
+                        @onclick='() => ToggleLayer("guides")'>┄ Guides</button>
                 <div class="ctb-sep"></div>
                 <button type="button" class="ctb-btn" @onclick="() => CanvasHost.ZoomOut()">−</button>
                 <span class="ctb-label">@($"{Math.Round(CanvasHost.ZoomPercent)}%")</span>
@@ -145,13 +197,110 @@
 
         <aside class="canvas-props">
             <div class="cp-section">
+                <div class="cp-label">Edit all pieces (@_selectedIndices.Count selected)</div>
+                <div style="font-size:10.5px;color:var(--ink4);margin-bottom:8px;line-height:1.55">
+                    Click <b>All</b> in the piece list (or Ctrl+A), then move, mirror, or rotate every selected piece together.
+                    Hold <b>Ctrl</b> and click pieces to add/remove from selection.
+                </div>
+                <div class="sa-stack">
+                    <div>
+                        <label class="sa-field-label">Seam allowance all (cm)</label>
+                        <input type="number" class="cp-input sa-input-lg" step="0.1" min="0"
+                               @bind="_bulkSaCm" @onkeydown:stopPropagation="true" />
+                    </div>
+                    <button type="button" class="btn btn-gold btn-sm" style="width:100%" @onclick="ApplySeamAllowanceToAll">
+                        Apply SA to all pieces
+                    </button>
+                </div>
+            </div>
+
+            <div class="cp-section">
                 <div class="cp-label">Selection</div>
                 <div class="cp-row"><span class="cp-key">Piece</span><span class="cp-val">@SelectionName</span></div>
                 <div class="cp-row"><span class="cp-key">Points</span><span class="cp-val">@SelectionPoints</span></div>
                 <div class="cp-row"><span class="cp-key">Width</span><span class="cp-val">@SelectionWidth</span></div>
                 <div class="cp-row"><span class="cp-key">Height</span><span class="cp-val">@SelectionHeight</span></div>
                 <div class="cp-row"><span class="cp-key">Perimeter</span><span class="cp-val">@SelectionPerimeter</span></div>
+                <div class="cp-row"><span class="cp-key">Cursor</span><span class="cp-val">@CanvasHost.CursorPositionDisplay</span></div>
+                <div class="cp-row"><span class="cp-key">Snap</span><span class="cp-val">@CanvasHost.SnapKindDisplay</span></div>
+                <div class="cp-row"><span class="cp-key">Vertex</span><span class="cp-val">@CanvasHost.SelectedVertexDisplay</span></div>
             </div>
+
+            @{
+                var live = CanvasHost.GetLiveMeasurements();
+            }
+            @if (live is not null && _selectedIndex is not null)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Live measurements</div>
+                    @if (live.IsLegPiece)
+                    {
+                        <div class="cp-row"><span class="cp-key">Waist arc</span><span class="cp-val">@FormatMeasure(live.WaistArcPx)</span></div>
+                        <div class="cp-row"><span class="cp-key">Inseam</span><span class="cp-val">@FormatMeasure(live.InseamPx)</span></div>
+                        <div class="cp-row"><span class="cp-key">Rise</span><span class="cp-val">@FormatMeasure(live.RisePx)</span></div>
+                    }
+                    else if (CanvasHost.SelectedEdgeIndex is null)
+                    {
+                        <div style="font-size:10.5px;color:var(--ink4);line-height:1.55">
+                            Waist / inseam apply to <b>leg</b> pieces only. Click an edge in Select mode to measure this piece.
+                        </div>
+                    }
+                    @if (CanvasHost.SelectedEdgeIndex is int edgeIdx)
+                    {
+                        <div class="cp-row"><span class="cp-key">Edge @(edgeIdx + 1)</span><span class="cp-val">@FormatMeasure(live.SelectedEdgePx)</span></div>
+                    }
+                    @if (live.IsLegPiece)
+                    {
+                        <div style="font-size:10.5px;color:var(--ink4);line-height:1.55;margin-top:6px">
+                            Labels appear on the canvas. Click an edge in Select mode to inspect it.
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (CanvasHost.SelectedVertexIndex is not null && _selectedIndex is int vPieceIdx && vPieceIdx >= 0 && vPieceIdx < _pieces.Count)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Point edit</div>
+                    <div class="form-row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                        <div>
+                            <label class="sa-field-label">X (cm)</label>
+                            <input type="number" class="cp-input" step="0.1" @bind="_vertexXCm" @onkeydown:stopPropagation="true" />
+                        </div>
+                        <div>
+                            <label class="sa-field-label">Y (cm)</label>
+                            <input type="number" class="cp-input" step="0.1" @bind="_vertexYCm" @onkeydown:stopPropagation="true" />
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-gold btn-sm" style="width:100%;margin-bottom:8px" @onclick="ApplyVertexPositionAsync">Set position</button>
+                    <div class="form-row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                        <div>
+                            <label class="sa-field-label">ΔX (cm)</label>
+                            <input type="number" class="cp-input" step="0.1" @bind="_vertexDxCm" @onkeydown:stopPropagation="true" />
+                        </div>
+                        <div>
+                            <label class="sa-field-label">ΔY (cm)</label>
+                            <input type="number" class="cp-input" step="0.1" @bind="_vertexDyCm" @onkeydown:stopPropagation="true" />
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" style="width:100%" @onclick="MoveVertexByDeltaAsync">Move by delta</button>
+                </div>
+            }
+
+            @if (CanvasHost.SelectedEdgeIndex is not null)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Edge seam allowance</div>
+                    <div style="font-size:10.5px;color:var(--ink4);margin-bottom:8px;line-height:1.55">
+                        Edge @(CanvasHost.SelectedEdgeIndex!.Value + 1) — overrides the piece default for this edge only.
+                    </div>
+                    <label class="sa-field-label">SA (cm)</label>
+                    <input type="number" class="cp-input sa-input-lg" step="0.1" min="0"
+                           value="@CanvasHost.EdgeSeamAllowanceCmDisplay()"
+                           @onchange="OnEdgeSeamAllowanceChanged"
+                           @onkeydown:stopPropagation="true" />
+                </div>
+            }
 
             <div class="cp-section">
                 <div class="cp-label">Layers</div>
@@ -175,7 +324,30 @@
                     <button type="button" class="tog @(CanvasHost.Layers.ShowNotches ? "on" : "")"
                             @onclick='() => ToggleLayer("notches")'></button>
                 </div>
+                <div class="tog-row">
+                    <span class="tog-lbl">Internal guides</span>
+                    <button type="button" class="tog @(CanvasHost.Layers.ShowInternalLines ? "on" : "")"
+                            @onclick='() => ToggleLayer("guides")'></button>
+                </div>
             </div>
+
+            @if (_selectedIndex is int dupIdx && dupIdx >= 0 && dupIdx < _pieces.Count)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Piece copy</div>
+                    <button type="button" class="btn btn-outline btn-sm" style="width:100%;margin-bottom:8px" @onclick="DuplicateSelectedAsync">
+                        ⧉ Duplicate piece
+                    </button>
+                    <label class="sa-field-label">Offset outline (cm)</label>
+                    <input type="number" class="cp-input" step="0.1" @bind="_offsetCopyCm" @onkeydown:stopPropagation="true" />
+                    <button type="button" class="btn btn-gold btn-sm" style="width:100%;margin-top:8px" @onclick="OffsetSelectedAsync">
+                        Offset copy
+                    </button>
+                    <div style="font-size:10.5px;color:var(--ink4);line-height:1.55;margin-top:8px">
+                        Offset creates a new piece with an expanded/shrunk outline — useful for facings and linings.
+                    </div>
+                </div>
+            }
 
             @if (_selectedIndex is int selIdx && selIdx >= 0 && selIdx < _pieces.Count)
             {
@@ -184,9 +356,10 @@
                     <div class="cp-label">Seam Allowance</div>
                     <div class="sa-stack">
                         <div>
-                            <label class="sa-field-label">Distance (px)</label>
-                            <input type="number" class="cp-input sa-input-lg" step="0.5" min="0"
-                                   @bind="saPiece.SeamAllowance" @bind:after="OnPieceMetaChanged"
+                            <label class="sa-field-label">Distance (cm)</label>
+                            <input type="number" class="cp-input sa-input-lg" step="0.1" min="0"
+                                   value="@SaCmDisplay(selIdx)"
+                                   @onchange="e => OnSeamAllowanceCmChanged(selIdx, e)"
                                    @onkeydown:stopPropagation="true" />
                         </div>
                         <div>
@@ -251,6 +424,102 @@
                     <button type="button" class="btn btn-outline btn-sm" style="width:100%" @onclick="CancelDraw">Cancel draw</button>
                 </div>
             }
+            else if (CanvasHost.ToolMode == CanvasToolMode.Curve)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Curve Tool</div>
+                    <div style="font-size:10.5px;color:var(--ink4);line-height:1.65;margin-bottom:8px">
+                        Click an edge to bend it into a cubic Bezier. Drag the blue tangent handles to shape it —
+                        two handles per edge, like Optitex curve editing.
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" style="width:100%" @onclick="StraightenEdge">— Straighten edge</button>
+                </div>
+            }
+            else if (CanvasHost.ToolMode == CanvasToolMode.InternalLine)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Internal guide</div>
+                    <div style="font-size:10.5px;color:var(--ink4);line-height:1.65;margin-bottom:8px">
+                        Click start, then end to place a dashed construction line (pocket placement, fly line, etc.).
+                        Click an existing guide to select it.
+                    </div>
+                    <label class="sa-field-label">Label preset</label>
+                    <select class="cp-input" @bind="CanvasHost.InternalLineLabel" @onkeydown:stopPropagation="true">
+                        <option>Guide</option>
+                        <option>Pocket</option>
+                        <option>Fly</option>
+                        <option>Placket</option>
+                        <option>Zipper</option>
+                    </select>
+                    @if (CanvasHost.SelectedInternalLineIndex is int ilIdx && _selectedIndex is int ilPiece && ilPiece >= 0 && ilPiece < _pieces.Count
+                         && _pieces[ilPiece].InternalLines is { Count: > 0 } ilines && ilIdx < ilines.Count)
+                    {
+                        <div class="cp-row" style="margin-top:8px"><span class="cp-key">Selected</span><span class="cp-val">@ilines[ilIdx].Label</span></div>
+                        <button type="button" class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" @onclick="DeleteSelectedInternalLineAsync">Delete guide</button>
+                    }
+                    <button type="button" class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" @onclick="CancelInternalLineDraft">Cancel line</button>
+                </div>
+            }
+            else if (CanvasHost.ToolMode == CanvasToolMode.WalkSeam)
+            {
+                var walk = CanvasHost.WalkSeamResult;
+                <div class="cp-section">
+                    <div class="cp-label">Walk seam</div>
+                    <div style="font-size:10.5px;color:var(--ink4);line-height:1.65;margin-bottom:8px">
+                        Click edge A, then edge B on the selected piece. Compares seam lengths for trousers/denim assembly.
+                    </div>
+                    @if (walk is not null)
+                    {
+                        <div class="cp-row"><span class="cp-key">Edge A</span><span class="cp-val">@FormatMeasure(walk.LengthA)</span></div>
+                        <div class="cp-row"><span class="cp-key">Edge B</span><span class="cp-val">@FormatMeasure(walk.LengthB)</span></div>
+                        <div class="cp-row"><span class="cp-key">Delta</span><span class="cp-val">@FormatMeasure(Math.Abs(walk.DeltaPx)) (@walk.DeltaPercent.ToString("0.#")%)</span></div>
+                        <div class="cp-row"><span class="cp-key">Status</span><span class="cp-val">@(walk.Match ? "Match" : "Mismatch")</span></div>
+                    }
+                    else
+                    {
+                        <div style="font-size:10.5px;color:var(--ink4)">Pick two edges to compare.</div>
+                    }
+                    <button type="button" class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" @onclick="ClearWalkSeam">Clear</button>
+                </div>
+            }
+            else if (CanvasHost.ToolMode == CanvasToolMode.Smooth)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Smooth Tool</div>
+                    <div style="font-size:10.5px;color:var(--ink4);line-height:1.65">
+                        Click a corner point to smooth the two edges meeting there — like Optitex smooth corners on armholes and crotch curves.
+                    </div>
+                </div>
+            }
+            else if (CanvasHost.ToolMode == CanvasToolMode.Arc)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Arc Tool</div>
+                    <div style="font-size:10.5px;color:var(--ink4);line-height:1.65">
+                        Click an edge, then drag to bulge it into an arc — good for leg openings and waist curves.
+                    </div>
+                </div>
+            }
+            else if (CanvasHost.ToolMode == CanvasToolMode.Measure)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Measure</div>
+                    <div class="cp-row"><span class="cp-key">Distance</span><span class="cp-val">@MeasureDisplay</span></div>
+                    <div style="font-size:10.5px;color:var(--ink4);line-height:1.65;margin-top:8px">
+                        Click point A, then point B. Third click starts a new measurement.
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" @onclick="ClearMeasure">Clear measure</button>
+                </div>
+            }
+            else if (CanvasHost.ToolMode == CanvasToolMode.DeletePoint)
+            {
+                <div class="cp-section">
+                    <div class="cp-label">Delete Point</div>
+                    <div style="font-size:10.5px;color:var(--ink4);line-height:1.65">
+                        Click a corner to remove it. Pieces must keep at least 3 points. You can also use Delete/Backspace in Select mode.
+                    </div>
+                </div>
+            }
 
             <div class="cp-section">
                 <div class="cp-label">Auto-Draft Sizes</div>
@@ -277,10 +546,13 @@
                 <div class="cp-label">Shortcuts</div>
                 <div class="cv-shortcuts">
                     <div><b>S</b> Select &nbsp; <b>P</b> Pan &nbsp; <b>D</b> Draw</div>
-                    <div><b>A</b> Point &nbsp; <b>N</b> Notch</div>
+                    <div><b>A</b> Point &nbsp; <b>X</b> Del pt &nbsp; <b>N</b> Notch</div>
+                    <div><b>C</b> Curve &nbsp; <b>K</b> Arc &nbsp; <b>U</b> Smooth &nbsp; <b>M</b> Measure</div>
+                    <div><b>I</b> Guide &nbsp; <b>W</b> Walk seam &nbsp; <b>N</b> Notch</div>
+                    <div><b>H</b> Mirror H &nbsp; <b>V</b> Mirror V &nbsp; <b>R</b> Rot 90° &nbsp; <b>G</b> Snap &nbsp; <b>Y</b> Symmetry</div>
                     <div><b>Ctrl+Z</b> Undo &nbsp; <b>Ctrl+S</b> Save</div>
-                    <div><b>Space</b> Fit all &nbsp; <b>±</b> Zoom &nbsp; <b>Esc</b> Cancel draw</div>
-                    <div>Right-drag to pan (select mode)</div>
+                    <div><b>Space</b> Fit all &nbsp; <b>±</b> Zoom &nbsp; <b>Esc</b> Cancel</div>
+                    <div>Right-drag to pan · Drag blue handles to shape curves</div>
                 </div>
             </div>
         </aside>
@@ -296,6 +568,8 @@
     private int _patternId;
     private string _styleKey = "skinny";
     private int? _selectedIndex;
+    private HashSet<int> _selectedIndices = [];
+    private double _bulkSaCm = 1.0;
     private string? _status;
     private string? _draftMsg;
     private bool _loading;
@@ -308,6 +582,11 @@
     private string _newPieceCategory = "Body Panels";
     private string _newPieceCut = "Cut 2";
     private string _newPieceColor = "#a78bfa";
+    private double _vertexXCm;
+    private double _vertexYCm;
+    private double _vertexDxCm;
+    private double _vertexDyCm;
+    private double _offsetCopyCm = 1.0;
 
     private readonly List<DraftSizeOption> _draftSizes =
     [
@@ -356,6 +635,7 @@
     private string SelectionWidth => FormatMeasure(_selectedPiece is null ? 0 : CanvasPainter.MeasurePiece(_selectedPiece).Width);
     private string SelectionHeight => FormatMeasure(_selectedPiece is null ? 0 : CanvasPainter.MeasurePiece(_selectedPiece).Height);
     private string SelectionPerimeter => FormatMeasure(_selectedPiece is null ? 0 : CanvasPainter.MeasurePiece(_selectedPiece).Perimeter);
+    private string MeasureDisplay => CanvasHost.MeasureDistanceDisplay;
 
     protected override async Task OnInitializedAsync()
     {
@@ -378,6 +658,11 @@
 
     private void OnKeyDown(KeyboardEventArgs e)
     {
+        if (e.CtrlKey && (e.Key is "a" or "A"))
+        {
+            SelectAllPieces();
+            return;
+        }
         if (e.CtrlKey && (e.Key is "s" or "S"))
         {
             SaveAll();
@@ -406,17 +691,62 @@
             case "n" or "N":
                 SetTool(CanvasToolMode.Notch);
                 break;
+            case "c" or "C":
+                SetTool(CanvasToolMode.Curve);
+                break;
+            case "k" or "K":
+                SetTool(CanvasToolMode.Arc);
+                break;
+            case "u" or "U":
+                SetTool(CanvasToolMode.Smooth);
+                break;
+            case "m" or "M":
+                SetTool(CanvasToolMode.Measure);
+                break;
+            case "i" or "I":
+                SetTool(CanvasToolMode.InternalLine);
+                break;
+            case "w" or "W":
+                SetTool(CanvasToolMode.WalkSeam);
+                break;
+            case "g" or "G":
+                ToggleSnap();
+                break;
+            case "y" or "Y":
+                ToggleSymmetry();
+                break;
+            case "h" or "H":
+                _ = MirrorHorizontalAsync();
+                break;
+            case "v" or "V":
+                _ = MirrorVerticalAsync();
+                break;
+            case "r" or "R":
+                _ = Rotate90Async();
+                break;
+            case "x" or "X":
+                SetTool(CanvasToolMode.DeletePoint);
+                break;
             case "Escape":
                 if (CanvasHost.PendingNewPiece is not null)
                     CancelNewPiece();
                 else if (CanvasHost.ToolMode == CanvasToolMode.Draw)
                     CancelDraw();
+                else if (CanvasHost.ToolMode == CanvasToolMode.Measure)
+                    ClearMeasure();
+                else if (CanvasHost.ToolMode == CanvasToolMode.InternalLine)
+                    CancelInternalLineDraft();
+                else if (CanvasHost.ToolMode == CanvasToolMode.WalkSeam)
+                    ClearWalkSeam();
                 else
                     SetTool(CanvasToolMode.Select);
                 break;
             case "Delete":
             case "Backspace":
-                _ = DeleteSelectedVertex();
+                if (CanvasHost.ToolMode == CanvasToolMode.InternalLine && CanvasHost.SelectedInternalLineIndex is not null)
+                    _ = DeleteSelectedInternalLineAsync();
+                else
+                    _ = DeleteSelectedVertex();
                 break;
             case " ":
                 FitAll();
@@ -434,16 +764,27 @@
 
     private void SyncHost()
     {
-        CanvasHost.ConfigurePattern(_pieces, _viewport, _selectedIndex, MarkDirtyAsync, OnSelectedChanged, OnHostChangedAsync);
+        CanvasHost.ConfigurePattern(_pieces, _viewport, _selectedIndex, _selectedIndices, MarkDirtyAsync, OnSelectedChanged, OnHostChangedAsync);
     }
 
     private Task OnHostChangedAsync()
     {
-        InvokeAsync(StateHasChanged);
-        return Task.CompletedTask;
+        RefreshVertexFieldsFromSelection();
+        return InvokeAsync(StateHasChanged);
     }
 
-    private static string FormatMeasure(float v) => v <= 0 ? "—" : $"{v:0.#}";
+    private void RefreshVertexFieldsFromSelection()
+    {
+        if (_selectedIndex is not int si || si < 0 || si >= _pieces.Count
+            || CanvasHost.SelectedVertexIndex is not int vi || vi < 0 || vi >= _pieces[si].Points.Count)
+            return;
+
+        var pt = _pieces[si].Points[vi];
+        _vertexXCm = CanvasUnits.ToCm(pt[0]);
+        _vertexYCm = CanvasUnits.ToCm(pt[1]);
+    }
+
+    private static string FormatMeasure(float v) => CanvasUnits.FormatCm(v);
 
     private void ParseQuery()
     {
@@ -468,6 +809,7 @@
         _draftMsg = null;
         _dirty = false;
         _selectedIndex = null;
+        _selectedIndices.Clear();
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
 
@@ -490,7 +832,10 @@
         }
 
         if (_pieces.Count > 0)
+        {
             _selectedIndex = 0;
+            _selectedIndices = [0];
+        }
 
         CanvasHost.ClearHistory();
         SyncHost();
@@ -504,16 +849,60 @@
         _ = LoadPiecesAsync();
     }
 
-    private void SelectPiece(int index)
+    private void SelectPiece(int index, bool additive = false)
     {
+        if (index < 0 || index >= _pieces.Count) return;
+
+        if (additive)
+        {
+            if (_selectedIndices.Contains(index))
+            {
+                if (_selectedIndices.Count > 1)
+                    _selectedIndices.Remove(index);
+            }
+            else
+                _selectedIndices.Add(index);
+        }
+        else
+            _selectedIndices = [index];
+
         _selectedIndex = index;
         SyncHost();
         CanvasHost.Invalidate();
+        StateHasChanged();
     }
 
-    private Task OnSelectedChanged(int? index)
+    private void SelectAllPieces()
+    {
+        if (_pieces.Count == 0)
+        {
+            _selectedIndex = null;
+            _selectedIndices.Clear();
+        }
+        else
+        {
+            _selectedIndices = Enumerable.Range(0, _pieces.Count).ToHashSet();
+            _selectedIndex = 0;
+        }
+        SyncHost();
+        CanvasHost.Invalidate();
+        StateHasChanged();
+    }
+
+    private void ApplySeamAllowanceToAll()
+    {
+        if (_pieces.Count == 0) return;
+        var px = CanvasUnits.ToPixels(Math.Max(0, _bulkSaCm));
+        foreach (var piece in _pieces)
+            piece.SeamAllowance = px;
+        MarkDirty();
+        CanvasHost.Invalidate();
+    }
+
+    private Task OnSelectedChanged(int? index, IReadOnlySet<int> indices)
     {
         _selectedIndex = index;
+        _selectedIndices = indices.ToHashSet();
         InvokeAsync(StateHasChanged);
         return Task.CompletedTask;
     }
@@ -542,7 +931,255 @@
         CanvasHost.ToolMode = mode;
         if (mode != CanvasToolMode.Draw && CanvasHost.PendingNewPiece is null)
             CanvasHost.CancelDrawSession();
+        if (mode != CanvasToolMode.Measure)
+            CanvasHost.ClearMeasure();
+        if (mode != CanvasToolMode.WalkSeam)
+            CanvasHost.ClearWalkSeam();
+        if (mode != CanvasToolMode.InternalLine)
+            CanvasHost.CancelInternalLineDraft();
         StateHasChanged();
+    }
+
+    private void StraightenEdge()
+    {
+        CanvasHost.StraightenSelectedEdge();
+        MarkDirty();
+    }
+
+    private void ClearMeasure()
+    {
+        CanvasHost.ClearMeasure();
+        StateHasChanged();
+    }
+
+    private void ClearWalkSeam()
+    {
+        CanvasHost.ClearWalkSeam();
+        StateHasChanged();
+    }
+
+    private void CancelInternalLineDraft()
+    {
+        CanvasHost.CancelInternalLineDraft();
+        StateHasChanged();
+    }
+
+    private async Task DeleteSelectedInternalLineAsync()
+    {
+        await CanvasHost.DeleteSelectedInternalLineAsync();
+        MarkDirty();
+    }
+
+    private void ToggleSnap()
+    {
+        CanvasHost.ToggleSnap();
+        StateHasChanged();
+    }
+
+    private void ToggleSymmetry()
+    {
+        CanvasHost.ToggleSymmetry();
+        StateHasChanged();
+    }
+
+    private async Task ApplyVertexPositionAsync()
+    {
+        await CanvasHost.ApplyNumericVertexPositionAsync(_vertexXCm, _vertexYCm);
+        MarkDirty();
+        RefreshVertexFieldsFromSelection();
+    }
+
+    private async Task MoveVertexByDeltaAsync()
+    {
+        await CanvasHost.MoveSelectedVertexByCmAsync(_vertexDxCm, _vertexDyCm);
+        MarkDirty();
+        RefreshVertexFieldsFromSelection();
+    }
+
+    private async Task OnEdgeSeamAllowanceChanged(ChangeEventArgs e)
+    {
+        if (!double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var cm)
+            && !double.TryParse(e.Value?.ToString(), out cm))
+            return;
+        await CanvasHost.SetSelectedEdgeSeamAllowanceCmAsync(Math.Max(0, cm));
+        MarkDirty();
+    }
+
+    private async Task MirrorHorizontalAsync()
+    {
+        if (_selectedIndices.Count == 0 && _selectedIndex is null) return;
+        await CanvasHost.MirrorSelectedHorizontalAsync();
+        MarkDirty();
+    }
+
+    private async Task MirrorVerticalAsync()
+    {
+        if (_selectedIndices.Count == 0 && _selectedIndex is null) return;
+        await CanvasHost.MirrorSelectedVerticalAsync();
+        MarkDirty();
+    }
+
+    private async Task Rotate90Async()
+    {
+        if (_selectedIndices.Count == 0 && _selectedIndex is null) return;
+        await CanvasHost.RotateSelected90Async();
+        MarkDirty();
+    }
+
+    private async Task DuplicateSelectedAsync()
+    {
+        if (_selectedIndex is not int si || si < 0 || si >= _pieces.Count) return;
+        await AddClonedPieceAsync(CanvasPieceCloneHelper.ClonePiece(
+            _pieces[si],
+            CanvasPieceCloneHelper.NextCopyName(_pieces, _pieces[si].Name)));
+    }
+
+    private async Task OffsetSelectedAsync()
+    {
+        if (_selectedIndex is not int si || si < 0 || si >= _pieces.Count) return;
+        await AddClonedPieceAsync(CanvasPieceCloneHelper.OffsetOutlineCopy(
+            _pieces[si],
+            CanvasPieceCloneHelper.NextCopyName(_pieces, _pieces[si].Name),
+            _offsetCopyCm));
+    }
+
+    private async Task AddClonedPieceAsync(CoreModel.PieceDefinition copy)
+    {
+        try
+        {
+            var (ok, error, piece) = _patternId > 0
+                ? PieceService.CreatePatternPiece(
+                    _patternId, _styleKey, copy.Name, copy.Category, copy.Cut, copy.Color,
+                    copy.Points, copy.OffsetX, copy.OffsetY)
+                : PieceService.CreateStylePiece(
+                    _styleKey, copy.Name, copy.Category, copy.Cut, copy.Color,
+                    copy.Points, copy.OffsetX, copy.OffsetY);
+
+            if (!ok || piece is null)
+            {
+                _status = error ?? "Could not create copy.";
+                return;
+            }
+
+            var pts = copy.Points.Select(p => new[] { p[0], p[1] }).ToList();
+            if (_patternId > 0)
+                PieceService.UpdatePatternPieceGeometry(
+                    _patternId, _styleKey, copy.Name,
+                    pts, copy.OffsetX, copy.OffsetY,
+                    copy.Grain, copy.Cf, copy.Notches,
+                    copy.SeamAllowance, copy.SeamAllowanceJoin,
+                    copy.Edges, copy.InternalLines);
+            else
+                PieceService.UpdatePieceGeometry(
+                    _styleKey, copy.Name,
+                    pts, copy.OffsetX, copy.OffsetY,
+                    copy.Grain, copy.Cf, copy.Notches,
+                    copy.SeamAllowance, copy.SeamAllowanceJoin,
+                    copy.Edges, copy.InternalLines);
+
+            if (_patternId > 0)
+                _pieces = PieceService.GetPieceDefinitions(_patternId, _styleKey).ToList();
+            else
+                _pieces = PieceService.GetPieceDefinitions(_styleKey).ToList();
+
+            _selectedIndex = _pieces.FindIndex(p => p.Name.Equals(copy.Name, StringComparison.OrdinalIgnoreCase));
+            if (_selectedIndex < 0) _selectedIndex = _pieces.Count - 1;
+            _selectedIndices = _selectedIndex is int ci ? new HashSet<int> { ci } : [];
+            _dirty = true;
+            _status = null;
+            SyncHost();
+            CanvasHost.Invalidate();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+    }
+
+    private string SaCmDisplay(int pieceIndex)
+    {
+        if (pieceIndex < 0 || pieceIndex >= _pieces.Count) return "0";
+        return (CanvasUnits.ToCm(_pieces[pieceIndex].SeamAllowance)).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private void OnSeamAllowanceCmChanged(int pieceIndex, ChangeEventArgs e)
+    {
+        if (pieceIndex < 0 || pieceIndex >= _pieces.Count) return;
+        if (!double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var cm)
+            && !double.TryParse(e.Value?.ToString(), out cm))
+            return;
+        _pieces[pieceIndex].SeamAllowance = CanvasUnits.ToPixels(Math.Max(0, cm));
+        OnPieceMetaChanged();
+    }
+
+    private async Task ImportDxfAsync()
+    {
+        _status = null;
+        try
+        {
+            var result = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Import DXF pattern",
+                FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.WinUI, [".dxf"] },
+                    { DevicePlatform.MacCatalyst, ["dxf"] },
+                    { DevicePlatform.iOS, ["com.autodesk.dxf"] },
+                    { DevicePlatform.Android, ["application/dxf", "application/octet-stream"] },
+                }),
+            });
+
+            if (result is null) return;
+
+            await using var stream = await result.OpenReadAsync();
+            using var reader = new StreamReader(stream);
+            var text = await reader.ReadToEndAsync();
+            var imported = CanvasDxfImporter.Import(text, "Imported");
+
+            if (imported.Count == 0)
+            {
+                _status = "No closed polylines found in DXF. Use ASCII DXF with closed POLYLINE/LWPOLYLINE (AAMA or PatternPro export). Optitex: export as R12 ASCII, polylines not splines only.";
+                return;
+            }
+
+            foreach (var piece in imported)
+            {
+                var (ok, error, created) = _patternId > 0
+                    ? PieceService.CreatePatternPiece(
+                        _patternId, _styleKey, piece.Name, piece.Category, piece.Cut, piece.Color,
+                        piece.Points, piece.OffsetX, piece.OffsetY)
+                    : PieceService.CreateStylePiece(
+                        _styleKey, piece.Name, piece.Category, piece.Cut, piece.Color,
+                        piece.Points, piece.OffsetX, piece.OffsetY);
+
+                if (!ok)
+                {
+                    _status = error ?? $"Could not import {piece.Name}.";
+                    return;
+                }
+            }
+
+            if (_patternId > 0)
+                _pieces = PieceService.GetPieceDefinitions(_patternId, _styleKey).ToList();
+            else
+                _pieces = PieceService.GetPieceDefinitions(_styleKey).ToList();
+
+            _selectedIndex = _pieces.Count > 0 ? _pieces.Count - imported.Count : null;
+            if (_selectedIndex < 0) _selectedIndex = 0;
+            _selectedIndices = _selectedIndex is int si ? new HashSet<int> { si } : [];
+            _dirty = true;
+            _draftMsg = $"Imported {imported.Count} piece(s) from DXF.";
+            SyncHost();
+            FitAll();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
     }
 
     private void CloseDrawShape()
@@ -598,6 +1235,7 @@
 
             _selectedIndex = _pieces.FindIndex(p => p.Name.Equals(piece.Name, StringComparison.OrdinalIgnoreCase));
             if (_selectedIndex < 0) _selectedIndex = _pieces.Count - 1;
+            _selectedIndices = _selectedIndex is int ci ? new HashSet<int> { ci } : [];
             CanvasHost.CancelPendingPiece();
             SetTool(CanvasToolMode.Select);
             _dirty = true;
@@ -623,6 +1261,7 @@
     {
         _pieces.Clear();
         _selectedIndex = null;
+        _selectedIndices.Clear();
         _dirty = true;
         _status = null;
         _draftMsg = null;
@@ -654,6 +1293,7 @@
             case "grain": layers.ShowGrain = !layers.ShowGrain; break;
             case "labels": layers.ShowLabels = !layers.ShowLabels; break;
             case "notches": layers.ShowNotches = !layers.ShowNotches; break;
+            case "guides": layers.ShowInternalLines = !layers.ShowInternalLines; break;
         }
         CanvasHost.Invalidate();
         StateHasChanged();
@@ -736,6 +1376,7 @@
             }
 
             _selectedIndex = _pieces.Count > 0 ? 0 : null;
+            _selectedIndices = _pieces.Count > 0 ? new HashSet<int> { 0 } : [];
             _dirty = true;
             _draftMsg = $"Generated {_pieces.Count} pieces ({string.Join(", ", sizes)}).";
 

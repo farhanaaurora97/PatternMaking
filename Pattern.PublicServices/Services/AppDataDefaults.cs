@@ -3,7 +3,7 @@ using Pattern.Core.Model;
 namespace PatternPro.Business.Services;
 
 /// <summary>Factory defaults used when no persisted data exists yet.</summary>
-internal static class AppDataDefaults
+public static class AppDataDefaults
 {
     /// <summary>Legacy M waist (cm) — used to detect and upgrade old seed data.</summary>
     public const decimal LegacyBaseWaistCm = 68m;
@@ -43,6 +43,35 @@ internal static class AppDataDefaults
             Row("RB1", [37, 38, 39, 40, 41, 42, 43, 44, 45, 46], 0.5m, "Back rise c.b. from top edge"),
         ],
     };
+
+    public static bool NeedsDefaultSeed(SizeChartStore store) =>
+        store.Columns.Count == 0 || store.Rows.Count == 0;
+
+    public static bool NeedsDefaultSeed(GradingStore store)
+    {
+        if (store.Styles.Count == 0 || store.Columns.Count < 6)
+            return true;
+        if (store.BaseIndex != 2)
+            return true;
+        var expected = new[] { "XS", "S", "M", "L", "XL", "XXL" };
+        for (var i = 0; i < expected.Length; i++)
+        {
+            if (i >= store.Columns.Count
+                || !store.Columns[i].Equals(expected[i], StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        if (store.Columns.Count != expected.Length)
+            return true;
+        if (store.Columns.Distinct(StringComparer.OrdinalIgnoreCase).Count() != store.Columns.Count)
+            return true;
+
+        var slimWaist = store.Styles
+            .FirstOrDefault(s => s.StyleKey.Equals("slim", StringComparison.OrdinalIgnoreCase))
+            ?.Rows.FirstOrDefault(r => r.MeasurementPoint.Equals("Waist", StringComparison.OrdinalIgnoreCase));
+        if (slimWaist is null || slimWaist.Deltas.Count < 4)
+            return true;
+        return Math.Abs(slimWaist.Deltas[3] - 2d) > 0.001;
+    }
 
     public static bool IsLegacyDefaultSizeChart(SizeChartStore store)
     {

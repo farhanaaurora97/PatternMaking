@@ -258,15 +258,8 @@ public class ExportController(
         return parsed.Count == 0 ? ["XS", "S", "M", "L", "XL", "XXL"] : parsed;
     }
 
-    private static string ToStyleKey(string styleLabel) => styleLabel.Trim().ToLowerInvariant() switch
-    {
-        "wide leg" => "wideLeg",
-        "skinny" => "skinny",
-        "slim" => "slim",
-        "straight" => "straight",
-        "bootcut" => "bootcut",
-        _ => "skinny",
-    };
+    private static string ToStyleKey(string styleLabel) =>
+        StyleOptionCatalog.StyleKeyFromDisplayLabel(styleLabel);
 
     private void SetLayout(string controller, string title, string style, int? patternId = null) =>
         ViewData["Layout"] = new LayoutViewModel

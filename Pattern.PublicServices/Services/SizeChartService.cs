@@ -4,7 +4,7 @@ using PatternPro.Core.Persistence.Repositories;
 
 namespace PatternPro.Business.Services;
 
-public class SizeChartService : ISizeChartService
+public class SizeChartService : ISizeChartService, IReloadableAppData
 {
     private readonly object _lock = new();
     private readonly IGradingService _gradingService;
@@ -28,30 +28,71 @@ public class SizeChartService : ISizeChartService
         _profiles       = profilesRepo.Load().Select(CloneProfile).ToList();
 
         var persisted = sizeChart.Load();
-        var source = persisted.Rows.Count > 0 ? persisted : AppDataDefaults.CreateDefaultSizeChart();
-        if (persisted.Rows.Count == 0)
+        var source = ResolveStartupSizeChart(persisted);
+        if (AppDataDefaults.NeedsDefaultSeed(persisted) || AppDataDefaults.IsLegacyDefaultSizeChart(persisted))
             sizeChart.Save(source);
-        else if (AppDataDefaults.IsLegacyDefaultSizeChart(persisted))
-        {
-            source = AppDataDefaults.CreateDefaultSizeChart();
-            sizeChart.Save(source);
-        }
 
         _globalColumns = [.. source.Columns];
         _globalRows    = source.Rows.Select(CloneRow).ToList();
     }
 
-    public SizeChartSnapshot GetSnapshot(int? patternId = null) =>
-        BuildSnapshot(patternId, LoadMutableScope(patternId));
+    private static SizeChartStore ResolveStartupSizeChart(SizeChartStore persisted)
+    {
+        if (AppDataDefaults.NeedsDefaultSeed(persisted))
+            return AppDataDefaults.CreateDefaultSizeChart();
+        if (AppDataDefaults.IsLegacyDefaultSizeChart(persisted))
+            return AppDataDefaults.CreateDefaultSizeChart();
+        return persisted;
+    }
+
+    public void ReloadFromStore()
+    {
+        lock (_lock)
+        {
+            _profiles.Clear();
+            _profiles.AddRange(_profilesRepo.Load().Select(CloneProfile));
+
+            var persisted = _sizeChart.Load();
+            var source = ResolveStartupSizeChart(persisted);
+            _globalColumns.Clear();
+            _globalColumns.AddRange(source.Columns);
+            _globalRows.Clear();
+            _globalRows.AddRange(source.Rows.Select(CloneRow));
+        }
+    }
+
+    private void EnsureFreshGlobal()
+    {
+        lock (_lock)
+        {
+            var persisted = _sizeChart.Load();
+            var source = ResolveStartupSizeChart(persisted);
+            _globalColumns.Clear();
+            _globalColumns.AddRange(source.Columns);
+            _globalRows.Clear();
+            _globalRows.AddRange(source.Rows.Select(CloneRow));
+        }
+    }
+
+    public SizeChartSnapshot GetSnapshot(int? patternId = null)
+    {
+        if (patternId is null or <= 0)
+            EnsureFreshGlobal();
+        return BuildSnapshot(patternId, LoadMutableScope(patternId));
+    }
 
     public IReadOnlyList<string> GetColumnLabels(int? patternId = null)
     {
+        if (patternId is null or <= 0)
+            EnsureFreshGlobal();
         lock (_lock)
             return LoadMutableScope(patternId).columns.ToList();
     }
 
     public IReadOnlyList<SizeRow> GetAll(int? patternId = null)
     {
+        if (patternId is null or <= 0)
+            EnsureFreshGlobal();
         lock (_lock)
             return LoadMutableScope(patternId).rows.Select(CloneRow).ToList();
     }
@@ -351,18 +392,29 @@ public class SizeChartService : ISizeChartService
     private (List<string> columns, List<SizeRow> rows) LoadMutableScope(int? patternId)
     {
         if (patternId is null or <= 0)
+        {
+            EnsureGlobalChartLoaded();
             return (_globalColumns, _globalRows);
+        }
 
         var pattern = ResolvePattern(patternId);
         if (pattern?.UseCustomSizeChart != true)
+        {
+            EnsureGlobalChartLoaded();
             return (_globalColumns, _globalRows);
+        }
 
         var persisted = _sizeChart.LoadForPattern(patternId.Value);
-        if (persisted is null || persisted.Rows.Count == 0)
+        if (persisted is null || AppDataDefaults.NeedsDefaultSeed(persisted))
         {
-            var empty = new SizeChartStore { Columns = [.. _globalColumns], Rows = [] };
-            _sizeChart.SaveForPattern(patternId.Value, empty);
-            persisted = empty;
+            EnsureGlobalChartLoaded();
+            var copy = new SizeChartStore
+            {
+                Columns = [.. _globalColumns],
+                Rows = _globalRows.Select(CloneRow).ToList(),
+            };
+            _sizeChart.SaveForPattern(patternId.Value, copy);
+            return (copy.Columns.ToList(), copy.Rows.Select(CloneRow).ToList());
         }
 
         return (
@@ -370,8 +422,30 @@ public class SizeChartService : ISizeChartService
             persisted.Rows.Select(CloneRow).ToList());
     }
 
+    private void EnsureGlobalChartLoaded()
+    {
+        if (_globalRows.Count > 0 && _globalColumns.Count > 0)
+            return;
+
+        var persisted = _sizeChart.Load();
+        var source = ResolveStartupSizeChart(persisted);
+        if (AppDataDefaults.NeedsDefaultSeed(persisted) || AppDataDefaults.IsLegacyDefaultSizeChart(persisted))
+            _sizeChart.Save(source);
+
+        _globalColumns.Clear();
+        _globalColumns.AddRange(source.Columns);
+        _globalRows.Clear();
+        _globalRows.AddRange(source.Rows.Select(CloneRow));
+    }
+
     private void PersistScope(int? patternId, (List<string> columns, List<SizeRow> rows) scope)
     {
+        if (patternId is null or <= 0 && scope.rows.Count == 0)
+        {
+            EnsureGlobalChartLoaded();
+            return;
+        }
+
         var store = new SizeChartStore
         {
             Columns = [.. scope.columns],

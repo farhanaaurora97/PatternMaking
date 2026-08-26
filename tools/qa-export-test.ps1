@@ -92,12 +92,13 @@ function Read-ZipText($Zip, [string]$EntryPath) {
 function Assert-DxfStructure([string]$Dxf, [string]$Label) {
     if ([string]::IsNullOrWhiteSpace($Dxf)) { throw "$Label : empty DXF" }
     if ($Dxf.Length -lt 1024) { throw "$Label : too small ($($Dxf.Length) bytes, need >1KB)" }
-    foreach ($req in @("SECTION", "ENTITIES", "ENDSEC", "EOF", "`$INSUNITS", "AC1009")) {
+    foreach ($req in @("SECTION", "BLOCKS", "ENTITIES", "ENDSEC", "EOF", "`$INSUNITS", "AC1009", "INSERT")) {
         if ($Dxf -notmatch [regex]::Escape($req)) { throw "$Label : missing $req" }
     }
-    if ($Dxf -notmatch "(?m)^LINE\r?\n8\r?\nCUT") { throw "$Label : missing CUT layer LINE entities" }
-    $lineCount = ([regex]::Matches($Dxf, "(?m)^LINE\r?\n")).Count
-    if ($lineCount -lt 4) { throw "$Label : expected multiple LINE entities, got $lineCount" }
+    if ($Dxf -notmatch "(?m)^POLYLINE\r?\n8\r?\n1") { throw "$Label : missing layer-1 closed POLYLINE (AAMA cut boundary)" }
+    if ($Dxf -notmatch "70\r?\n1") { throw "$Label : missing closed polyline flag" }
+    $polyCount = ([regex]::Matches($Dxf, "(?m)^POLYLINE\r?\n")).Count
+    if ($polyCount -lt 1) { throw "$Label : expected POLYLINE entities, got $polyCount" }
 }
 
 function Get-ZipDxfEntries($Zip) {
@@ -243,7 +244,7 @@ Try-Test "EX4b Draft DXF has SA layer" {
     $handle = Open-ZipBytes $draftDxfBytes
     try {
         $dxf = Read-ZipText $handle.Zip "canvas/slim_M.dxf"
-        if ($dxf -notmatch "(?m)^LINE\r?\n8\r?\nSA") { throw "Missing SA (seam allowance) layer lines" }
+        if ($dxf -notmatch "(?m)^POLYLINE\r?\n8\r?\n14") { throw "Missing layer-14 net/stitch polyline (seam allowance present)" }
         Pass "EX4b SA layer" "seam allowance present"
     }
     finally { Close-ZipHandle $handle }

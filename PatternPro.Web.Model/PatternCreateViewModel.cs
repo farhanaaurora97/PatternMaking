@@ -33,30 +33,29 @@ public class PatternCreateViewModel
 
     public static IEnumerable<(string Value, string Label)> CategoryOptions =>
     [
-        ("denim", "Denim"),
-        ("chinos", "Chinos"),
-        ("trousers", "Trousers"),
-        ("cargo", "Cargo"),
-        ("joggers", "Joggers"),
-        ("linen", "Linen"),
-        ("leather", "Leather"),
-        ("palazzo", "Palazzo"),
-        ("shorts", "Shorts"),
-        ("sweatpants", "Sweatpants"),
-        ("corduroy", "Corduroy"),
+        .. Pattern.Core.Model.StyleOptionCatalog.BuiltInCategoryOptions.Select(c => (c.Key, c.Label)),
         ("dress", "Dress pants"),
-        ("workwear", "Workwear"),
+        (Pattern.Core.Model.StyleOptionCatalog.CustomCategoryOption, "Custom type…"),
     ];
 
     public static IEnumerable<(string Value, string Label)> StyleOptions =>
     [
-        ("skinny",   "Skinny Fit"),
-        ("slim",     "Slim Fit"),
-        ("straight", "Straight Fit"),
-        ("bootcut",  "Bootcut Fit"),
-        ("wideLeg",  "Wide Leg Fit"),
+        .. Pattern.Core.Model.StyleOptionCatalog.BuiltInFitOptions,
+        (Pattern.Core.Model.StyleOptionCatalog.CustomFitOption, "Custom fit…"),
+    ];
+
+    public string? CustomFitLabel { get; set; }
+
+    public string? CustomCategoryLabel { get; set; }
+
+    public string? CustomBaseSizeLabel { get; set; }
+
+    public static IEnumerable<(string Value, string Label)> BaseSizeOptions =>
+    [
+        .. Pattern.Core.Model.StyleOptionCatalog.BuiltInBaseSizes.Select(s => (s, s)),
+        (Pattern.Core.Model.StyleOptionCatalog.CustomBaseSizeOption, "Custom size…"),
     ];
 
     public static IEnumerable<string> SizeOptions =>
-        ["XS", "S", "M", "L", "XL", "XXL"];
+        Pattern.Core.Model.StyleOptionCatalog.BuiltInBaseSizes;
 }

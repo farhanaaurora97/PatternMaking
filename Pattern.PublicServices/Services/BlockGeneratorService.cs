@@ -4,7 +4,7 @@ using PatternPro.Core.Persistence.Repositories;
 
 namespace PatternPro.Business.Services;
 
-public class BlockGeneratorService : IBlockGeneratorService
+public class BlockGeneratorService : IBlockGeneratorService, IReloadableAppData
 {
     private readonly IEaseOverridesRepository _ease;
     private readonly Dictionary<string, Dictionary<string, decimal>> _overrides;
@@ -17,6 +17,16 @@ public class BlockGeneratorService : IBlockGeneratorService
             ? CloneOverrides(persisted.OverridesByStyle)
             : new Dictionary<string, Dictionary<string, decimal>>(StringComparer.OrdinalIgnoreCase);
     }
+
+    public void ReloadFromStore()
+    {
+        var persisted = _ease.Load();
+        _overrides.Clear();
+        foreach (var (style, map) in persisted.OverridesByStyle)
+            _overrides[style] = new Dictionary<string, decimal>(map, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void EnsureFresh() => ReloadFromStore();
 
     private static readonly Dictionary<string, BlockDefinition> _defs =
         new(StringComparer.OrdinalIgnoreCase)
@@ -108,8 +118,13 @@ public class BlockGeneratorService : IBlockGeneratorService
         },
     };
 
-    public BlockDefinition GetDefinition(string styleKey) =>
-        _defs.TryGetValue(styleKey, out var d) ? d : _defs["skinny"];
+    public BlockDefinition GetDefinition(string styleKey)
+    {
+        var key = StyleOptionCatalog.NormalizeStyleKey(styleKey);
+        if (_defs.TryGetValue(key, out var d))
+            return d;
+        return _defs[StyleOptionCatalog.TemplateStyleKey(key)];
+    }
 
     public Dictionary<string, decimal> GetEffectiveEase(string styleKey)
     {
