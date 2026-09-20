@@ -18,12 +18,15 @@ public sealed class DashboardDataService(IPatternService patternService)
         var patternVms = list.Select(p => p.ToViewModel()).ToList();
 
         var today = DateTime.Today;
-        var weekStart = StartOfWeekMonday(today);
+        var weekStart = DashboardPlmMetrics.StartOfWeekMonday(today);
         var weekEnd = weekStart.AddDays(7);
         var prevWeekStart = weekStart.AddDays(-7);
         var patternsThisWeek = list.Count(p => p.CreatedAt >= weekStart && p.CreatedAt < weekEnd);
         var patternsLastWeek = list.Count(p => p.CreatedAt >= prevWeekStart && p.CreatedAt < weekStart);
-        var dueThisWeek = list.Count(p => p.DueDate.HasValue && p.DueDate.Value >= weekStart && p.DueDate.Value < weekEnd);
+        var dueThisWeek = DashboardPlmMetrics.CountDueThisWeek(list, today);
+        var overdue = DashboardPlmMetrics.CountOverdue(list, today);
+        var bulkReady = DashboardPlmMetrics.CountBulkReady(list);
+        var bulkNudges = DashboardPlmMetrics.BuildBulkNudges(list);
 
         return new DashboardViewModel
         {
@@ -43,6 +46,9 @@ public sealed class DashboardDataService(IPatternService patternService)
             PatternsCreatedThisWeek = patternsThisWeek,
             PatternsCreatedLastWeek = patternsLastWeek,
             DueThisWeekCount = dueThisWeek,
+            OverdueCount = overdue,
+            BulkReadyCount = bulkReady,
+            BulkLifecycleNudges = bulkNudges,
             StyleProgress = BuildStyleProgress(list),
             CategoryTabs = ["All", .. patternVms.Select(p => p.Category).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c, StringComparer.OrdinalIgnoreCase)],
             RecentActivity = BuildRecentActivity(list),
@@ -65,13 +71,6 @@ public sealed class DashboardDataService(IPatternService patternService)
                 : (int)Math.Round(done * 100.0 / styleList.Count);
         }
         return result;
-    }
-
-    private static DateTime StartOfWeekMonday(DateTime date)
-    {
-        var d = date.Date;
-        var diff = d.DayOfWeek == DayOfWeek.Sunday ? -6 : DayOfWeek.Monday - d.DayOfWeek;
-        return d.AddDays(diff);
     }
 
     private static IReadOnlyList<ActivityItem> BuildRecentActivity(IReadOnlyList<PatternEntity> list)

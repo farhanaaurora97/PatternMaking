@@ -26,40 +26,19 @@
         <div class="alert-error" style="margin-bottom:12px">@_message</div>
     }
 
-    <div class="ss-lifecycle-legend">
-        <div class="ss-lifecycle-legend__row">
-            <span class="ss-lifecycle-legend__label">Lifecycle</span>
-            <span class="ss-lifecycle-legend__gate">merchandising / production gate</span>
-        </div>
-        <div class="ss-lifecycle-stages">
-            @foreach (var stage in LifecycleLegend)
-            {
-                <div class="ss-lifecycle-stage @stage.CssClass">
-                    <span class="ss-lifecycle-stage__dot" aria-hidden="true"></span>
-                    <span class="ss-lifecycle-stage__name">@stage.Label</span>
-                    <span class="ss-lifecycle-stage__desc">@stage.Desc</span>
-                </div>
-            }
-        </div>
-        <div class="ss-lifecycle-legend__footer">
-            <span class="ss-lifecycle-legend__label">Pattern status</span>
-            <span class="ss-lifecycle-legend__flow">Pending → Draft → In Progress → Graded → Done</span>
-        </div>
-    </div>
-
-    <div class="tbl-wrap">
+    <div class="tbl-wrap tbl-wrap--primary">
         <div class="tbl-header">
             <span class="tbl-label">All styles</span>
             <div class="tbl-search">
-                <input type="search" placeholder="Search code, name, season…" @bind="_search" @bind:event="oninput" />
+                <input type="search" placeholder="Search code, name, season…" @bind="_search" @bind:event="oninput" @bind:after="ResetPage" />
             </div>
-            <span class="tbl-count">@Filtered.Count() of @_rows.Count</span>
+            <span class="tbl-count">@TableRangeLabel</span>
             <div class="cat-tabs ss-lifecycle-tabs">
                 @foreach (var tab in LifecycleTabs)
                 {
                     <button type="button"
                             class="cat-tab @(_lifecycleTab == tab ? "active" : "") @LifecycleTabClass(tab)"
-                            @onclick="() => _lifecycleTab = tab">
+                            @onclick="() => SelectLifecycleTab(tab)">
                         @if (tab != "All")
                         {
                             <span class="cat-tab__dot" aria-hidden="true"></span>
@@ -84,7 +63,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var p in Filtered)
+                @foreach (var p in PagedRows)
                 {
                     <tr>
                         <td class="td-mono td-bold">@p.Code</td>
@@ -123,6 +102,53 @@
                 }
             </tbody>
         </table>
+        <div class="tbl-pagination" aria-label="Style sheet pagination">
+            <label class="tbl-page-size">
+                Rows per page
+                <select @bind="_pageSize" @bind:after="ResetPage">
+                    @for (var n = 10; n <= 100; n += 10)
+                    {
+                        <option value="@n">@n</option>
+                    }
+                    <option value="-1">All</option>
+                </select>
+            </label>
+            <div class="tbl-page-nav">
+                <button type="button" class="tbl-page-btn" disabled="@(ShowAllRows || _page <= 1 || FilteredCount == 0)" @onclick="PrevPage">← Prev</button>
+                <span class="tbl-page-info">@PageInfoLabel</span>
+                <button type="button" class="tbl-page-btn" disabled="@(ShowAllRows || _page >= TotalPages || FilteredCount == 0)" @onclick="NextPage">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dash-analytics @(_legendOpen ? "dash-analytics--open" : "")">
+        <button type="button" class="dash-analytics__toggle" @onclick="ToggleLegend">
+            <span>Lifecycle guide</span>
+            <span class="dash-analytics__hint">@(_legendOpen ? "Hide" : "Show")</span>
+        </button>
+        @if (_legendOpen)
+        {
+            <div class="dash-analytics__body ss-lifecycle-legend" style="border-bottom:none;padding-top:0">
+                <div class="ss-lifecycle-legend__row">
+                    <span class="ss-lifecycle-legend__label">Lifecycle</span>
+                    <span class="ss-lifecycle-legend__gate">merchandising / production gate</span>
+                </div>
+                <div class="ss-lifecycle-stages">
+                    @foreach (var stage in LifecycleLegend)
+                    {
+                        <div class="ss-lifecycle-stage @stage.CssClass">
+                            <span class="ss-lifecycle-stage__dot" aria-hidden="true"></span>
+                            <span class="ss-lifecycle-stage__name">@stage.Label</span>
+                            <span class="ss-lifecycle-stage__desc">@stage.Desc</span>
+                        </div>
+                    }
+                </div>
+                <div class="ss-lifecycle-legend__footer">
+                    <span class="ss-lifecycle-legend__label">Pattern status</span>
+                    <span class="ss-lifecycle-legend__flow">Pending → Draft → In Progress → Graded → Done</span>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
@@ -229,6 +255,9 @@
     private string _lifecycleTab = "All";
     private string _sortCol = "code";
     private bool _sortAsc = true;
+    private int _page = 1;
+    private int _pageSize = 10;
+    private bool _legendOpen;
     private string? _message;
     private string _createName = "";
     private string _createStyleKey = "skinny";
@@ -337,10 +366,70 @@
         }
     }
 
+    private int FilteredCount => Filtered.Count();
+
+    private bool ShowAllRows => _pageSize < 0;
+
+    private int TotalPages => ShowAllRows
+        ? 1
+        : Math.Max(1, (int)Math.Ceiling(FilteredCount / (double)_pageSize));
+
+    private IEnumerable<PatternViewModel> PagedRows => ShowAllRows
+        ? Filtered
+        : Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize);
+
+    private string PageInfoLabel => FilteredCount == 0
+        ? "No rows"
+        : ShowAllRows
+            ? $"All {FilteredCount} rows"
+            : $"Page {_page} of {TotalPages}";
+
+    private string TableRangeLabel
+    {
+        get
+        {
+            var filtered = FilteredCount;
+            var total = _rows.Count;
+            if (filtered == 0) return $"0 of {total}";
+            if (ShowAllRows)
+            {
+                return filtered == total
+                    ? $"{filtered} of {total}"
+                    : $"{filtered} of {filtered} ({total} total)";
+            }
+            var from = (_page - 1) * _pageSize + 1;
+            var to = Math.Min(_page * _pageSize, filtered);
+            return filtered == total
+                ? $"{from}–{to} of {total}"
+                : $"{from}–{to} of {filtered} ({total} total)";
+        }
+    }
+
+    private void SelectLifecycleTab(string tab)
+    {
+        _lifecycleTab = tab;
+        ResetPage();
+    }
+
+    private void ResetPage() => _page = 1;
+
+    private void ToggleLegend() => _legendOpen = !_legendOpen;
+
+    private void PrevPage()
+    {
+        if (_page > 1) _page--;
+    }
+
+    private void NextPage()
+    {
+        if (_page < TotalPages) _page++;
+    }
+
     private void SortBy(string col)
     {
         if (_sortCol == col) _sortAsc = !_sortAsc;
         else { _sortCol = col; _sortAsc = true; }
+        ResetPage();
     }
 
     private void SaveMeta(int id, string? season, string? designer, string? owner)

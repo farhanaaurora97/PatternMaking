@@ -61,70 +61,39 @@
     </div>
   </div>
 
-  <div class="due-week-strip" role="status" aria-live="polite">
-    <span class="due-week-strip__icon" aria-hidden="true">📅</span>
-    <span class="due-week-strip__text"><strong>@Model.DueThisWeekCount</strong> pattern@(Model.DueThisWeekCount == 1 ? "" : "s") due this week</span>
-    <span class="due-week-strip__sub">Deadlines falling Mon–Sun (calendar week)</span>
-  </div>
-
-  <div class="chart-section">
-    <div class="chart-section-title">Analytics</div>
-    <div class="grid-2 chart-grid">
-      <div class="card chart-card">
-        <div class="card-title">Status mix</div>
-        <p class="chart-sub">Where each pattern sits in the workflow</p>
-        <div class="chart-canvas-wrap">
-          <canvas id="chart-status" aria-label="Patterns by status"></canvas>
-          <p class="chart-empty" id="chart-status-empty" hidden>No patterns yet — create one to see the breakdown.</p>
-        </div>
-      </div>
-      <div class="card chart-card">
-        <div class="card-title">Patterns by fit</div>
-        <p class="chart-sub">Stacked by workflow status — pending, draft, in progress, graded, done</p>
-        <div class="chart-canvas-wrap chart-canvas-wrap--bar">
-          <canvas id="chart-styles" aria-label="Pattern count by fit"></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="card chart-card chart-card--wide">
-      <div class="card-title">Patterns by pant type</div>
-      <p class="chart-sub">Each bar is a product line, sorted by count. Colors are fixed (e.g. Denim = blue, Chinos = tan) — see the key under the chart.</p>
-      <p class="chart-hint" id="chart-pant-types-hint" aria-live="polite"></p>
-      <div class="chart-canvas-wrap chart-canvas-wrap--pant-types">
-        <canvas id="chart-pant-types" aria-label="Pattern count by pant type"></canvas>
-      </div>
-      <div class="chart-pant-legend" id="chart-pant-types-legend" aria-label="Color key for product lines"></div>
-    </div>
-  </div>
-
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-title">Style Progress</div>
-      @foreach (var item in Model.StyleProgress)
+  @if (Model.OverdueCount > 0 || Model.DueThisWeekCount > 0 || Model.BulkReadyCount > 0)
+  {
+    <div class="plm-alerts" role="status" aria-live="polite">
+      @if (Model.OverdueCount > 0)
       {
-        <div class="prog-row">
-          <div class="prog-name">@item.Key</div>
-          <div class="prog-track">
-            <div class="prog-fill" data-target="@item.Value" style="width:0%"></div>
-          </div>
-          <div class="prog-pct">@item.Value%</div>
-        </div>
+        <button type="button" class="plm-alert plm-alert--overdue plm-alert--clickable" data-plm-filter="overdue" title="Click to filter table to overdue patterns">
+          <strong>@Model.OverdueCount overdue</strong>
+          <span>— past due date, update status or deadline</span>
+        </button>
+      }
+      @if (Model.DueThisWeekCount > 0)
+      {
+        <button type="button" class="plm-alert plm-alert--due plm-alert--clickable" data-plm-filter="due-week" title="Click to filter table to patterns due this week">
+          <strong>@Model.DueThisWeekCount due this week</strong>
+          <span>— Mon–Sun calendar week</span>
+        </button>
+      }
+      @if (Model.BulkReadyCount > 0)
+      {
+        <button type="button" class="plm-alert plm-alert--bulk plm-alert--clickable" data-plm-filter="bulk-ready" title="Click to filter table to factory-ready patterns not on Bulk lifecycle">
+          <strong>@Model.BulkReadyCount factory-ready</strong>
+          <span>— move to <em>Bulk</em> lifecycle in</span>
+          <a asp-controller="StyleSheet" asp-action="Index" onclick="event.stopPropagation()">Style Sheet</a>
+          @if (Model.BulkLifecycleNudges.Count > 0)
+          {
+            <span class="plm-alert__codes">(@string.Join(", ", Model.BulkLifecycleNudges.Select(n => n.Code)))</span>
+          }
+        </button>
       }
     </div>
-    <div class="card">
-      <div class="card-title">Recent Activity</div>
-      @foreach (var item in Model.RecentActivity)
-      {
-        <div class="act-row">
-          <span class="act-badge @item.BadgeCss">@item.Badge</span>
-          <div class="act-text">@item.Text</div>
-          <div class="act-time">@item.TimeAgo</div>
-        </div>
-      }
-    </div>
-  </div>
+  }
 
-  <div class="tbl-wrap">
+  <div class="tbl-wrap tbl-wrap--primary">
     <div class="tbl-header">
       <span class="tbl-label">All Patterns</span>
       <div class="tbl-search">
@@ -133,6 +102,8 @@
       </div>
       <span class="tbl-count" id="tbl-count" data-total="@Model.TotalPatternCount">@Model.TotalPatternCount of @Model.TotalPatternCount</span>
       <button type="button" class="status-filter-clear" id="btn-clear-status-filter" hidden>All statuses</button>
+      <button type="button" class="status-filter-clear status-filter-clear--pant" id="btn-clear-pant-filter" hidden>All product lines</button>
+      <button type="button" class="status-filter-clear status-filter-clear--plm" id="btn-clear-plm-filter" hidden>Clear PLM filter</button>
       <div class="cat-tabs" id="cat-tabs">
         @foreach (var cat in Model.CategoryTabs)
         {
@@ -162,7 +133,7 @@
       <tbody id="patterns-tbody">
         @foreach (var p in Model.Patterns)
         {
-          <tr id="row-@p.Id" data-category="@p.Category" data-status="@p.Status" data-lifecycle="@p.LifecycleStatus">
+          <tr id="row-@p.Id" data-category="@p.Category" data-status="@p.Status" data-lifecycle="@p.LifecycleStatus" data-overdue="@(p.IsOverdue ? "1" : "0")" data-due-week="@(p.IsDueThisWeek ? "1" : "0")" data-bulk-nudge="@(p.NeedsBulkLifecycle ? "1" : "0")" class="@(p.IsOverdue ? "row-overdue" : "")">
             <td class="td-mono td-bold">@p.Code</td>
             <td class="td-bold">
               @p.Name
@@ -203,6 +174,23 @@
         }
       </tbody>
     </table>
+    <div class="tbl-pagination" id="tbl-pagination" aria-label="Pattern table pagination">
+      <label class="tbl-page-size">
+        Rows per page
+        <select id="tbl-page-size" aria-label="Rows per page">
+          @for (var n = 10; n <= 100; n += 10)
+          {
+            <option value="@n" selected="@(n == 10)">@n</option>
+          }
+          <option value="all">All</option>
+        </select>
+      </label>
+      <div class="tbl-page-nav">
+        <button type="button" class="tbl-page-btn" id="tbl-page-prev" disabled aria-label="Previous page">← Prev</button>
+        <span class="tbl-page-info" id="tbl-page-info">Page 1</span>
+        <button type="button" class="tbl-page-btn" id="tbl-page-next" aria-label="Next page">Next →</button>
+      </div>
+    </div>
   </div>
 
   <nav class="pp-quick-actions" aria-label="Quick actions">
@@ -218,6 +206,103 @@
     <span class="kbd">G</span> Grading &nbsp;·&nbsp;
     <span class="kbd">E</span> Export
   </div>
+
+  <details class="dash-analytics" id="dash-analytics">
+    <summary class="dash-analytics__toggle">Analytics &amp; insights</summary>
+    <div class="dash-analytics__body">
+      <div class="chart-section">
+        <div class="grid-2 chart-grid">
+          <div class="card chart-card">
+            <div class="card-title">Status mix</div>
+            <p class="chart-sub">Where each pattern sits in the workflow</p>
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-status" aria-label="Patterns by status"></canvas>
+              <p class="chart-empty" id="chart-status-empty" hidden>No patterns yet — create one to see the breakdown.</p>
+            </div>
+          </div>
+          <div class="card chart-card">
+            <div class="card-title">Patterns by fit</div>
+            <p class="chart-sub">Stacked by workflow status — pending, draft, in progress, graded, done</p>
+            <div class="chart-canvas-wrap chart-canvas-wrap--bar">
+              <canvas id="chart-styles" aria-label="Pattern count by fit"></canvas>
+            </div>
+          </div>
+        </div>
+        @{
+          var pantTypes = Model.Charts.PantTypes;
+          var pantTotal = pantTypes.Sum(p => p.Count);
+        }
+        <div class="card chart-card chart-card--wide pant-board" id="pant-types-board">
+          <div class="pant-board__head">
+            <div>
+              <div class="card-title">Patterns by pant type</div>
+              <p class="chart-sub" style="margin-bottom:0">Click a line to filter the pattern table above</p>
+            </div>
+            <div class="pant-board__summary" id="pant-board-summary" @(pantTypes.Count == 0 ? "hidden" : "")>
+              @if (pantTypes.Count > 0)
+              {
+                <span>@pantTotal pattern@(pantTotal == 1 ? "" : "s")</span>
+                <span>@pantTypes.Count line@(pantTypes.Count == 1 ? "" : "s")</span>
+              }
+            </div>
+          </div>
+          @if (pantTypes.Count == 0)
+          {
+            <p class="pant-board__empty" id="pant-board-empty">No patterns yet — create one to see product lines.</p>
+            <div class="pant-board__grid" id="pant-board-grid" hidden></div>
+          }
+          else
+          {
+            <p class="pant-board__empty" id="pant-board-empty" hidden>No patterns yet — create one to see product lines.</p>
+            <div class="pant-board__grid" id="pant-board-grid">
+              @foreach (var pt in pantTypes)
+              {
+                var pct = pantTotal == 0 ? 0 : (int)Math.Round(pt.Count * 100.0 / pantTotal);
+                <button type="button" class="pant-tile" data-category="@pt.Label" style="--pant-color:@pt.Color" title="Filter table to @pt.Label · @pt.Count pattern@(pt.Count == 1 ? "" : "s") · @pct% of total">
+                  <div class="pant-tile__accent" aria-hidden="true"></div>
+                  <div class="pant-tile__label">@pt.Label</div>
+                  <div class="pant-tile__row">
+                    <span class="pant-tile__count">@pt.Count</span>
+                    <span class="pant-tile__pct">@pct%</span>
+                  </div>
+                  <div class="pant-tile__track" aria-hidden="true">
+                    <div class="pant-tile__fill" style="width:@(pct)%"></div>
+                  </div>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Style Progress</div>
+          @foreach (var item in Model.StyleProgress)
+          {
+            <div class="prog-row">
+              <div class="prog-name">@item.Key</div>
+              <div class="prog-track">
+                <div class="prog-fill" data-target="@item.Value" style="width:0%"></div>
+              </div>
+              <div class="prog-pct">@item.Value%</div>
+            </div>
+          }
+        </div>
+        <div class="card">
+          <div class="card-title">Recent Activity</div>
+          @foreach (var item in Model.RecentActivity)
+          {
+            <div class="act-row">
+              <span class="act-badge @item.BadgeCss">@item.Badge</span>
+              <div class="act-text">@item.Text</div>
+              <div class="act-time">@item.TimeAgo</div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </details>
 </div>
 
 @section Scripts {

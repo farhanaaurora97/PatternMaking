@@ -11,7 +11,7 @@ public sealed class DashboardChartsModel
 
 public sealed record ChartStatusSlice(string Key, string Label, int Count, string Color);
 
-public sealed record ChartStyleBar(string Label, int Count);
+public sealed record ChartStyleBar(string Label, int Count, string Color);
 
 public sealed class ChartStackedByFit
 {
@@ -55,6 +55,15 @@ public class DashboardViewModel
     /// <summary>Patterns with a due date falling in the current week.</summary>
     public int DueThisWeekCount { get; set; }
 
+    /// <summary>Patterns with a due date before today.</summary>
+    public int OverdueCount { get; set; }
+
+    /// <summary>Factory-ready patterns not yet on Bulk lifecycle.</summary>
+    public int BulkReadyCount { get; set; }
+
+    /// <summary>Factory-ready styles that can move to Bulk lifecycle (Style Sheet).</summary>
+    public IReadOnlyList<PlmNudgeItem> BulkLifecycleNudges { get; set; } = [];
+
     // Style progress (0–100 per style)
     public Dictionary<string, int> StyleProgress { get; set; } = new();
 
@@ -74,3 +83,5 @@ public class DashboardViewModel
 }
 
 public record ActivityItem(string Badge, string BadgeCss, string Text, string TimeAgo);
+
+public record PlmNudgeItem(int Id, string Code, string Name, string StyleKey);

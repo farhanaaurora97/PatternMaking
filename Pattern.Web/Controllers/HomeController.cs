@@ -18,12 +18,15 @@ public class HomeController(IPatternService patternService, ISizeChartService si
         var patternVms = list.Select(p => p.ToViewModel()).ToList();
 
         var today = DateTime.Today;
-        var weekStart = StartOfWeekMonday(today);
+        var weekStart = DashboardPlmMetrics.StartOfWeekMonday(today);
         var weekEnd = weekStart.AddDays(7);
         var prevWeekStart = weekStart.AddDays(-7);
         var patternsThisWeek = list.Count(p => p.CreatedAt >= weekStart && p.CreatedAt < weekEnd);
         var patternsLastWeek = list.Count(p => p.CreatedAt >= prevWeekStart && p.CreatedAt < weekStart);
-        var dueThisWeek = list.Count(p => p.DueDate.HasValue && p.DueDate.Value >= weekStart && p.DueDate.Value < weekEnd);
+        var dueThisWeek = DashboardPlmMetrics.CountDueThisWeek(list, today);
+        var overdue = DashboardPlmMetrics.CountOverdue(list, today);
+        var bulkReady = DashboardPlmMetrics.CountBulkReady(list);
+        var bulkNudges = DashboardPlmMetrics.BuildBulkNudges(list);
 
         var vm = new DashboardViewModel
         {
@@ -43,6 +46,9 @@ public class HomeController(IPatternService patternService, ISizeChartService si
             PatternsCreatedThisWeek = patternsThisWeek,
             PatternsCreatedLastWeek = patternsLastWeek,
             DueThisWeekCount = dueThisWeek,
+            OverdueCount = overdue,
+            BulkReadyCount = bulkReady,
+            BulkLifecycleNudges = bulkNudges,
             StyleProgress = BuildStyleProgress(list),
             CategoryTabs = ["All", .. patternVms.Select(p => p.Category).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c, StringComparer.OrdinalIgnoreCase)],
             RecentActivity = BuildRecentActivity(list),
@@ -203,7 +209,7 @@ public class HomeController(IPatternService patternService, ISizeChartService si
 
         var pantTypeBars = list
             .GroupBy(p => string.IsNullOrWhiteSpace(p.Category) ? "Other" : p.Category)
-            .Select(g => new ChartStyleBar(g.Key, g.Count()))
+            .Select(g => new ChartStyleBar(g.Key, g.Count(), PantCategoryPalette.GetColor(g.Key)))
             .OrderByDescending(x => x.Count)
             .ThenBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
             .ToList();

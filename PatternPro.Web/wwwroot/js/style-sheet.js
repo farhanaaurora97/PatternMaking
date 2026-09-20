@@ -4,8 +4,26 @@
   const searchInput = document.getElementById('ss-search');
   const tblCount = document.getElementById('ss-count');
   const btnClear = document.getElementById('ss-clear-lifecycle');
+  const pageSizeSelect = document.getElementById('ss-page-size');
+  const btnPagePrev = document.getElementById('ss-page-prev');
+  const btnPageNext = document.getElementById('ss-page-next');
+  const pageInfo = document.getElementById('ss-page-info');
   let currentLifecycle = 'All';
+  let currentPage = 1;
+  /** @type {number|'all'} */
+  let pageSize = 10;
   const sort = { col: '', asc: true };
+
+  function readPageSize() {
+    const v = pageSizeSelect?.value || '10';
+    pageSize = v === 'all' ? 'all' : Math.max(10, parseInt(v, 10) || 10);
+  }
+
+  function effectivePageSize(totalMatched) {
+    return pageSize === 'all' ? Math.max(totalMatched, 1) : pageSize;
+  }
+
+  readPageSize();
 
   document.getElementById('ss-btn-add')?.addEventListener('click', () => {
     document.getElementById('btn-new-pattern')?.click();
@@ -17,7 +35,7 @@
     currentLifecycle = btn.dataset.lifecycle || 'All';
     document.querySelectorAll('#ss-lifecycle-tabs .cat-tab').forEach((t) => t.classList.toggle('active', t === btn));
     if (btnClear) btnClear.hidden = currentLifecycle === 'All';
-    applyFilters();
+    applyFilters(true);
   });
 
   btnClear?.addEventListener('click', () => {
@@ -26,10 +44,29 @@
     document.querySelectorAll('#ss-lifecycle-tabs .cat-tab').forEach((t) => {
       t.classList.toggle('active', t.dataset.lifecycle === 'All');
     });
-    applyFilters();
+    applyFilters(true);
   });
 
-  searchInput?.addEventListener('input', debounce(() => refreshRows(), 250));
+  pageSizeSelect?.addEventListener('change', () => {
+    readPageSize();
+    applyFilters(true);
+  });
+
+  btnPagePrev?.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage -= 1;
+      applyFilters(false);
+    }
+  });
+
+  btnPageNext?.addEventListener('click', () => {
+    currentPage += 1;
+    applyFilters(false);
+  });
+
+  searchInput?.addEventListener('input', debounce(async () => {
+    await refreshRows();
+  }, 250));
 
   document.querySelectorAll('th[data-sort]').forEach((th) => {
     th.addEventListener('click', async () => {
@@ -105,10 +142,7 @@
 
   function renderRows(patterns) {
     if (!tbody) return;
-    if (tblCount) {
-      tblCount.dataset.total = String(patterns.length);
-      tblCount.textContent = `${patterns.length} of ${patterns.length}`;
-    }
+    if (tblCount) tblCount.dataset.total = String(patterns.length);
     const lifecycleOpts = [
       ['Idea', 'Idea'],
       ['Sampling', 'Sampling'],
@@ -132,21 +166,55 @@
         <td class="td-mono">${esc(p.dueDateLabel)}</td>
         <td><a class="btn-open" href="/Pieces?patternId=${p.id}&style=${encodeURIComponent(p.styleKey || 'skinny')}">Pattern</a></td>
       </tr>`).join('');
-    applyFilters();
+    applyFilters(true);
   }
 
-  function applyFilters() {
-    document.querySelectorAll('#ss-tbody tr').forEach((row) => {
-      const lc = row.dataset.lifecycle || '';
-      const show = currentLifecycle === 'All' || lc === currentLifecycle;
-      row.style.display = show ? '' : 'none';
-    });
-    if (!tblCount) return;
-    const total = parseInt(tblCount.dataset.total || '0', 10);
-    let n = 0;
-    document.querySelectorAll('#ss-tbody tr').forEach((r) => { if (r.style.display !== 'none') n++; });
-    tblCount.textContent = `${n} of ${total}`;
+  function rowMatchesFilter(row) {
+    const lc = row.dataset.lifecycle || '';
+    return currentLifecycle === 'All' || lc === currentLifecycle;
   }
+
+  function applyFilters(resetPage) {
+    if (resetPage) currentPage = 1;
+    const rows = [...document.querySelectorAll('#ss-tbody tr')];
+    const matched = rows.filter(rowMatchesFilter);
+    const totalMatched = matched.length;
+    const size = effectivePageSize(totalMatched);
+    const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalMatched / size));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const startIdx = (currentPage - 1) * size;
+    const endIdx = startIdx + size;
+    const visibleSet = new Set(matched.slice(startIdx, endIdx));
+    rows.forEach((row) => {
+      row.style.display = visibleSet.has(row) ? '' : 'none';
+    });
+    updatePaginationUI(totalMatched, startIdx, endIdx, totalPages);
+  }
+
+  function updatePaginationUI(totalMatched, startIdx, endIdx, totalPages) {
+    const total = parseInt(tblCount?.dataset.total || '0', 10);
+    if (tblCount) {
+      if (totalMatched === 0) {
+        tblCount.textContent = `0 of ${total}`;
+      } else {
+        const from = startIdx + 1;
+        const to = Math.min(endIdx, totalMatched);
+        tblCount.textContent = totalMatched === total
+          ? `${from}–${to} of ${total}`
+          : `${from}–${to} of ${totalMatched} (${total} total)`;
+      }
+    }
+    const showAll = pageSize === 'all';
+    if (btnPagePrev) btnPagePrev.disabled = showAll || currentPage <= 1 || totalMatched === 0;
+    if (btnPageNext) btnPageNext.disabled = showAll || currentPage >= totalPages || totalMatched === 0;
+    if (pageInfo) {
+      if (totalMatched === 0) pageInfo.textContent = 'No rows';
+      else if (showAll) pageInfo.textContent = `All ${totalMatched} rows`;
+      else pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    }
+  }
+
+  applyFilters(true);
 
   function esc(s) {
     if (!s) return '';

@@ -12,16 +12,6 @@ window.patternProDashboard = (function () {
   const grid = '#f1f5f9';
   const tick = '#94a3b8';
 
-  function colorForPantCategory(label) {
-    const k = String(label || '').trim().toLowerCase();
-    const palette = {
-      denim: '#1e3a5f', trousers: '#2d5282', chinos: '#3a6491', cargo: '#1e5f5a', linen: '#2a7a6e',
-      leather: '#4a3320', palazzo: '#5a3a5c', corduroy: '#5e3d1e', workwear: '#4a3a1e',
-      joggers: '#3d5166', shorts: '#5c6f82', sweatpants: '#4a5568', dress: '#2d3748', other: '#718096',
-    };
-    return palette[k] ?? palette.other;
-  }
-
   function destroyChart(id) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -31,24 +21,11 @@ window.patternProDashboard = (function () {
   function destroyAll() {
     destroyChart('chart-status');
     destroyChart('chart-styles');
-    destroyChart('chart-pant-types');
-  }
-
-  function fillPantLegend(list) {
-    const el = document.getElementById('chart-pant-types-legend');
-    if (!el) return;
-    if (!list?.length) { el.innerHTML = ''; return; }
-    const labels = [...new Set(list.map(s => s.label))].sort((a, b) => a.localeCompare(b));
-    el.innerHTML = labels.map(lab => {
-      const c = colorForPantCategory(lab);
-      return `<span class="pt-leg"><span class="pt-swatch" style="background:${c}"></span>${lab}</span>`;
-    }).join('');
   }
 
   function renderCharts(payload) {
     const statusList = payload.status || [];
     const fit = payload.stylesByFit || payload.StylesByFit;
-    const pantTypeList = payload.pantTypes || [];
 
     // Status doughnut
     const statusFiltered = statusList.filter(s => s.count > 0);
@@ -122,42 +99,6 @@ window.patternProDashboard = (function () {
       });
     }
 
-    // Pant types bar
-    const canvasPant = document.getElementById('chart-pant-types');
-    const pantHint = document.getElementById('chart-pant-types-hint');
-    if (canvasPant && pantTypeList.length > 0) {
-      const maxPt = Math.max(1, ...pantTypeList.map(s => s.count));
-      const barColors = pantTypeList.map(s => colorForPantCategory(s.label));
-      if (pantHint) {
-        pantHint.textContent = `${pantTypeList.reduce((a, s) => a + s.count, 0)} patterns across ${pantTypeList.length} product lines`;
-      }
-      fillPantLegend(pantTypeList);
-      new Chart(canvasPant, {
-        type: 'bar',
-        data: {
-          labels: pantTypeList.map(s => s.label),
-          datasets: [{
-            data: pantTypeList.map(s => s.count),
-            backgroundColor: barColors,
-            borderRadius: 6,
-            maxBarThickness: 24,
-          }],
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { beginAtZero: true, suggestedMax: maxPt, grid: { color: grid }, ticks: { stepSize: 1, color: tick } },
-            y: { grid: { display: false }, ticks: { color: '#334155' } },
-          },
-          plugins: { legend: { display: false } },
-        },
-      });
-    } else {
-      if (pantHint) pantHint.textContent = '';
-      fillPantLegend([]);
-    }
   }
 
   return {

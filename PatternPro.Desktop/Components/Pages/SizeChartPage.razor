@@ -23,15 +23,24 @@
     </div>
 
     <div class="ss-lifecycle-legend" style="margin-bottom:14px">
-        <div class="ss-lifecycle-legend__row">
+        <div class="ss-lifecycle-legend__row" style="flex-wrap:wrap;gap:10px;align-items:center">
             <span class="ss-lifecycle-legend__label">Style scope</span>
+            <div class="tbl-search" style="min-width:200px">
+                <input type="search" placeholder="Search code or name…"
+                       @bind="_scopeSearch" @bind:event="oninput"
+                       @onkeydown="OnScopeSearchKeyDown" />
+            </div>
             <select class="status-select" style="min-width:220px" @bind="_selectedPatternId" @bind:after="OnPatternChanged">
                 <option value="0">Global (all styles)</option>
-                @foreach (var p in _patterns)
+                @foreach (var p in FilteredPatterns)
                 {
                     <option value="@p.Id">@p.Code — @p.Name</option>
                 }
             </select>
+            @if (!string.IsNullOrWhiteSpace(_scopeSearch))
+            {
+                <span class="tbl-count">@FilteredPatterns.Count() of @_patterns.Count</span>
+            }
         </div>
         @if (_selectedPatternId > 0)
         {
@@ -184,6 +193,7 @@
     private string _newColLabel = "";
     private string _newRowLabel = "";
     private string _copyFromRow = "";
+    private string _scopeSearch = "";
 
     protected override void OnParametersSet()
     {
@@ -198,6 +208,32 @@
     }
 
     private int? ScopeId => _selectedPatternId > 0 ? _selectedPatternId : null;
+
+    private IEnumerable<CoreModel.Pattern> FilteredPatterns
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_scopeSearch))
+                return _patterns;
+            var s = _scopeSearch.Trim();
+            return _patterns.Where(p =>
+                p.Code.Contains(s, StringComparison.OrdinalIgnoreCase)
+                || p.Name.Contains(s, StringComparison.OrdinalIgnoreCase)
+                || p.Season.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private void OnScopeSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter") return;
+        var matches = FilteredPatterns.ToList();
+        if (matches.Count == 0) return;
+        var term = _scopeSearch.Trim();
+        var exact = matches.FirstOrDefault(p =>
+            p.Code.Equals(term, StringComparison.OrdinalIgnoreCase));
+        _selectedPatternId = (exact ?? matches[0]).Id;
+        OnPatternChanged();
+    }
 
     private void LoadTable()
     {

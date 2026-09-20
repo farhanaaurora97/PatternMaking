@@ -89,6 +89,23 @@
         }
       </tbody>
     </table>
+    <div class="tbl-pagination" id="ss-pagination" aria-label="Style sheet pagination">
+      <label class="tbl-page-size">
+        Rows per page
+        <select id="ss-page-size" aria-label="Rows per page">
+          @for (var n = 10; n <= 100; n += 10)
+          {
+            <option value="@n" selected="@(n == 10)">@n</option>
+          }
+          <option value="all">All</option>
+        </select>
+      </label>
+      <div class="tbl-page-nav">
+        <button type="button" class="tbl-page-btn" id="ss-page-prev" disabled aria-label="Previous page">← Prev</button>
+        <span class="tbl-page-info" id="ss-page-info">Page 1</span>
+        <button type="button" class="tbl-page-btn" id="ss-page-next" aria-label="Next page">Next →</button>
+      </div>
+    </div>
   </div>
 </div>
 

@@ -32,7 +32,7 @@ internal static class DashboardChartsBuilder
 
         var pantTypeBars = list
             .GroupBy(p => string.IsNullOrWhiteSpace(p.Category) ? "Other" : p.Category)
-            .Select(g => new ChartStyleBar(g.Key, g.Count()))
+            .Select(g => new ChartStyleBar(g.Key, g.Count(), PantCategoryPalette.GetColor(g.Key)))
             .OrderByDescending(x => x.Count)
             .ThenBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
             .ToList();

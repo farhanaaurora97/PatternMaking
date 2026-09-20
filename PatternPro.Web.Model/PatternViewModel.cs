@@ -25,6 +25,12 @@ public class PatternViewModel
     public string DueDateLabel { get; set; } = "—";
     /// <summary>ISO date for the date input value (yyyy-MM-dd) or empty string when no due date.</summary>
     public string DueDateIso { get; set; } = string.Empty;
+    /// <summary>True when due date is before today.</summary>
+    public bool IsOverdue { get; set; }
+    /// <summary>True when due date falls in the current calendar week (Mon–Sun).</summary>
+    public bool IsDueThisWeek { get; set; }
+    /// <summary>Factory-ready but lifecycle is not yet Bulk.</summary>
+    public bool NeedsBulkLifecycle { get; set; }
     /// <summary>Product line for dashboard category tabs (e.g. Denim).</summary>
     public string Category { get; set; } = "Denim";
 

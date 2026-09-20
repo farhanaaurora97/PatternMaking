@@ -79,6 +79,33 @@
   const searchInput = document.getElementById('tbl-search-input');
   const tblCount = document.getElementById('tbl-count');
   const btnClearStatus = document.getElementById('btn-clear-status-filter');
+  const btnClearPant = document.getElementById('btn-clear-pant-filter');
+  const btnClearPlm = document.getElementById('btn-clear-plm-filter');
+  const pageSizeSelect = document.getElementById('tbl-page-size');
+  const btnPagePrev = document.getElementById('tbl-page-prev');
+  const btnPageNext = document.getElementById('tbl-page-next');
+  const pageInfo = document.getElementById('tbl-page-info');
+  let currentPage = 1;
+  /** @type {number|'all'} */
+  let pageSize = 10;
+
+  function readPageSize() {
+    const v = pageSizeSelect?.value || '10';
+    pageSize = v === 'all' ? 'all' : Math.max(10, parseInt(v, 10) || 10);
+  }
+
+  function effectivePageSize(totalMatched) {
+    return pageSize === 'all' ? Math.max(totalMatched, 1) : pageSize;
+  }
+
+  readPageSize();
+
+  function syncPantTileActive() {
+    document.querySelectorAll('#pant-board-grid .pant-tile').forEach((t) => {
+      t.classList.toggle('pant-tile--active', currentCat !== 'All' && t.dataset.category === currentCat);
+    });
+    if (btnClearPant) btnClearPant.hidden = currentCat === 'All';
+  }
 
   // ── Table search ────────────────────────────────────────────────────
   searchInput?.addEventListener('input', debounce(async () => {
@@ -92,42 +119,138 @@
     if (!btn) return;
     currentCat = btn.dataset.cat || 'All';
     document.querySelectorAll('#cat-tabs .cat-tab').forEach((t) => t.classList.toggle('active', t === btn));
-    applyFilters();
+    syncPantTileActive();
+    applyFilters(true);
+  });
+
+  document.getElementById('pant-board-grid')?.addEventListener('click', (e) => {
+    const tile = e.target.closest('.pant-tile[data-category]');
+    if (!tile) return;
+    const cat = tile.dataset.category || 'All';
+    currentCat = currentCat === cat ? 'All' : cat;
+    document.querySelectorAll('#cat-tabs .cat-tab').forEach((t) => {
+      t.classList.toggle('active', (t.dataset.cat || 'All') === currentCat);
+    });
+    syncPantTileActive();
+    applyFilters(true);
+    document.querySelector('.tbl-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  btnClearPant?.addEventListener('click', () => {
+    currentCat = 'All';
+    document.querySelectorAll('#cat-tabs .cat-tab').forEach((t) => {
+      t.classList.toggle('active', (t.dataset.cat || 'All') === 'All');
+    });
+    syncPantTileActive();
+    applyFilters(true);
   });
 
   /** @type {string|null} status key: Pending, Draft, InProgress, … */
   let currentStatusFilter = null;
+  /** @type {string|null} overdue | due-week | bulk-ready */
+  let currentPlmFilter = null;
+
+  function syncPlmAlertActive() {
+    document.querySelectorAll('.plm-alerts [data-plm-filter]').forEach((el) => {
+      el.classList.toggle('plm-alert--active', el.dataset.plmFilter === currentPlmFilter);
+    });
+    if (btnClearPlm) btnClearPlm.hidden = !currentPlmFilter;
+  }
+
+  document.querySelector('.plm-alerts')?.addEventListener('click', (e) => {
+    if (e.target.closest('a')) return;
+    const btn = e.target.closest('[data-plm-filter]');
+    if (!btn) return;
+    const f = btn.dataset.plmFilter || null;
+    currentPlmFilter = currentPlmFilter === f ? null : f;
+    syncPlmAlertActive();
+    applyFilters(true);
+    document.querySelector('.tbl-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  btnClearPlm?.addEventListener('click', () => {
+    currentPlmFilter = null;
+    syncPlmAlertActive();
+    applyFilters(true);
+  });
 
   window.applyDashboardStatusFilter = function (statusKey) {
     currentStatusFilter = statusKey || null;
     if (btnClearStatus) btnClearStatus.hidden = !currentStatusFilter;
-    applyFilters();
+    applyFilters(true);
   };
 
   btnClearStatus?.addEventListener('click', () => {
     window.applyDashboardStatusFilter(null);
   });
 
-  function applyFilters() {
-    document.querySelectorAll('#patterns-tbody tr').forEach((row) => {
-      const c = row.dataset.category || '';
-      const st = row.dataset.status || '';
-      const showCat = currentCat === 'All' || c === currentCat;
-      const showSt = !currentStatusFilter || st === currentStatusFilter;
-      row.style.display = showCat && showSt ? '' : 'none';
-    });
-    updateVisibleCount();
+  pageSizeSelect?.addEventListener('change', () => {
+    readPageSize();
+    applyFilters(true);
+  });
+
+  btnPagePrev?.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage -= 1;
+      applyFilters(false);
+    }
+  });
+
+  btnPageNext?.addEventListener('click', () => {
+    currentPage += 1;
+    applyFilters(false);
+  });
+
+  function rowMatchesFilter(row) {
+    const c = row.dataset.category || '';
+    const st = row.dataset.status || '';
+    const showCat = currentCat === 'All' || c === currentCat;
+    const showSt = !currentStatusFilter || st === currentStatusFilter;
+    let showPlm = true;
+    if (currentPlmFilter === 'overdue') showPlm = row.dataset.overdue === '1';
+    else if (currentPlmFilter === 'due-week') showPlm = row.dataset.dueWeek === '1';
+    else if (currentPlmFilter === 'bulk-ready') showPlm = row.dataset.bulkNudge === '1';
+    return showCat && showSt && showPlm;
   }
 
-  function updateVisibleCount() {
-    if (!tblCount) return;
-    const total = parseInt(tblCount.dataset.total || '0', 10);
-    const rows = document.querySelectorAll('#patterns-tbody tr');
-    let n = 0;
-    rows.forEach((r) => {
-      if (r.style.display !== 'none') n++;
+  function applyFilters(resetPage) {
+    if (resetPage) currentPage = 1;
+    const rows = [...document.querySelectorAll('#patterns-tbody tr')];
+    const matched = rows.filter(rowMatchesFilter);
+    const totalMatched = matched.length;
+    const size = effectivePageSize(totalMatched);
+    const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalMatched / size));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const startIdx = (currentPage - 1) * size;
+    const endIdx = startIdx + size;
+    const visibleSet = new Set(matched.slice(startIdx, endIdx));
+    rows.forEach((row) => {
+      row.style.display = visibleSet.has(row) ? '' : 'none';
     });
-    tblCount.textContent = `${n} of ${total}`;
+    updatePaginationUI(totalMatched, startIdx, endIdx, totalPages);
+  }
+
+  function updatePaginationUI(totalMatched, startIdx, endIdx, totalPages) {
+    const total = parseInt(tblCount?.dataset.total || '0', 10);
+    if (tblCount) {
+      if (totalMatched === 0) {
+        tblCount.textContent = `0 of ${total}`;
+      } else {
+        const from = startIdx + 1;
+        const to = Math.min(endIdx, totalMatched);
+        tblCount.textContent = totalMatched === total
+          ? `${from}–${to} of ${total}`
+          : `${from}–${to} of ${totalMatched} (${total} total)`;
+      }
+    }
+    const showAll = pageSize === 'all';
+    if (btnPagePrev) btnPagePrev.disabled = showAll || currentPage <= 1 || totalMatched === 0;
+    if (btnPageNext) btnPageNext.disabled = showAll || currentPage >= totalPages || totalMatched === 0;
+    if (pageInfo) {
+      if (totalMatched === 0) pageInfo.textContent = 'No rows';
+      else if (showAll) pageInfo.textContent = `All ${totalMatched} rows`;
+      else pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    }
   }
 
   // ── Table sort ──────────────────────────────────────────────────────
@@ -267,7 +390,7 @@
           if (tblCount) {
             const t = Math.max(0, parseInt(tblCount.dataset.total || '0', 10) - 1);
             tblCount.dataset.total = String(t);
-            updateVisibleCount();
+            applyFilters(false);
           }
           window.refreshDashboardCharts?.();
         }
@@ -340,12 +463,9 @@
     const tbody = document.getElementById('patterns-tbody');
     if (!tbody) return;
     selectedPatternId = null;
-    if (tblCount) {
-      tblCount.dataset.total = String(patterns.length);
-      tblCount.textContent = `${patterns.length} of ${patterns.length}`;
-    }
+    if (tblCount) tblCount.dataset.total = String(patterns.length);
     tbody.innerHTML = patterns.map((p) => `
-      <tr id="row-${p.id}" data-category="${escapeAttr(p.category || 'Denim')}" data-status="${escapeAttr(p.status)}" data-lifecycle="${escapeAttr(p.lifecycleStatus)}">
+      <tr id="row-${p.id}" data-category="${escapeAttr(p.category || 'Denim')}" data-status="${escapeAttr(p.status)}" data-lifecycle="${escapeAttr(p.lifecycleStatus)}" data-overdue="${p.isOverdue ? '1' : '0'}" data-due-week="${p.isDueThisWeek ? '1' : '0'}" data-bulk-nudge="${p.needsBulkLifecycle ? '1' : '0'}" class="${p.isOverdue ? 'row-overdue' : ''}">
         <td class="td-mono td-bold">${escapeHtml(p.code)}</td>
         <td class="td-bold">${escapeHtml(p.name)}${productionBadgeHtml(p)}</td>
         <td class="td-mono">${escapeHtml(p.season || '')}</td>
@@ -374,8 +494,18 @@
           </div>
         </td>
       </tr>`).join('');
-    applyFilters();
+    applyFilters(true);
   }
+
+  applyFilters(true);
+
+  document.getElementById('dash-analytics')?.addEventListener('toggle', (e) => {
+    const panel = e.target;
+    if (panel?.open) {
+      window.refreshDashboardCharts?.();
+      applyTrafficLight();
+    }
+  });
 
   function productionBadgeHtml(p) {
     const label = p.productionBadgeLabel || '';

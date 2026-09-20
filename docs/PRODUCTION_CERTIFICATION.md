@@ -19,7 +19,6 @@ Canvas (save pieces) → QC validation → Design approval → Cutter test → F
 | Geometry QC | `SeamValidationService` | Missing Front/Back Leg or Waistband; invalid polygons |
 | Design approval | Pattern.`ApprovedForCutting` | Not approved |
 | Cutter test | Pattern.`CutterTestPassed` | Not recorded as passed |
-
 Warnings (seam length mismatch, missing grain, no SA) do **not** block export.
 
 ## UI

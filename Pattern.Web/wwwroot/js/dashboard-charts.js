@@ -6,34 +6,6 @@
     Chart.register(ChartDataLabels);
   }
 
-  /** Fallback count labels when chartjs-plugin-datalabels is unavailable. */
-  const pantBarEndLabelsPlugin = {
-    id: 'pantBarEndLabels',
-    afterDatasetsDraw(chart) {
-      if (typeof ChartDataLabels !== 'undefined') return;
-      if (chart.canvas.id !== 'chart-pant-types') return;
-      const { ctx, chartArea } = chart;
-      const meta = chart.getDatasetMeta(0);
-      if (!meta?.data?.length) return;
-      ctx.save();
-      ctx.font = "600 11px 'DM Sans', 'Inter', system-ui, sans-serif";
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#475569';
-      ctx.textAlign = 'left';
-      meta.data.forEach((bar, i) => {
-        const v = chart.data.datasets[0].data[i];
-        if (!v || v <= 0) return;
-        const bx = typeof bar.x === 'number' ? bar.x : 0;
-        const bbase = typeof bar.base === 'number' ? bar.base : 0;
-        const y = typeof bar.y === 'number' ? bar.y : 0;
-        const tx = Math.min(chartArea.right - 6, Math.max(bx, bbase) + 8);
-        ctx.fillText(String(v), tx, y);
-      });
-      ctx.restore();
-    },
-  };
-  Chart.register(pantBarEndLabelsPlugin);
-
   const font = "'DM Sans', 'Inter', system-ui, sans-serif";
   Chart.defaults.font.family = font;
   Chart.defaults.color = '#64748b';
@@ -76,34 +48,51 @@
     return palette[k] ?? palette.other;
   }
 
-  /**
-   * Returns true if hex color is dark enough to warrant light text.
-   * Threshold tuned for the new deep palette (all colors are dark).
-   */
-  function hexLuminance(hex) {
-    const h = hex.replace('#', '');
-    if (h.length !== 6) return 0.5;
-    const r = parseInt(h.slice(0, 2), 16) / 255;
-    const g = parseInt(h.slice(2, 4), 16) / 255;
-    const b = parseInt(h.slice(4, 6), 16) / 255;
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  }
-
   function escapeLegendHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
 
-  function fillPantTypeLegend(pantTypeList) {
-    const el = document.getElementById('chart-pant-types-legend');
-    if (!el) return;
-    if (!pantTypeList || pantTypeList.length === 0) {
-      el.innerHTML = '';
+  function renderPantBoard(pantTypeList) {
+    const grid = document.getElementById('pant-board-grid');
+    const empty = document.getElementById('pant-board-empty');
+    const summary = document.getElementById('pant-board-summary');
+    if (!grid) return;
+
+    const list = pantTypeList || [];
+    const total = list.reduce((a, s) => a + (s.count || 0), 0);
+
+    if (list.length === 0) {
+      grid.innerHTML = '';
+      grid.hidden = true;
+      if (empty) empty.hidden = false;
+      if (summary) { summary.innerHTML = ''; summary.hidden = true; }
       return;
     }
-    const labels = [...new Set(pantTypeList.map(s => s.label))].sort((a, b) => a.localeCompare(b));
-    el.innerHTML = labels.map((lab) => {
-      const c = colorForPantCategory(lab);
-      return `<span class="pt-leg"><span class="pt-swatch" style="background:${c};border-radius:3px;"></span>${escapeLegendHtml(lab)}</span>`;
+
+    if (empty) empty.hidden = true;
+    grid.hidden = false;
+
+    if (summary) {
+      summary.hidden = false;
+      summary.innerHTML =
+        `<span>${total} pattern${total === 1 ? '' : 's'}</span>` +
+        `<span>${list.length} line${list.length === 1 ? '' : 's'}</span>`;
+    }
+
+    grid.innerHTML = list.map((pt) => {
+      const pct = total ? Math.round((pt.count / total) * 100) : 0;
+      const color = pt.color || colorForPantCategory(pt.label);
+      return `<button type="button" class="pant-tile" data-category="${escapeLegendHtml(pt.label)}" style="--pant-color:${color}" title="Filter table to ${escapeLegendHtml(pt.label)} · ${pt.count} pattern${pt.count === 1 ? '' : 's'} · ${pct}% of total">
+        <div class="pant-tile__accent" aria-hidden="true"></div>
+        <div class="pant-tile__label">${escapeLegendHtml(pt.label)}</div>
+        <div class="pant-tile__row">
+          <span class="pant-tile__count">${pt.count}</span>
+          <span class="pant-tile__pct">${pct}%</span>
+        </div>
+        <div class="pant-tile__track" aria-hidden="true">
+          <div class="pant-tile__fill" style="width:${pct}%"></div>
+        </div>
+      </button>`;
     }).join('');
   }
 
@@ -117,7 +106,6 @@
   function destroyAllCharts() {
     destroyChart('chart-status');
     destroyChart('chart-styles');
-    destroyChart('chart-pant-types');
   }
 
   /**
@@ -304,124 +292,7 @@
       });
     }
 
-    // ── Pant Types Bar ───────────────────────────────────────────────────────
-    const canvasPantTypes = document.getElementById('chart-pant-types');
-    const pantHint        = document.getElementById('chart-pant-types-hint');
-
-    if (canvasPantTypes && pantTypeList.length > 0) {
-      const maxPt        = Math.max(1, ...pantTypeList.map(s => s.count));
-      const totalInChart = pantTypeList.reduce((a, s) => a + s.count, 0);
-      const nBars        = pantTypeList.length;
-
-      if (pantHint) {
-        pantHint.textContent =
-          `${totalInChart} pattern${totalInChart === 1 ? '' : 's'} across ${nBars} product line${nBars === 1 ? '' : 's'} · bars sorted by count · each color is fixed to its product line (key below) · hover for % of total`;
-      }
-
-      const barColors = pantTypeList.map(s => colorForPantCategory(s.label));
-      fillPantTypeLegend(pantTypeList);
-
-      new Chart(canvasPantTypes, {
-        type: 'bar',
-        data: {
-          labels: pantTypeList.map(s => s.label),
-          datasets: [{
-            label:           'Patterns in workspace',
-            data:            pantTypeList.map(s => s.count),
-            backgroundColor: barColors,
-            borderColor:     'rgba(255,255,255,0.12)',
-            borderWidth:     1,
-            borderRadius:    7,
-            borderSkipped:   false,
-            maxBarThickness: 28,
-          }],
-        },
-        options: {
-          indexAxis:           'y',
-          responsive:          true,
-          maintainAspectRatio: false,
-          layout: { padding: { right: 38, left: 4, top: 4, bottom: 4 } },
-          scales: {
-            x: {
-              beginAtZero: true,
-              suggestedMax: Math.max(maxPt, 1),
-              title: {
-                display: true,
-                text:    'Number of patterns',
-                color:   '#94a3b8',
-                font:    { size: 11, weight: '500', family: font },
-                padding: { top: 8, bottom: 0 },
-              },
-              grid: {
-                color:     'rgba(241, 245, 249, 0.9)',
-                drawTicks: true,
-              },
-              ticks: {
-                stepSize: 1,
-                color:    '#94a3b8',
-                font:     { size: 11, weight: '500' },
-              },
-              border: { display: false },
-            },
-            y: {
-              grid:  { display: false },
-              ticks: {
-                color:    '#334155',
-                font:     { size: 12, weight: '500', family: font },
-                autoSkip: false,
-                padding:  8,
-              },
-              border: { display: false },
-            },
-          },
-          plugins: (() => {
-            const base = {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: 'rgba(15, 23, 42, 0.92)',
-                titleColor:      '#f1f5f9',
-                bodyColor:       '#cbd5e1',
-                padding:         12,
-                cornerRadius:    8,
-                titleFont:       { size: 13, weight: '600', family: font },
-                bodyFont:        { size: 12, family: font },
-                callbacks: {
-                  title(items) { return items[0]?.label ?? ''; },
-                  label(ctx) {
-                    const v   = ctx.raw;
-                    const pct = totalInChart ? Math.round((v / totalInChart) * 100) : 0;
-                    return [
-                      `${v} pattern${v === 1 ? '' : 's'}`,
-                      `${pct}% of all patterns in workspace`,
-                    ];
-                  },
-                },
-              },
-            };
-
-            if (typeof ChartDataLabels !== 'undefined') {
-              base.datalabels = {
-                anchor:    'end',
-                align:     'end',
-                offset:    6,
-                clip:      false,
-                // All palette colors are dark — always use light label text
-                color:     (ctx) => {
-                  const hex = barColors[ctx.dataIndex] ?? '#64748b';
-                  return hexLuminance(hex) < 0.35 ? '#f0f4f8' : '#1e293b';
-                },
-                font:      { weight: '600', size: 11, family: font },
-                formatter: (v) => (v > 0 ? String(v) : ''),
-              };
-            }
-            return base;
-          })(),
-        },
-      });
-    } else {
-      if (pantHint) pantHint.textContent = '';
-      fillPantTypeLegend([]);
-    }
+    renderPantBoard(pantTypeList);
   }
 
   function runFromPayload(payload) {
@@ -453,7 +324,20 @@
   } catch {
     return;
   }
-  renderCharts(payload);
+  const analyticsPanel = document.getElementById('dash-analytics');
+  function initChartsWhenVisible() {
+    renderCharts(payload);
+  }
+  if (analyticsPanel && !analyticsPanel.open) {
+    analyticsPanel.addEventListener('toggle', function onOpen() {
+      if (analyticsPanel.open) {
+        initChartsWhenVisible();
+        analyticsPanel.removeEventListener('toggle', onOpen);
+      }
+    });
+  } else {
+    initChartsWhenVisible();
+  }
 
   window.addEventListener('pattern:created', () => {
     refreshDashboardCharts();
