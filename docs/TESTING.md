@@ -19,7 +19,13 @@ powershell -ExecutionPolicy Bypass -File tools/qa-smoke-test.ps1
 
 # 3) Full end-to-end workflow (factory QC → certify → factory ZIP)
 powershell -ExecutionPolicy Bypass -File tools/qa-full-e2e.ps1
+
+# 4) Cypress browser E2E (Pattern.Web UI)
+powershell -ExecutionPolicy Bypass -File tools/qa-cypress.ps1
+# Or: cd e2e && npm install && npm run cy:run
 ```
+
+**Cypress:** Tests login, dashboard (table, pagination, analytics expand), and Style Sheet. Override credentials with `e2e/cypress.env.json` (copy from `cypress.env.json.example`) or env vars `CYPRESS_username` / `CYPRESS_password`. Optional: `npm run cy:open` for interactive mode. Requires **Pattern.Web** on http://localhost:5001 (same as smoke tests).
 
 **Pass criteria:**
 

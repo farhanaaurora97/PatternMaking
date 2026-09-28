@@ -18,5 +18,11 @@ tmp-export-*.zip
 .claude/settings.local.json
 graphify-out/cache/
 
+# Cypress E2E (e2e/)
+e2e/node_modules/
+e2e/cypress/videos/
+e2e/cypress/screenshots/
+e2e/cypress.env.json
+
 # Optional: ignore full graphify output (regenerate with graphify update)
 # graphify-out/

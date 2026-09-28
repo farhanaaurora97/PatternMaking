@@ -1,0 +1,14 @@
+{
+  "name": "patternpro-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cypress E2E tests for Pattern.Web",
+  "scripts": {
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "test": "cypress run"
+  },
+  "devDependencies": {
+    "cypress": "^13.17.0"
+  }
+}
