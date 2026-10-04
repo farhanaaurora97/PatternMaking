@@ -10,18 +10,18 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\e2e\\cypress\\e2e\\auth.cy.js": {
-    "mtime": 1790576026.8391101,
-    "ast_hash": "a49bc1c9613780cce67a6a048cdfcd54",
+    "mtime": 1791084003.1618555,
+    "ast_hash": "6c172d7730a5b94c7df6747e2effdc4f",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\e2e\\cypress\\e2e\\dashboard.cy.js": {
-    "mtime": 1790576026.8391101,
-    "ast_hash": "c467b9db07dede4ef296b394ca245e00",
+    "mtime": 1791084003.1652455,
+    "ast_hash": "5472d5bf6309d87ba2d5734596aa59c3",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\e2e\\cypress\\e2e\\style-sheet.cy.js": {
-    "mtime": 1790576026.8302486,
-    "ast_hash": "83398ef7c2b1d66028f1292834f4f3a8",
+    "mtime": 1791084003.1672485,
+    "ast_hash": "59f9975f5c9146c1a24921d6be04b2e5",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\e2e\\cypress\\support\\commands.js": {
@@ -350,12 +350,12 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\GradingController.cs": {
-    "mtime": 1781928744.9345465,
-    "ast_hash": "2e94b5b045ab574dbd498584087a549c",
+    "mtime": 1791084003.1722438,
+    "ast_hash": "70b46ba406fa6cea49421440967f82af",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\HomeController.cs": {
-    "mtime": 1790576026.8391101,
+    "mtime": 1791084003.1722438,
     "ast_hash": "752c122883c98a9b4741c3e4b2968b0c",
     "semantic_hash": ""
   },
@@ -380,8 +380,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\SizeChartController.cs": {
-    "mtime": 1781778669.537218,
-    "ast_hash": "ff474892d2bea68b402b5388fa893282",
+    "mtime": 1791084003.1638577,
+    "ast_hash": "59c735e43d8a4966e93a68cd1199b26e",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\StyleSheetController.cs": {
@@ -410,18 +410,23 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\dashboard-charts.js": {
-    "mtime": 1790576026.8391101,
+    "mtime": 1791084003.2112443,
     "ast_hash": "cafac1c25692a9311f21e87c4fe6468e",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\dashboard.js": {
-    "mtime": 1789880420.895624,
-    "ast_hash": "3285f3ab7f5a164a6ca171d90bdc9216",
+    "mtime": 1791084003.1722438,
+    "ast_hash": "ecbdb2a8a14bd7fc42613e05be859713",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\export.js": {
     "mtime": 1781515184.3743055,
     "ast_hash": "1ad6ec706f9ae83b3c076337133f9452",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\grading.js": {
+    "mtime": 1791084003.1588566,
+    "ast_hash": "c9e9238d95de158c622ffa1a0e6c6f7b",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\nest.js": {
@@ -440,8 +445,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\size-chart.js": {
-    "mtime": 1781778677.7673671,
-    "ast_hash": "4e345786e06ce7e5c665e4070260e830",
+    "mtime": 1791084003.1672485,
+    "ast_hash": "87aee977d51e45973c58c81fc8209b59",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\style-sheet.js": {
@@ -475,7 +480,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\DashboardViewModel.cs": {
-    "mtime": 1790576026.8391101,
+    "mtime": 1791084003.2112443,
     "ast_hash": "1a59f0b5d03d0f165b7e495826eb1ecd",
     "semantic_hash": ""
   },
@@ -525,8 +530,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\SizeChartViewModel.cs": {
-    "mtime": 1775967074.0448997,
-    "ast_hash": "9c4500754b8a1facddd5576f1dcfc264",
+    "mtime": 1791084003.1672485,
+    "ast_hash": "9f0f64204cf10e700eee23d8a69f4663",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\StyleSheetViewModel.cs": {
@@ -1145,7 +1150,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Services\\DashboardChartsBuilder.cs": {
-    "mtime": 1790576026.8302486,
+    "mtime": 1791084003.1598587,
     "ast_hash": "fc3bc0d83e069d57be1ea001a40242e8",
     "semantic_hash": ""
   },
@@ -1180,7 +1185,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\wwwroot\\js\\dashboard-charts.js": {
-    "mtime": 1790576026.8391101,
+    "mtime": 1791084003.2112443,
     "ast_hash": "4175779900402307cea4aa9afe29a378",
     "semantic_hash": ""
   },
@@ -1245,7 +1250,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\DashboardViewModel.cs": {
-    "mtime": 1790576026.8391101,
+    "mtime": 1791084003.2112443,
     "ast_hash": "02eb3b19e6fb7254cfb545eb19e47ab6",
     "semantic_hash": ""
   },
@@ -1295,8 +1300,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\SizeChartViewModel.cs": {
-    "mtime": 1780889317.4945366,
-    "ast_hash": "9c4500754b8a1facddd5576f1dcfc264",
+    "mtime": 1791084003.157749,
+    "ast_hash": "9f0f64204cf10e700eee23d8a69f4663",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\StyleSheetViewModel.cs": {
@@ -1345,8 +1350,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-dashboard-test.ps1": {
-    "mtime": 1781773982.9653413,
-    "ast_hash": "e211861e0706644104d86fb5c08d6eb7",
+    "mtime": 1791084003.1618555,
+    "ast_hash": "14044142979efbc29cc653a4788a5ebf",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-desktop-test.ps1": {
@@ -1365,8 +1370,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-grading-test.ps1": {
-    "mtime": 1785218359.7276423,
-    "ast_hash": "7bf191ca78e870ee8d5dd4f4719dfa69",
+    "mtime": 1791084003.1672485,
+    "ast_hash": "d4bf321c76ee32ba9e87f666a2135318",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-helpers.ps1": {
@@ -1385,13 +1390,13 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-pieces-test.ps1": {
-    "mtime": 1781936799.4979687,
-    "ast_hash": "539260dc74aab52aa5aa02e785e6541b",
+    "mtime": 1791084003.1638577,
+    "ast_hash": "78bdd39c81b02a6c685018dcfb3f55f6",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-size-chart-test.ps1": {
-    "mtime": 1785218359.7316463,
-    "ast_hash": "5b128b3e8c059e3d8fad858e368dbe60",
+    "mtime": 1791084003.1598587,
+    "ast_hash": "6805b95fb17004bb59354f53ca06db09",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-smoke-test.ps1": {
@@ -1400,8 +1405,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-style-sheet-test.ps1": {
-    "mtime": 1781777669.810601,
-    "ast_hash": "fd2e1eb509ce1326b5341fe27d0f981c",
+    "mtime": 1791084003.157749,
+    "ast_hash": "2c087d12aa53aae9f33f1748e63c253a",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\setup-desktop-client.ps1": {
@@ -1450,7 +1455,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\docs\\MULTI_PC_SETUP.md": {
-    "mtime": 1790576026.8391101,
+    "mtime": 1791084003.2112443,
     "ast_hash": "eed158d6d99531a2e1d59155a0aff0d3",
     "semantic_hash": ""
   },
