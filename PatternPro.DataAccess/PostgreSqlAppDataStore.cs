@@ -327,6 +327,8 @@ public class PostgreSqlAppDataStore : IAppDataStore, IDataAccessLayer
             CloReviewCompleted = p.CloReviewCompleted,
             CloReviewNotes = p.CloReviewNotes,
             ShrinkagePercent = p.ShrinkagePercent,
+            ChartMode = p.ChartMode,
+            UseCustomSizeChart = p.UseCustomSizeChart,
         };
 
     private static DateTime NormalizeUtc(DateTime value) =>

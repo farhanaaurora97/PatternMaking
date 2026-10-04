@@ -89,7 +89,8 @@
             </td>
             <td><span class="tag st-@p.Status">@p.StatusLabel</span></td>
             <td class="td-mono">@p.DueDateLabel</td>
-            <td>
+            <td class="ss-actions">
+              <a class="btn-open" asp-controller="SizeChart" asp-action="Index" asp-route-patternId="@p.Id">Chart</a>
               <a class="btn-open" asp-controller="Pieces" asp-action="Index" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey">Pattern</a>
             </td>
           </tr>

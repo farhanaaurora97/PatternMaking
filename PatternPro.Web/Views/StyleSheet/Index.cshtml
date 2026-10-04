@@ -1,314 +1,158 @@
 @model StyleSheetViewModel
-
 @{ ViewData["Title"] = "Style Sheet"; }
 
-
-
 @functions {
-
   static string LifecycleTabClass(string tab) => tab switch
-
   {
-
     "Idea" => "cat-tab--lc-idea",
-
     "Sampling" => "cat-tab--lc-sampling",
-
     "Bulk" => "cat-tab--lc-bulk",
-
     "Cancelled" => "cat-tab--lc-cancelled",
-
     _ => "",
-
   };
-
 }
-
-
 
 <div class="patternpro-dashboard style-sheet-page">
-
   <div class="page-hdr">
-
     <div class="ph-left">
-
       <div class="page-title">Style Sheet</div>
-
       <div class="page-sub">PLM register — style code, season, designer, owner, lifecycle (not pattern geometry)</div>
-
     </div>
-
     <div class="ph-right">
-
       <a class="btn-canvas" asp-controller="Home" asp-action="Index">← Pattern dashboard</a>
-
       <button type="button" class="add-btn" id="ss-btn-add">+ New style</button>
-
     </div>
-
   </div>
-
-
 
   <div class="tbl-wrap tbl-wrap--primary">
-
     <div class="tbl-header">
-
       <span class="tbl-label">All styles</span>
-
       <div class="tbl-search">
-
         <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4" stroke="#9ca3af" stroke-width="1.4"/><path d="M9 9l2.5 2.5" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round"/></svg>
-
         <input type="search" id="ss-search" placeholder="Search code, name, season, owner…" autocomplete="off" />
-
       </div>
-
       <span class="tbl-count" id="ss-count" data-total="@Model.TotalCount">@Model.TotalCount of @Model.TotalCount</span>
-
       <button type="button" class="status-filter-clear" id="ss-clear-lifecycle" hidden>All lifecycles</button>
-
       <div class="cat-tabs ss-lifecycle-tabs" id="ss-lifecycle-tabs">
-
         @foreach (var tab in Model.LifecycleTabs)
-
         {
-
           <button type="button" class="cat-tab @(tab == "All" ? "active" : "") @LifecycleTabClass(tab)" data-lifecycle="@tab">
-
             @if (tab != "All")
-
             {
-
               <span class="cat-tab__dot" aria-hidden="true"></span>
-
             }
-
             @tab
-
           </button>
-
         }
-
       </div>
-
     </div>
-
     <table class="style-sheet-table">
-
       <thead>
-
         <tr>
-
           <th data-sort="code">Style code <span class="sort-icon">↕</span></th>
-
           <th data-sort="name">Style name <span class="sort-icon">↕</span></th>
-
           <th data-sort="season">Season <span class="sort-icon">↕</span></th>
-
           <th data-sort="designer">Designer <span class="sort-icon">↕</span></th>
-
           <th data-sort="owner">Owner <span class="sort-icon">↕</span></th>
-
           <th data-sort="lifecycle">Lifecycle <span class="sort-icon">↕</span></th>
-
           <th data-sort="status">Pattern status <span class="sort-icon">↕</span></th>
-
           <th data-sort="due">Due <span class="sort-icon">↕</span></th>
-
           <th></th>
-
         </tr>
-
       </thead>
-
       <tbody id="ss-tbody">
-
         @foreach (var p in Model.Rows)
-
         {
-
           <tr id="ss-row-@p.Id" data-lifecycle="@p.LifecycleStatus">
-
             <td class="td-mono td-bold">@p.Code</td>
-
             <td>@p.Name</td>
-
             <td>
-
               <input type="text" class="ss-inline season-input" data-id="@p.Id" value="@p.Season"
-
                      maxlength="16" aria-label="Season for @p.Code" />
-
             </td>
-
             <td>
-
               <input type="text" class="ss-inline designer-input" data-id="@p.Id" value="@p.Designer"
-
                      maxlength="128" aria-label="Designer for @p.Code" />
-
             </td>
-
             <td>
-
               <input type="text" class="ss-inline owner-input" data-id="@p.Id" value="@p.Owner"
-
                      maxlength="128" aria-label="Owner for @p.Code" />
-
             </td>
-
             <td>
-
               <select class="lifecycle-select @p.LifecycleCssClass" data-action="set-lifecycle" data-id="@p.Id"
-
                       data-prev-lifecycle="@p.LifecycleStatus" aria-label="Lifecycle for @p.Code">
-
                 @foreach (var opt in StyleLifecycleOptions.All)
-
                 {
-
                   <option value="@opt.Value" selected="@(p.LifecycleStatus == opt.Value)">@opt.Label</option>
-
                 }
-
               </select>
-
             </td>
-
             <td><span class="tag st-@p.Status">@p.StatusLabel</span></td>
-
             <td class="td-mono">@p.DueDateLabel</td>
-
-            <td>
-
+            <td class="ss-actions">
+              <a class="btn-open" asp-controller="SizeChart" asp-action="Index" asp-route-patternId="@p.Id">Chart</a>
               <a class="btn-open" asp-controller="Pieces" asp-action="Index" asp-route-patternId="@p.Id" asp-route-style="@p.StyleKey">Pattern</a>
-
             </td>
-
           </tr>
-
         }
-
       </tbody>
-
     </table>
-
     <div class="tbl-pagination" id="ss-pagination" aria-label="Style sheet pagination">
-
       <label class="tbl-page-size">
-
         Rows per page
-
         <select id="ss-page-size" aria-label="Rows per page">
-
           @for (var n = 10; n <= 100; n += 10)
-
           {
-
             <option value="@n" selected="@(n == 10)">@n</option>
-
           }
-
           <option value="all">All</option>
-
         </select>
-
       </label>
-
       <div class="tbl-page-nav">
-
         <button type="button" class="tbl-page-btn" id="ss-page-prev" disabled aria-label="Previous page">← Prev</button>
-
         <span class="tbl-page-info" id="ss-page-info">Page 1</span>
-
         <button type="button" class="tbl-page-btn" id="ss-page-next" aria-label="Next page">Next →</button>
-
       </div>
-
     </div>
-
   </div>
 
-
-
   <details class="dash-analytics" id="ss-lifecycle-guide">
-
     <summary class="dash-analytics__toggle">Lifecycle guide</summary>
-
     <div class="dash-analytics__body ss-lifecycle-legend">
-
       <div class="ss-lifecycle-legend__row">
-
         <span class="ss-lifecycle-legend__label">Lifecycle</span>
-
         <span class="ss-lifecycle-legend__gate">merchandising / production gate</span>
-
       </div>
-
       <div class="ss-lifecycle-stages">
-
         <div class="ss-lifecycle-stage lc-Idea">
-
           <span class="ss-lifecycle-stage__dot" aria-hidden="true"></span>
-
           <span class="ss-lifecycle-stage__name">Idea</span>
-
           <span class="ss-lifecycle-stage__desc">concept</span>
-
         </div>
-
         <div class="ss-lifecycle-stage lc-Sampling">
-
           <span class="ss-lifecycle-stage__dot" aria-hidden="true"></span>
-
           <span class="ss-lifecycle-stage__name">Sampling</span>
-
           <span class="ss-lifecycle-stage__desc">proto &amp; fit</span>
-
         </div>
-
         <div class="ss-lifecycle-stage lc-Bulk">
-
           <span class="ss-lifecycle-stage__dot" aria-hidden="true"></span>
-
           <span class="ss-lifecycle-stage__name">Bulk</span>
-
           <span class="ss-lifecycle-stage__desc">production</span>
-
         </div>
-
         <div class="ss-lifecycle-stage lc-Cancelled">
-
           <span class="ss-lifecycle-stage__dot" aria-hidden="true"></span>
-
           <span class="ss-lifecycle-stage__name">Cancelled</span>
-
           <span class="ss-lifecycle-stage__desc">dropped</span>
-
         </div>
-
       </div>
-
       <div class="ss-lifecycle-legend__footer">
-
         <span class="ss-lifecycle-legend__label">Pattern status</span>
-
         <span class="ss-lifecycle-legend__flow">Pending → Draft → In Progress → Graded → Done</span>
-
       </div>
-
     </div>
-
   </details>
-
 </div>
 
-
-
 @section Scripts {
-
   <script src="~/js/style-sheet.js" asp-append-version="true"></script>
-
 }
-

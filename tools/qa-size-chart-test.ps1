@@ -136,7 +136,9 @@ $uiMarkers = @(
     @{ Name = "Add size button";    Pattern = "btn-add-size" },
     @{ Name = "Add measurement";    Pattern = "btn-add-measurement" },
     @{ Name = "editable cells";     Pattern = "sc-cell-input" },
-    @{ Name = "M base column";       Pattern = "sch-m" },
+    @{ Name = "M base column";       Pattern = "sch-base" },
+    @{ Name = "style scope select";  Pattern = "sc-pattern-select" },
+    @{ Name = "scope search";        Pattern = "sc-scope-search" },
     @{ Name = "tolerance column";    Pattern = "sc-tolerance-input" },
     @{ Name = "method column";       Pattern = "sc-method-input" },
     @{ Name = "dash header";         Pattern = "dash-header" },
@@ -298,17 +300,81 @@ Try-Test "SC7 Cannot delete base M column" {
 
 Try-Test "SC7 DeleteColumn if added" {
     $csvNow = Get-SizeChartCsv $session
-    $headerParts = ($csvNow -split "`n")[0] -split ","
-    $lastLabel = $headerParts[$headerParts.Count - 1]
-    if ($lastLabel -ne $testCol) {
-        Pass "SC7 DeleteColumn" "last column '$lastLabel' is not $testCol - skip"
+    $headerParts = Parse-CsvLine (($csvNow -split "`n")[0])
+    $headerIdx = [array]::IndexOf($headerParts, $testCol)
+    if ($headerIdx -lt 0) {
+        Pass "SC7 DeleteColumn" "column $testCol not in header - skip"
         return
     }
-    $colIdx = $headerParts.Count - 4
+    $colIdx = $headerIdx - 3
+    if ($colIdx -lt 0) { throw "Invalid column index for $testCol" }
     Post-Json "$BaseUrl/SizeChart/DeleteColumn" $session @{ columnIndex = $colIdx }
     $csvAfter = Get-SizeChartCsv $session
     if ($csvAfter -match ",$([regex]::Escape($testCol))") { throw "Column still in CSV" }
     Pass "SC7 DeleteColumn" $testCol
+}
+
+# --- Per-style scope ---
+Write-Host ""
+Write-Host "--- SC8. Per-style size chart ---" -ForegroundColor Cyan
+
+$stylePatternId = 0
+Try-Test "SC8 Resolve pattern from Style Sheet" {
+    $ss = Invoke-WebRequest -Uri "$BaseUrl/StyleSheet" -WebSession $session -UseBasicParsing
+    $m = [regex]::Match($ss.Content, 'id="ss-row-(\d+)"')
+    if (-not $m.Success) { throw "No style row id found on Style Sheet" }
+    $script:stylePatternId = [int]$m.Groups[1].Value
+    Pass "SC8 Pattern id" $stylePatternId
+}
+
+if ($stylePatternId -gt 0) {
+    $scopedHtml = ""
+    Try-Test "SC8 Per-style page loads" {
+        $r = Invoke-WebRequest -Uri "$BaseUrl/SizeChart?patternId=$stylePatternId" -WebSession $session -UseBasicParsing
+        if ($r.StatusCode -ne 200) { throw "HTTP $($r.StatusCode)" }
+        $script:scopedHtml = $r.Content
+        if ($scopedHtml -notmatch "sc-copy-global") { throw "Missing per-style controls" }
+        if ($scopedHtml -notmatch "Chart") { throw "Missing chart scope UI" }
+        Pass "SC8 Per-style page loads" "patternId=$stylePatternId"
+    }
+
+    Try-Test "SC8 Style Sheet Chart link" {
+        $ss = Invoke-WebRequest -Uri "$BaseUrl/StyleSheet" -WebSession $session -UseBasicParsing
+        if ($ss.Content -notmatch "SizeChart\?patternId=$stylePatternId") { throw "Chart link missing for pattern $stylePatternId" }
+        Pass "SC8 Style Sheet Chart link"
+    }
+
+    Try-Test "SC8 CopyGlobal to custom chart" {
+        Post-Json "$BaseUrl/SizeChart/CopyGlobal" $session @{ patternId = $stylePatternId } | Out-Null
+        Pass "SC8 CopyGlobal"
+    }
+
+    Try-Test "SC8 Scoped UpdateCell does not change global" {
+        $globalBefore = Get-WaistMValue (Get-SizeChartCsv $session)
+        Post-Json "$BaseUrl/SizeChart/UpdateCell" $session @{
+            measurementPoint = "Waist"; columnIndex = 2; value = 86; patternId = $stylePatternId
+        } | Out-Null
+        $scopedCsv = (Invoke-WebRequest -Uri "$BaseUrl/SizeChart/ExportCsv?patternId=$stylePatternId" -WebSession $session -UseBasicParsing).Content
+        $scopedWaist = Get-WaistMValue $scopedCsv
+        $globalAfter = Get-WaistMValue (Get-SizeChartCsv $session)
+        if ($scopedWaist -ne 86) { throw "Scoped M waist is $scopedWaist, expected 86" }
+        if ($globalAfter -ne $globalBefore) { throw "Global M waist changed from $globalBefore to $globalAfter" }
+        Pass "SC8 Scoped edit isolated" "scoped=86 global=$globalAfter"
+    }
+
+    Try-Test "SC8 Restore scoped Waist M" {
+        Post-Json "$BaseUrl/SizeChart/UpdateCell" $session @{
+            measurementPoint = "Waist"; columnIndex = 2; value = 84; patternId = $stylePatternId
+        } | Out-Null
+        Pass "SC8 Scoped restore"
+    }
+
+    Try-Test "SC8 SetChartSettings body mode" {
+        Post-Json "$BaseUrl/SizeChart/SetChartSettings" $session @{
+            patternId = $stylePatternId; useCustomChart = $true; chartMode = "Body"
+        } | Out-Null
+        Pass "SC8 SetChartSettings"
+    }
 }
 
 # --- Summary ---

@@ -1,4 +1,16 @@
-(function initSizeChartModals() {
+(function initSizeChartPage() {
+  const root = document.getElementById('size-chart-root');
+  const patternId = parseInt(root?.dataset.patternId ?? '0', 10) || 0;
+  const baseSize = (root?.dataset.baseSize ?? 'M').trim();
+
+  function scopeBody() {
+    return patternId > 0 ? { patternId } : {};
+  }
+
+  function scopeUrl(path) {
+    return patternId > 0 ? `${path}?patternId=${patternId}` : path;
+  }
+
   const addSizeOverlay = document.getElementById('modal-add-size');
   const btnAddSize = document.getElementById('btn-add-size');
   const btnCancelSize = document.getElementById('btn-add-size-cancel');
@@ -13,6 +25,129 @@
   const inputMpName = document.getElementById('add-mp-name');
   const selectMpCopy = document.getElementById('add-mp-copy');
   const errMp = document.getElementById('add-mp-error');
+
+  const patternSelect = document.getElementById('sc-pattern-select');
+  const scopeSearch = document.getElementById('sc-scope-search');
+  const useCustomCheckbox = document.getElementById('sc-use-custom');
+  const copyGlobalBtn = document.getElementById('sc-copy-global');
+  const garmentTemplateBtn = document.getElementById('sc-garment-template');
+
+  function navigateToPattern(id) {
+    window.location.href = id > 0 ? `/SizeChart?patternId=${id}` : '/SizeChart';
+  }
+
+  function filterPatternOptions() {
+    if (!patternSelect || !scopeSearch) return;
+    const term = scopeSearch.value.trim().toLowerCase();
+    let visibleCount = 0;
+    Array.from(patternSelect.options).forEach((opt, idx) => {
+      if (idx === 0) {
+        opt.hidden = false;
+        return;
+      }
+      const code = (opt.dataset.code ?? '').toLowerCase();
+      const name = (opt.dataset.name ?? '').toLowerCase();
+      const season = (opt.dataset.season ?? '').toLowerCase();
+      const match = !term || code.includes(term) || name.includes(term) || season.includes(term);
+      opt.hidden = !match;
+      if (match) visibleCount += 1;
+    });
+  }
+
+  patternSelect?.addEventListener('change', () => {
+    navigateToPattern(parseInt(patternSelect.value ?? '0', 10) || 0);
+  });
+
+  scopeSearch?.addEventListener('input', filterPatternOptions);
+
+  scopeSearch?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || !patternSelect) return;
+    const term = scopeSearch.value.trim().toLowerCase();
+    if (!term) return;
+    const match = Array.from(patternSelect.options).find((opt, idx) => {
+      if (idx === 0 || opt.hidden) return false;
+      const code = (opt.dataset.code ?? '').toLowerCase();
+      return code === term;
+    }) ?? Array.from(patternSelect.options).find((opt, idx) => idx > 0 && !opt.hidden);
+    if (match) navigateToPattern(parseInt(match.value ?? '0', 10) || 0);
+  });
+
+  async function postJson(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async function postSettings(useCustomChart, chartMode) {
+    if (patternId <= 0) return;
+    const res = await postJson('/SizeChart/SetChartSettings', {
+      patternId,
+      useCustomChart,
+      chartMode,
+    });
+    if (!res.ok) {
+      let msg = 'Could not update chart settings.';
+      try {
+        const data = await res.json();
+        if (data?.error) msg = data.error;
+      } catch { /* ignore */ }
+      window.toast?.('Size chart', msg, 'error', '⚠️');
+      return false;
+    }
+    window.toast?.('Chart settings saved', useCustomChart ? 'Custom chart enabled' : 'Using global chart', 'success', '✓');
+    window.location.reload();
+    return true;
+  }
+
+  document.querySelectorAll('[data-action="set-chart-mode"]').forEach((input) => {
+    input.addEventListener('change', async () => {
+      if (!input.checked || patternId <= 0) return;
+      const useCustom = useCustomCheckbox?.checked ?? false;
+      await postSettings(useCustom, input.value);
+    });
+  });
+
+  useCustomCheckbox?.addEventListener('change', async () => {
+    if (patternId <= 0) return;
+    const chartMode = document.querySelector('[name="chartMode"]:checked')?.value ?? 'Body';
+    await postSettings(useCustomCheckbox.checked, chartMode);
+  });
+
+  copyGlobalBtn?.addEventListener('click', async () => {
+    if (patternId <= 0) return;
+    if (!window.confirm('Copy the global size chart to this style as a custom chart?')) return;
+    const res = await postJson('/SizeChart/CopyGlobal', { patternId });
+    if (res.ok) {
+      window.toast?.('Copied', 'Global chart copied to this style.', 'success', '✓');
+      window.location.reload();
+      return;
+    }
+    let msg = 'Copy failed.';
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch { /* ignore */ }
+    window.toast?.('Copy failed', msg, 'error', '⚠️');
+  });
+
+  garmentTemplateBtn?.addEventListener('click', async () => {
+    if (patternId <= 0) return;
+    if (!window.confirm('Load garment template (BO, C1, sizes 36–54)? This replaces the style custom chart.')) return;
+    const res = await postJson('/SizeChart/InitializeGarmentTemplate', { patternId });
+    if (res.ok) {
+      window.toast?.('Template loaded', 'Garment chart template applied.', 'success', '✓');
+      window.location.reload();
+      return;
+    }
+    let msg = 'Template load failed.';
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch { /* ignore */ }
+    window.toast?.('Template failed', msg, 'error', '⚠️');
+  });
 
   function openSize() {
     addSizeOverlay?.classList.add('open');
@@ -54,11 +189,7 @@
     }
     errSize?.classList.remove('show');
 
-    const res = await fetch('/SizeChart/AddColumn', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ label }),
-    });
+    const res = await postJson('/SizeChart/AddColumn', { label, ...scopeBody() });
 
     if (!res.ok) {
       let msg = 'Could not add column.';
@@ -85,11 +216,7 @@
 
     const copyFrom = selectMpCopy?.value ?? '';
 
-    const res = await fetch('/SizeChart/AddRow', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ name, copyFrom }),
-    });
+    const res = await postJson('/SizeChart/AddRow', { name, copyFrom, ...scopeBody() });
 
     if (!res.ok) {
       let msg = 'Could not add row.';
@@ -119,10 +246,11 @@
       const value = parseFloat(input.value);
       if (!measurement || columnIndex < 0 || Number.isNaN(value)) return;
 
-      const res = await fetch('/SizeChart/UpdateCell', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ measurementPoint: measurement, columnIndex, value }),
+      const res = await postJson('/SizeChart/UpdateCell', {
+        measurementPoint: measurement,
+        columnIndex,
+        value,
+        ...scopeBody(),
       });
 
       if (res.ok) {
@@ -147,10 +275,11 @@
     const measurementMethod = methodEl?.value ?? '';
     if (!measurement || Number.isNaN(toleranceCm)) return;
 
-    const res = await fetch('/SizeChart/UpdateRowMeta', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ measurementPoint: measurement, toleranceCm, measurementMethod }),
+    const res = await postJson('/SizeChart/UpdateRowMeta', {
+      measurementPoint: measurement,
+      toleranceCm,
+      measurementMethod,
+      ...scopeBody(),
     });
 
     if (res.ok) {
@@ -165,11 +294,7 @@
   });
 
   async function postDelete(url, body, successTitle, successMsg) {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
-    });
+    const res = await postJson(url, body);
     if (res.ok) {
       window.toast?.(successTitle, successMsg, 'success', '✓');
       window.location.reload();
@@ -189,7 +314,7 @@
       const measurement = btn.dataset.measurement ?? '';
       if (!measurement) return;
       if (!window.confirm(`Delete measurement row "${measurement}"?`)) return;
-      await postDelete('/SizeChart/DeleteRow', { measurementPoint: measurement }, 'Row deleted', measurement);
+      await postDelete('/SizeChart/DeleteRow', { measurementPoint: measurement, ...scopeBody() }, 'Row deleted', measurement);
     });
   });
 
@@ -199,7 +324,15 @@
       const label = btn.dataset.label ?? '';
       if (col < 0) return;
       if (!window.confirm(`Delete size column "${label}"?`)) return;
-      await postDelete('/SizeChart/DeleteColumn', { columnIndex: col }, 'Column deleted', label);
+      await postDelete('/SizeChart/DeleteColumn', { columnIndex: col, ...scopeBody() }, 'Column deleted', label);
     });
   });
+
+  // Keep export link in sync if pattern changes via back/forward
+  const exportLink = document.getElementById('sc-export-csv');
+  if (exportLink && patternId > 0) {
+    exportLink.setAttribute('href', scopeUrl('/SizeChart/ExportCsv'));
+  }
+
+  filterPatternOptions();
 })();

@@ -580,6 +580,7 @@ body.pp-theme{
 
 .pp-theme .patternpro-dashboard .tip{font-size:11px;color:#9ca3af;text-align:center;padding:8px 0 4px}
 
+.pp-theme .style-sheet-page .ss-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
 .pp-theme .patternpro-dashboard .btn-open{
   font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid var(--pp-border2);
   background:transparent;color:#374151;cursor:pointer;font-weight:500;text-decoration:none;display:inline-block;
@@ -667,15 +668,31 @@ body.pp-theme{
 
 /* ── Size Chart ── */
 .pp-theme .size-chart-page .sc-scope-bar{
-  display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;
+  display:flex;flex-direction:column;gap:10px;
   padding:10px 14px;margin-bottom:12px;border-radius:8px;
   border:1px solid var(--pp-border);background:var(--pp-surface);
+}
+.pp-theme .size-chart-page .sc-scope-bar__row{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;
+}
+.pp-theme .size-chart-page .sc-scope-bar__row--settings{
+  padding-top:8px;border-top:1px solid var(--pp-border2);
 }
 .pp-theme .size-chart-page .sc-scope-bar__label{
   font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;
 }
-.pp-theme .size-chart-page .sc-scope-bar__value{font-size:13px;font-weight:600;color:#374151}
-.pp-theme .size-chart-page .sc-scope-bar__hint{font-size:12px;color:#9ca3af;margin-left:auto}
+.pp-theme .size-chart-page .sc-scope-bar__value{font-size:13px;font-weight:600;color:#374151;margin-left:auto}
+.pp-theme .size-chart-page .sc-scope-bar__hint{font-size:12px;color:#9ca3af}
+.pp-theme .size-chart-page .sc-scope-search{min-width:180px}
+.pp-theme .size-chart-page .sc-scope-select{
+  min-width:220px;padding:6px 10px;font-size:13px;border-radius:6px;
+  border:1px solid var(--pp-border2);background:#fff;color:#374151;
+}
+.pp-theme .size-chart-page .sc-scope-radio{
+  display:flex;align-items:center;gap:6px;font-size:13px;color:#374151;cursor:pointer;
+}
+.pp-theme .size-chart-page .sc-scope-radio--check{margin-left:4px}
+.pp-theme .size-chart-page .btn-dash--sm{padding:5px 10px;font-size:12px}
 .pp-theme .size-chart-page .sc-unit-badge{
   font-size:10px;font-weight:700;letter-spacing:.08em;color:#6b7280;
   padding:3px 8px;border-radius:4px;border:1px solid var(--pp-border2);background:var(--pp-bg);

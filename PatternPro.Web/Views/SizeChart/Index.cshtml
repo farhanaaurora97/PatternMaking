@@ -1,19 +1,28 @@
+@using Pattern.Core.Model
 @model SizeChartViewModel
 @{ ViewData["Title"] = "Size Chart"; }
+@{
+  var isGarment = MeasurementChartMode.IsGarment(Model.ChartMode);
+  var modeLabel = isGarment ? "garment" : "body";
+  var tableLabel = isGarment ? "Garment POM" : "Body measurements";
+}
 
-<div class="patternpro-dashboard size-chart-page">
+<div class="patternpro-dashboard size-chart-page"
+     id="size-chart-root"
+     data-pattern-id="@Model.SelectedPatternId"
+     data-base-size="@Model.BaseSizeLabel">
   <header class="dash-header">
     <div class="dash-header__main">
       <div class="dash-eyebrow"><span class="dash-eyebrow__rule"></span> Measurements</div>
       <h1 class="dash-title">Size chart</h1>
-      <p class="dash-sub">@Model.ScopeLabel · body measurements in cm · <strong>M</strong> is the base size for grading</p>
+      <p class="dash-sub">@Model.ScopeLabel · @modeLabel mode · unit cm · <strong>@Model.BaseSizeLabel</strong> is the base size for grading</p>
     </div>
     <div class="dash-header__aside">
       <div class="dash-kpi-strip" aria-label="Chart summary">
         <div class="dash-kpi stat-card">
           <div class="dash-kpi__val">@Model.SizeCount</div>
           <div class="dash-kpi__label">Sizes</div>
-          <div class="dash-kpi__meta">XS–XXL</div>
+          <div class="dash-kpi__meta">Columns</div>
         </div>
         <div class="dash-kpi__div" aria-hidden="true"></div>
         <div class="dash-kpi stat-card">
@@ -23,14 +32,16 @@
         </div>
         <div class="dash-kpi__div" aria-hidden="true"></div>
         <div class="dash-kpi stat-card">
-          <div class="dash-kpi__val">M</div>
+          <div class="dash-kpi__val">@Model.BaseSizeLabel</div>
           <div class="dash-kpi__label">Base</div>
           <div class="dash-kpi__meta">Grade from here</div>
         </div>
       </div>
       <div class="dash-header__actions">
         <a class="btn-dash btn-dash--ghost" asp-controller="Home" asp-action="Index">Dashboard</a>
-        <a class="btn-dash btn-dash--ghost" asp-controller="SizeChart" asp-action="ExportCsv">Export CSV</a>
+        <a class="btn-dash btn-dash--ghost" id="sc-export-csv"
+           asp-controller="SizeChart" asp-action="ExportCsv"
+           asp-route-patternId="@(Model.SelectedPatternId > 0 ? Model.SelectedPatternId : null)">Export CSV</a>
         <button type="button" class="btn-dash btn-dash--ghost" id="btn-add-measurement">+ Measurement</button>
         <button type="button" class="btn-dash btn-dash--primary" id="btn-add-size">+ Size</button>
       </div>
@@ -38,15 +49,71 @@
   </header>
 
   <div class="sc-scope-bar">
-    <span class="sc-scope-bar__label">Scope</span>
-    <span class="sc-scope-bar__value">@Model.ScopeLabel</span>
-    <span class="sc-scope-bar__hint">Per-style charts (body / garment) are available in Desktop — open a pattern from Style Sheet</span>
+    <div class="sc-scope-bar__row">
+      <span class="sc-scope-bar__label">Style scope</span>
+      <div class="tbl-search sc-scope-search">
+        <input type="search" id="sc-scope-search" placeholder="Search code or name…" autocomplete="off" aria-label="Search styles" />
+      </div>
+      <select asp-for="SelectedPatternId" class="sc-scope-select" id="sc-pattern-select" aria-label="Style scope">
+        <option value="0">Global (all styles)</option>
+        @foreach (var p in Model.Patterns)
+        {
+          <option value="@p.Id"
+                  data-code="@p.Code" data-name="@p.Name" data-season="@p.Season">@p.Code — @p.Name</option>
+        }
+      </select>
+      <span class="sc-scope-bar__value">@Model.ScopeLabel</span>
+    </div>
+    @if (Model.IsPerStyleScope)
+    {
+      <div class="sc-scope-bar__row sc-scope-bar__row--settings">
+        <label class="sc-scope-radio">
+          @if (!isGarment)
+          {
+            <input type="radio" name="chartMode" value="@MeasurementChartMode.Body" checked data-action="set-chart-mode" />
+          }
+          else
+          {
+            <input type="radio" name="chartMode" value="@MeasurementChartMode.Body" data-action="set-chart-mode" />
+          }
+          Body (+ ease when generating)
+        </label>
+        <label class="sc-scope-radio">
+          @if (isGarment)
+          {
+            <input type="radio" name="chartMode" value="@MeasurementChartMode.Garment" checked data-action="set-chart-mode" />
+          }
+          else
+          {
+            <input type="radio" name="chartMode" value="@MeasurementChartMode.Garment" data-action="set-chart-mode" />
+          }
+          Garment (finished POM — no ease)
+        </label>
+        <label class="sc-scope-radio sc-scope-radio--check">
+          @if (Model.UseCustomChart)
+          {
+            <input type="checkbox" id="sc-use-custom" checked />
+          }
+          else
+          {
+            <input type="checkbox" id="sc-use-custom" />
+          }
+          Custom chart for this style
+        </label>
+        <button type="button" class="btn-dash btn-dash--ghost btn-dash--sm" id="sc-copy-global">Copy global → custom</button>
+        <button type="button" class="btn-dash btn-dash--ghost btn-dash--sm" id="sc-garment-template">Load garment template (BO, 36–54)</button>
+      </div>
+    }
+    else
+    {
+      <span class="sc-scope-bar__hint">Select a style for per-style body / garment charts · or open Chart from Style Sheet</span>
+    }
   </div>
 
   <div class="tbl-wrap tbl-wrap--primary sc-table-wrap">
     <div class="tbl-toolbar">
       <div class="tbl-toolbar__row">
-        <span class="tbl-label">Body measurements</span>
+        <span class="tbl-label">@tableLabel</span>
         <span class="sc-unit-badge">UNIT · CM</span>
         <span class="sc-table-hint">Click cells to edit · changes save on blur</span>
       </div>
@@ -61,8 +128,8 @@
             @for (var i = 0; i < Model.ColumnLabels.Count; i++)
             {
               var col = Model.ColumnLabels[i];
-              var isBase = string.Equals(col, "M", StringComparison.Ordinal);
-              <th class="sc-col-size @(isBase ? "sch-m sc-col-base" : null)">
+              var isBase = string.Equals(col, Model.BaseSizeLabel, StringComparison.OrdinalIgnoreCase);
+              <th class="sc-col-size @(isBase ? "sch-base sc-col-base" : null)">
                 <div class="sc-col-head">
                   <span>@col@if (isBase) { <span class="sc-base-tag">Base</span> }</span>
                   @if (!isBase)
@@ -94,7 +161,8 @@
               </td>
               @for (var i = 0; i < row.Values.Count; i++)
               {
-                var isBase = i < Model.ColumnLabels.Count && string.Equals(Model.ColumnLabels[i], "M", StringComparison.Ordinal);
+                var isBase = i < Model.ColumnLabels.Count
+                  && string.Equals(Model.ColumnLabels[i], Model.BaseSizeLabel, StringComparison.OrdinalIgnoreCase);
                 <td class="td-mono sc-col-size @(isBase ? "sc-cell-base" : null)">
                   <input type="number" class="sc-cell-input" step="0.1"
                          data-measurement="@row.MeasurementPoint" data-col="@i"
@@ -117,24 +185,28 @@
     <div class="dash-analytics__body sc-guide">
       <div class="sc-guide__grid">
         <div class="sc-guide__item">
+          <strong>Global chart</strong>
+          <span>Default body measurements shared by all styles unless a custom chart is enabled.</span>
+        </div>
+        <div class="sc-guide__item">
+          <strong>Per-style chart</strong>
+          <span>Select a style to set body vs garment mode and optionally maintain a custom size table.</span>
+        </div>
+        <div class="sc-guide__item">
           <strong>Body chart</strong>
           <span>Customer body measurements. Block Generator adds ease when drafting pieces.</span>
+        </div>
+        <div class="sc-guide__item">
+          <strong>Garment chart</strong>
+          <span>Finished POM values — no ease applied when generating blocks.</span>
         </div>
         <div class="sc-guide__item">
           <strong>± tolerance</strong>
           <span>Acceptable variance per point for QC (cm).</span>
         </div>
         <div class="sc-guide__item">
-          <strong>Method</strong>
-          <span>How to measure — flat, circumference, HPS, etc.</span>
-        </div>
-        <div class="sc-guide__item">
-          <strong>Adding sizes</strong>
-          <span>New columns extrapolate from the last two sizes. Base size <em>M</em> cannot be removed.</span>
-        </div>
-        <div class="sc-guide__item">
           <strong>Delete</strong>
-          <span>Use × on a size column or <em>Delete</em> on a row. At least one row and one size must remain.</span>
+          <span>Use × on a size column or <em>Delete</em> on a row. Base size cannot be removed.</span>
         </div>
       </div>
     </div>
