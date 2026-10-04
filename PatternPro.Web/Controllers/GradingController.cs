@@ -92,6 +92,26 @@ public class GradingController(IGradingService gradingService) : Controller
         });
     }
 
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult DeleteRow([FromBody] DeleteGradingRowBody body)
+    {
+        var (ok, error) = gradingService.TryDeleteRow(body.StyleKey ?? "", body.MeasurementPoint ?? "");
+        if (!ok)
+            return BadRequest(new { error });
+        return Ok();
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult DeleteColumn([FromBody] DeleteGradingColumnBody body)
+    {
+        var (ok, error) = gradingService.TryDeleteColumn(body.ColumnIndex);
+        if (!ok)
+            return BadRequest(new { error });
+        return Ok();
+    }
+
     private void SetLayout(string controller, string title, string style) =>
         ViewData["Layout"] = new LayoutViewModel
         {
@@ -102,3 +122,7 @@ public class GradingController(IGradingService gradingService) : Controller
 }
 
 public sealed record UpdateGradingDeltaBody(string? StyleKey, string? MeasurementPoint, int ColumnIndex, double Delta);
+
+public sealed record DeleteGradingRowBody(string? StyleKey, string? MeasurementPoint);
+
+public sealed record DeleteGradingColumnBody(int ColumnIndex);

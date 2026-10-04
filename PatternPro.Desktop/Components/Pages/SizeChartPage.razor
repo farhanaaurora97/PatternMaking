@@ -8,21 +8,35 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<div class="gr-page">
-    <div class="cv-toolbar">
-        <div>
-            <div class="page-title" style="font-size:1.35rem">Size Chart</div>
-            <div class="page-sub">@_snapshot.ScopeLabel · @_snapshot.ChartMode mode · unit cm</div>
+<div class="gr-page size-chart-page">
+    <header class="dash-header sc-dash-header">
+        <div class="dash-header__main">
+            <div class="dash-eyebrow"><span class="dash-eyebrow__rule"></span> Measurements</div>
+            <h1 class="dash-title" style="margin:0">Size chart</h1>
+            <p class="page-sub" style="margin:6px 0 0">@_snapshot.ScopeLabel · @_chartMode mode · unit cm · <strong>M</strong> base</p>
         </div>
-        <div class="cv-toolbar-actions">
-            <button type="button" class="btn btn-outline btn-sm" @onclick="ExportCsv" disabled="@_busy">Export CSV</button>
-            <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddRowAsync">+ Add measurement</button>
-            <button type="button" class="btn btn-gold btn-sm" @onclick="OpenAddColAsync">+ Add size</button>
-            <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+        <div class="dash-header__aside">
+            <div class="dash-kpi-strip">
+                <div class="dash-kpi">
+                    <div class="dash-kpi__val">@_columns.Count</div>
+                    <div class="dash-kpi__label">Sizes</div>
+                </div>
+                <div class="dash-kpi__div"></div>
+                <div class="dash-kpi">
+                    <div class="dash-kpi__val">@_rows.Count</div>
+                    <div class="dash-kpi__label">Points</div>
+                </div>
+            </div>
+            <div class="dash-header__actions">
+                <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+                <button type="button" class="btn btn-outline btn-sm" @onclick="ExportCsv" disabled="@_busy">Export CSV</button>
+                <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddRowAsync">+ Measurement</button>
+                <button type="button" class="btn btn-gold btn-sm" @onclick="OpenAddColAsync">+ Size</button>
+            </div>
         </div>
-    </div>
+    </header>
 
-    <div class="ss-lifecycle-legend" style="margin-bottom:14px">
+    <div class="sc-scope-bar ss-lifecycle-legend" style="margin-bottom:14px;padding:10px 14px">
         <div class="ss-lifecycle-legend__row" style="flex-wrap:wrap;gap:10px;align-items:center">
             <span class="ss-lifecycle-legend__label">Style scope</span>
             <div class="tbl-search" style="min-width:200px">
@@ -72,13 +86,16 @@
         <div class="pcs-success" style="margin-bottom:12px">@_success</div>
     }
 
-    <div class="tbl-wrap">
-        <div class="tbl-header">
-            <span class="tbl-label">@(_chartMode == CoreModel.MeasurementChartMode.Garment ? "Garment POM" : "Body measurements")</span>
-            <span style="flex:1"></span>
-            <span class="gr-hint">Click cells to edit · ± tolerance shown</span>
+    <div class="tbl-wrap tbl-wrap--primary sc-table-wrap">
+        <div class="tbl-toolbar">
+            <div class="tbl-toolbar__row">
+                <span class="tbl-label">@(_chartMode == CoreModel.MeasurementChartMode.Garment ? "Garment POM" : "Body measurements")</span>
+                <span class="sc-unit-badge">UNIT · CM</span>
+                <span class="gr-hint sc-table-hint">Click cells to edit · ± tolerance shown</span>
+            </div>
         </div>
-        <table>
+        <div class="sc-table-scroll">
+        <table class="sc-table">
             <thead>
                 <tr>
                     <th>Point</th>
@@ -138,6 +155,7 @@
                 }
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 

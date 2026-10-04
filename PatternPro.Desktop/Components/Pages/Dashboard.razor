@@ -18,9 +18,8 @@
                 <span class="pcs-eyebrow-rule"></span>
                 <span>Workspace</span>
             </div>
-            <h1 class="page-title" style="margin:0">All Pants — Pattern Module</h1>
-            <p class="page-sub" style="margin:6px 0 0">Denim, chinos, trousers &amp; more — desktop workspace</p>
-            <span class="tag tag-navy dash-style-tag">◈ @_vm.CurrentStyleLabel</span>
+            <h1 class="page-title" style="margin:0">Pattern workspace</h1>
+            <p class="page-sub" style="margin:6px 0 0">Bottom wear — denim, chinos, trousers &amp; more · @_vm.CurrentStyleLabel</p>
         </div>
         <div class="pcs-header-right">
             <div class="pcs-summary">
@@ -54,9 +53,16 @@
         </div>
     </div>
 
-    @if (_vm.OverdueCount > 0 || _vm.DueThisWeekCount > 0 || _vm.BulkReadyCount > 0)
-    {
-        <div class="plm-alerts" role="status">
+    <div class="plm-alerts plm-alerts--row" role="status">
+        @if (_vm.OverdueCount == 0 && _vm.DueThisWeekCount == 0 && _vm.BulkReadyCount == 0)
+        {
+            <div class="plm-alert plm-alert--clear">
+                <strong>PLM status clear</strong>
+                <span>— no overdue, due-this-week, or bulk nudges</span>
+            </div>
+        }
+        else
+        {
             @if (_vm.OverdueCount > 0)
             {
                 <button type="button" class="plm-alert plm-alert--overdue plm-alert--clickable @(_plmFilter == "overdue" ? "plm-alert--active" : "")"
@@ -86,36 +92,13 @@
                     }
                 </button>
             }
-        </div>
-    }
+        }
+    </div>
 
     @if (!string.IsNullOrEmpty(_message))
     {
         <div class="alert-error">@_message</div>
     }
-
-    <div class="pp-stat-row">
-        <div class="pp-stat-item">
-            <div class="stat-label">Active Patterns</div>
-            <div class="stat-val">@_vm.ActivePatternCount</div>
-            <div class="stat-delta">@_vm.PatternsCreatedThisWeek new this week</div>
-        </div>
-        <div class="pp-stat-item">
-            <div class="stat-label">Sizes Graded</div>
-            <div class="stat-val">@_vm.GradedSizesCount <span style="font-size:1rem">sz</span></div>
-            <div class="stat-delta">XS — XXL range</div>
-        </div>
-        <div class="pp-stat-item">
-            <div class="stat-label">Pattern Pieces</div>
-            <div class="stat-val">@_vm.AvgPieceCount</div>
-            <div class="stat-delta">avg per style</div>
-        </div>
-        <div class="pp-stat-item">
-            <div class="stat-label">Factory ready</div>
-            <div class="stat-val">@_vm.ProductionCertifiedCount</div>
-            <div class="stat-delta">Approve + cutter pass</div>
-        </div>
-    </div>
 
     <div class="tbl-wrap tbl-wrap--primary">
         <div class="tbl-header">

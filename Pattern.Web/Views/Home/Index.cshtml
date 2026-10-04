@@ -12,107 +12,120 @@
 
 <div class="patternpro-dashboard">
   <script type="application/json" id="dashboard-chart-data">@Html.Raw(chartJson)</script>
-  <div class="page-hdr">
-    <div class="ph-left">
-      <div class="page-title">All Pants — Pattern Module</div>
-      <div class="page-sub">Denim, chinos, trousers, cargo, joggers &amp; more — full bottom-wear collection</div>
-      <div class="ph-tag"><span class="ph-tag-dot"></span> @Model.CurrentStyleLabel</div>
+  <header class="dash-header">
+    <div class="dash-header__main">
+      <div class="dash-eyebrow"><span class="dash-eyebrow__rule"></span> Dashboard</div>
+      <h1 class="dash-title">Pattern workspace</h1>
+      <p class="dash-sub">Bottom wear — denim, chinos, trousers &amp; more · <span class="dash-fit-tag">@Model.CurrentStyleLabel</span></p>
     </div>
-    <div class="ph-right">
-      <button type="button" class="btn-dup" id="btn-duplicate">⊕ Duplicate Pattern</button>
-      <a class="btn-canvas" asp-controller="Canvas" asp-action="Index" asp-route-patternId="@firstPattern?.Id" asp-route-style="@firstPattern?.StyleKey">⊞ Open in Canvas</a>
-    </div>
-  </div>
-
-  <div class="grid-4">
-    <div class="stat-card">
-      <div class="stat-label">Active Patterns</div>
-      <div class="stat-val" id="stat-active" data-target="@Model.ActivePatternCount">0</div>
-      <div class="stat-delta @(Model.WeekOverWeekDelta >= 0 ? "delta-up" : "delta-down")" id="delta-wow">
-        @Model.PatternsCreatedThisWeek new this week
-        @if (Model.WeekOverWeekDelta == 0)
+    <div class="dash-header__aside">
+      <div class="dash-kpi-strip" aria-label="Key metrics">
+        <div class="dash-kpi stat-card">
+          <div class="dash-kpi__val" id="stat-active" data-target="@Model.ActivePatternCount">0</div>
+          <div class="dash-kpi__label">Active</div>
+          <div class="dash-kpi__meta @(Model.WeekOverWeekDelta >= 0 ? "delta-up" : "delta-down")" id="delta-wow">
+            @Model.PatternsCreatedThisWeek this week
+          </div>
+          <div class="stat-bar" hidden><div class="stat-bar-fill" id="bar-active" data-target="@Model.ActiveBarPercent" style="width:0%"></div></div>
+        </div>
+        <div class="dash-kpi__div" aria-hidden="true"></div>
+        <div class="dash-kpi stat-card">
+          <div class="dash-kpi__val" id="stat-factory-ready" data-target="@Model.ProductionCertifiedCount">@Model.ProductionCertifiedCount</div>
+          <div class="dash-kpi__label">Factory ready</div>
+          <div class="dash-kpi__meta">Export ready</div>
+          <div class="stat-bar" hidden><div class="stat-bar-fill" id="bar-factory-ready" data-target="@(Model.TotalPatternCount == 0 ? 0 : (int)Math.Round(Model.ProductionCertifiedCount * 100.0 / Model.TotalPatternCount))" style="width:0%"></div></div>
+        </div>
+        <div class="dash-kpi__div" aria-hidden="true"></div>
+        <div class="dash-kpi stat-card">
+          <div class="dash-kpi__val">@Model.DueThisWeekCount</div>
+          <div class="dash-kpi__label">Due this week</div>
+          <div class="dash-kpi__meta">Mon–Sun</div>
+        </div>
+        @if (Model.OverdueCount > 0)
         {
-          <span> · Same as last week</span>
+          <div class="dash-kpi__div" aria-hidden="true"></div>
+          <div class="dash-kpi stat-card dash-kpi--warn">
+            <div class="dash-kpi__val">@Model.OverdueCount</div>
+            <div class="dash-kpi__label">Overdue</div>
+            <div class="dash-kpi__meta">Needs attention</div>
+          </div>
         }
-        else
-        {
-          <span> · @(Model.WeekOverWeekDelta > 0 ? "↑" : "↓")@Math.Abs(Model.WeekOverWeekDelta) vs last week</span>
-        }
+        <div class="dash-kpi__div" aria-hidden="true"></div>
+        <div class="dash-kpi stat-card dash-kpi--sm">
+          <div class="dash-kpi__val" id="stat-pieces" data-target="@Model.AvgPieceCount">0</div>
+          <div class="dash-kpi__label">Avg POM</div>
+          <div class="dash-kpi__meta">Per style</div>
+        </div>
       </div>
-      <div class="stat-bar"><div class="stat-bar-fill" id="bar-active" data-target="@Model.ActiveBarPercent" style="width:0%"></div></div>
+      <div class="dash-header__actions">
+        <a class="btn-dash btn-dash--ghost" asp-controller="StyleSheet" asp-action="Index">Style Sheet</a>
+        <button type="button" class="btn-dash btn-dash--ghost" id="btn-duplicate">Duplicate</button>
+        <a class="btn-dash btn-dash--ghost" asp-controller="Canvas" asp-action="Index" asp-route-patternId="@firstPattern?.Id" asp-route-style="@firstPattern?.StyleKey">Canvas</a>
+        <button type="button" class="btn-dash btn-dash--primary" id="btn-add-header">+ New pattern</button>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Sizes Graded</div>
-      <div class="stat-val">@Model.GradedSizesCount<span class="stat-unit"> sz</span></div>
-      <div class="stat-delta">XS — XXL range</div>
-      <div class="stat-bar"><div class="stat-bar-fill" style="width:100%"></div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Pattern Pieces</div>
-      <div class="stat-val" id="stat-pieces" data-target="@Model.AvgPieceCount">0</div>
-      <div class="stat-delta">◇ avg per style</div>
-      <div class="stat-bar"><div class="stat-bar-fill" style="width:70%"></div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Factory ready</div>
-      <div class="stat-val" id="stat-factory-ready" data-target="@Model.ProductionCertifiedCount">@Model.ProductionCertifiedCount</div>
-      <div class="stat-delta">Export: approve + cutter pass (not download alone)</div>
-      <div class="stat-bar"><div class="stat-bar-fill" id="bar-factory-ready" data-target="@(Model.TotalPatternCount == 0 ? 0 : (int)Math.Round(Model.ProductionCertifiedCount * 100.0 / Model.TotalPatternCount))" style="width:0%"></div></div>
-    </div>
-  </div>
+  </header>
 
-  @if (Model.OverdueCount > 0 || Model.DueThisWeekCount > 0 || Model.BulkReadyCount > 0)
-  {
-    <div class="plm-alerts" role="status" aria-live="polite">
-      @if (Model.OverdueCount > 0)
-      {
-        <button type="button" class="plm-alert plm-alert--overdue plm-alert--clickable" data-plm-filter="overdue" title="Click to filter table to overdue patterns">
-          <strong>@Model.OverdueCount overdue</strong>
-          <span>— past due date, update status or deadline</span>
-        </button>
-      }
-      @if (Model.DueThisWeekCount > 0)
-      {
-        <button type="button" class="plm-alert plm-alert--due plm-alert--clickable" data-plm-filter="due-week" title="Click to filter table to patterns due this week">
-          <strong>@Model.DueThisWeekCount due this week</strong>
-          <span>— Mon–Sun calendar week</span>
-        </button>
-      }
-      @if (Model.BulkReadyCount > 0)
-      {
-        <button type="button" class="plm-alert plm-alert--bulk plm-alert--clickable" data-plm-filter="bulk-ready" title="Click to filter table to factory-ready patterns not on Bulk lifecycle">
-          <strong>@Model.BulkReadyCount factory-ready</strong>
-          <span>— move to <em>Bulk</em> lifecycle in</span>
-          <a asp-controller="StyleSheet" asp-action="Index" onclick="event.stopPropagation()">Style Sheet</a>
-          @if (Model.BulkLifecycleNudges.Count > 0)
-          {
-            <span class="plm-alert__codes">(@string.Join(", ", Model.BulkLifecycleNudges.Select(n => n.Code)))</span>
-          }
-        </button>
-      }
-    </div>
-  }
+  <div class="plm-alerts plm-alerts--row" role="status" aria-live="polite">
+    @if (Model.OverdueCount > 0)
+    {
+      <button type="button" class="plm-alert plm-alert--overdue plm-alert--clickable" data-plm-filter="overdue" title="Click to filter table to overdue patterns">
+        <strong>@Model.OverdueCount overdue</strong>
+        <span>— past due date</span>
+      </button>
+    }
+    @if (Model.DueThisWeekCount > 0)
+    {
+      <button type="button" class="plm-alert plm-alert--due plm-alert--clickable" data-plm-filter="due-week" title="Click to filter table to patterns due this week">
+        <strong>@Model.DueThisWeekCount due this week</strong>
+        <span>— Mon–Sun</span>
+      </button>
+    }
+    @if (Model.BulkReadyCount > 0)
+    {
+      <button type="button" class="plm-alert plm-alert--bulk plm-alert--clickable" data-plm-filter="bulk-ready" title="Click to filter table to factory-ready patterns not on Bulk lifecycle">
+        <strong>@Model.BulkReadyCount factory-ready</strong>
+        <span>— move to <em>Bulk</em> in</span>
+        <a asp-controller="StyleSheet" asp-action="Index" onclick="event.stopPropagation()">Style Sheet</a>
+        @if (Model.BulkLifecycleNudges.Count > 0)
+        {
+          <span class="plm-alert__codes">(@string.Join(", ", Model.BulkLifecycleNudges.Select(n => n.Code)))</span>
+        }
+      </button>
+    }
+    @if (Model.OverdueCount == 0 && Model.DueThisWeekCount == 0 && Model.BulkReadyCount == 0)
+    {
+      <div class="plm-alert plm-alert--clear">
+        <strong>PLM status clear</strong>
+        <span>— no overdue, due-this-week, or bulk nudges</span>
+      </div>
+    }
+  </div>
 
   <div class="tbl-wrap tbl-wrap--primary">
-    <div class="tbl-header">
-      <span class="tbl-label">All Patterns</span>
-      <div class="tbl-search">
-        <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4" stroke="#9ca3af" stroke-width="1.4"/><path d="M9 9l2.5 2.5" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round"/></svg>
-        <input type="search" id="tbl-search-input" placeholder="Search patterns…" autocomplete="off" />
+    <div class="tbl-toolbar">
+      <div class="tbl-toolbar__row">
+        <span class="tbl-label">All patterns</span>
+        <div class="tbl-search">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4" stroke="#9ca3af" stroke-width="1.4"/><path d="M9 9l2.5 2.5" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <input type="search" id="tbl-search-input" placeholder="Search code, name, season…" autocomplete="off" />
+        </div>
+        <span class="tbl-count" id="tbl-count" data-total="@Model.TotalPatternCount">@Model.TotalPatternCount of @Model.TotalPatternCount</span>
+        <div class="tbl-toolbar__actions">
+          <button type="button" class="add-btn" id="btn-add-table">+ Add</button>
+        </div>
       </div>
-      <span class="tbl-count" id="tbl-count" data-total="@Model.TotalPatternCount">@Model.TotalPatternCount of @Model.TotalPatternCount</span>
-      <button type="button" class="status-filter-clear" id="btn-clear-status-filter" hidden>All statuses</button>
-      <button type="button" class="status-filter-clear status-filter-clear--pant" id="btn-clear-pant-filter" hidden>All product lines</button>
-      <button type="button" class="status-filter-clear status-filter-clear--plm" id="btn-clear-plm-filter" hidden>Clear PLM filter</button>
-      <div class="cat-tabs" id="cat-tabs">
-        @foreach (var cat in Model.CategoryTabs)
-        {
-          <button type="button" class="cat-tab @(cat == "All" ? "active" : "")" data-cat="@cat">@cat</button>
-        }
+      <div class="tbl-toolbar__row tbl-toolbar__filters">
+        <button type="button" class="status-filter-clear" id="btn-clear-status-filter" hidden>All statuses</button>
+        <button type="button" class="status-filter-clear status-filter-clear--pant" id="btn-clear-pant-filter" hidden>All product lines</button>
+        <button type="button" class="status-filter-clear status-filter-clear--plm" id="btn-clear-plm-filter" hidden>Clear PLM filter</button>
+        <div class="cat-tabs" id="cat-tabs">
+          @foreach (var cat in Model.CategoryTabs)
+          {
+            <button type="button" class="cat-tab @(cat == "All" ? "active" : "")" data-cat="@cat">@cat</button>
+          }
+        </div>
       </div>
-      <div class="tbl-spacer" style="flex:1"></div>
-      <a class="btn-dup" asp-controller="StyleSheet" asp-action="Index" style="margin-right:8px">Style Sheet</a>
-      <button type="button" class="add-btn" id="btn-add-table">+ Add</button>
     </div>
     <table>
       <thead>
@@ -191,20 +204,6 @@
         <button type="button" class="tbl-page-btn" id="tbl-page-next" aria-label="Next page">Next →</button>
       </div>
     </div>
-  </div>
-
-  <nav class="pp-quick-actions" aria-label="Quick actions">
-    <button type="button" class="pp-qa-btn" id="qa-new" title="New pattern (N)">＋ Pattern</button>
-    <a class="pp-qa-btn" asp-controller="Grading" asp-action="Index" title="Open Grading (G)">Grading</a>
-    <a class="pp-qa-btn" asp-controller="Export" asp-action="Index" asp-route-patternId="@firstPattern?.Id" asp-route-style="@firstPattern?.StyleKey" title="Export DXF (E)">Export DXF</a>
-  </nav>
-
-  <div class="tip">
-    Tip: Set <strong>status</strong> from the table dropdown &nbsp;·&nbsp;
-    <span class="kbd">N</span> New &nbsp;·&nbsp;
-    <span class="kbd">F</span> Search &nbsp;·&nbsp;
-    <span class="kbd">G</span> Grading &nbsp;·&nbsp;
-    <span class="kbd">E</span> Export
   </div>
 
   <details class="dash-analytics" id="dash-analytics">

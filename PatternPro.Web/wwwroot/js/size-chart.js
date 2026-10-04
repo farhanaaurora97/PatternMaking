@@ -111,4 +111,95 @@
     closeSize();
     closeMp();
   });
+
+  document.querySelectorAll('.sc-cell-input').forEach((input) => {
+    input.addEventListener('change', async () => {
+      const measurement = input.dataset.measurement ?? '';
+      const columnIndex = parseInt(input.dataset.col ?? '-1', 10);
+      const value = parseFloat(input.value);
+      if (!measurement || columnIndex < 0 || Number.isNaN(value)) return;
+
+      const res = await fetch('/SizeChart/UpdateCell', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ measurementPoint: measurement, columnIndex, value }),
+      });
+
+      if (res.ok) {
+        window.toast?.('Size chart saved', `${measurement} updated`, 'success', '✓');
+      } else {
+        let msg = 'Could not save cell.';
+        try {
+          const data = await res.json();
+          if (data?.error) msg = data.error;
+        } catch { /* ignore */ }
+        window.toast?.('Save failed', msg, 'error', '⚠️');
+      }
+    });
+  });
+
+  async function saveRowMetaFromRow(row) {
+    if (!row) return;
+    const tolEl = row.querySelector('.sc-tolerance-input');
+    const methodEl = row.querySelector('.sc-method-input');
+    const measurement = tolEl?.dataset.measurement ?? methodEl?.dataset.measurement ?? '';
+    const toleranceCm = parseFloat(tolEl?.value ?? '0');
+    const measurementMethod = methodEl?.value ?? '';
+    if (!measurement || Number.isNaN(toleranceCm)) return;
+
+    const res = await fetch('/SizeChart/UpdateRowMeta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ measurementPoint: measurement, toleranceCm, measurementMethod }),
+    });
+
+    if (res.ok) {
+      window.toast?.('Row meta saved', `${measurement} tolerance / method`, 'success', '✓');
+    } else {
+      window.toast?.('Save failed', 'Could not update row meta', 'error', '⚠️');
+    }
+  }
+
+  document.querySelectorAll('.sc-tolerance-input, .sc-method-input').forEach((input) => {
+    input.addEventListener('change', () => saveRowMetaFromRow(input.closest('tr')));
+  });
+
+  async function postDelete(url, body, successTitle, successMsg) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      window.toast?.(successTitle, successMsg, 'success', '✓');
+      window.location.reload();
+      return true;
+    }
+    let msg = 'Delete failed.';
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch { /* ignore */ }
+    window.toast?.('Delete failed', msg, 'error', '⚠️');
+    return false;
+  }
+
+  document.querySelectorAll('[data-action="delete-row"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const measurement = btn.dataset.measurement ?? '';
+      if (!measurement) return;
+      if (!window.confirm(`Delete measurement row "${measurement}"?`)) return;
+      await postDelete('/SizeChart/DeleteRow', { measurementPoint: measurement }, 'Row deleted', measurement);
+    });
+  });
+
+  document.querySelectorAll('[data-action="delete-column"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const col = parseInt(btn.dataset.col ?? '-1', 10);
+      const label = btn.dataset.label ?? '';
+      if (col < 0) return;
+      if (!window.confirm(`Delete size column "${label}"?`)) return;
+      await postDelete('/SizeChart/DeleteColumn', { columnIndex: col }, 'Column deleted', label);
+    });
+  });
 })();

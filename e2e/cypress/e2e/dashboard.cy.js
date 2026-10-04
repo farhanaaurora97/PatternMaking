@@ -5,6 +5,8 @@ describe('Dashboard', () => {
   });
 
   it('shows table-first layout with pagination', () => {
+    cy.get('.dash-header').should('exist');
+    cy.get('.plm-alerts').should('exist');
     cy.get('#patterns-tbody').scrollIntoView().should('exist');
     cy.get('#tbl-pagination').scrollIntoView().should('exist');
     cy.get('#tbl-page-size').should('exist');

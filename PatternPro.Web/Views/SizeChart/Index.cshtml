@@ -1,50 +1,144 @@
 @model SizeChartViewModel
 @{ ViewData["Title"] = "Size Chart"; }
 
-<div class="page-hdr">
-  <div>
-    <div class="page-title">Size Chart</div>
-    <div class="page-sub">Body measurements in cm — M is the base size</div>
-  </div>
-  <div class="row" style="flex-wrap:wrap;gap:8px">
-    <a class="btn btn-outline btn-sm" asp-controller="SizeChart" asp-action="ExportCsv">↓ Export CSV</a>
-    <button class="btn btn-outline btn-sm" type="button" id="btn-add-measurement">＋ Add measurement</button>
-    <button class="btn btn-primary btn-sm" type="button" id="btn-add-size">＋ Add Size</button>
-  </div>
-</div>
+<div class="patternpro-dashboard size-chart-page">
+  <header class="dash-header">
+    <div class="dash-header__main">
+      <div class="dash-eyebrow"><span class="dash-eyebrow__rule"></span> Measurements</div>
+      <h1 class="dash-title">Size chart</h1>
+      <p class="dash-sub">@Model.ScopeLabel · body measurements in cm · <strong>M</strong> is the base size for grading</p>
+    </div>
+    <div class="dash-header__aside">
+      <div class="dash-kpi-strip" aria-label="Chart summary">
+        <div class="dash-kpi stat-card">
+          <div class="dash-kpi__val">@Model.SizeCount</div>
+          <div class="dash-kpi__label">Sizes</div>
+          <div class="dash-kpi__meta">XS–XXL</div>
+        </div>
+        <div class="dash-kpi__div" aria-hidden="true"></div>
+        <div class="dash-kpi stat-card">
+          <div class="dash-kpi__val">@Model.MeasurementCount</div>
+          <div class="dash-kpi__label">Points</div>
+          <div class="dash-kpi__meta">POM rows</div>
+        </div>
+        <div class="dash-kpi__div" aria-hidden="true"></div>
+        <div class="dash-kpi stat-card">
+          <div class="dash-kpi__val">M</div>
+          <div class="dash-kpi__label">Base</div>
+          <div class="dash-kpi__meta">Grade from here</div>
+        </div>
+      </div>
+      <div class="dash-header__actions">
+        <a class="btn-dash btn-dash--ghost" asp-controller="Home" asp-action="Index">Dashboard</a>
+        <a class="btn-dash btn-dash--ghost" asp-controller="SizeChart" asp-action="ExportCsv">Export CSV</a>
+        <button type="button" class="btn-dash btn-dash--ghost" id="btn-add-measurement">+ Measurement</button>
+        <button type="button" class="btn-dash btn-dash--primary" id="btn-add-size">+ Size</button>
+      </div>
+    </div>
+  </header>
 
-<div class="tbl-wrap">
-  <div class="tbl-header">
-    <span class="tbl-title">Body Measurements — Bottom Wear (All Sizes)</span>
-    <span class="spacer"></span>
-    <span style="font-size:10.5px;color:var(--ink4);font-family:'DM Mono',monospace;font-weight:600">UNIT: CM</span>
+  <div class="sc-scope-bar">
+    <span class="sc-scope-bar__label">Scope</span>
+    <span class="sc-scope-bar__value">@Model.ScopeLabel</span>
+    <span class="sc-scope-bar__hint">Per-style charts (body / garment) are available in Desktop — open a pattern from Style Sheet</span>
   </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Measurement Point</th>
-        @for (var i = 0; i < Model.ColumnLabels.Count; i++)
-        {
-          var col = Model.ColumnLabels[i];
-          var isBase = string.Equals(col, "M", StringComparison.Ordinal);
-          <th class="@(isBase ? "sch-m" : null)" style="text-align:center">@col@if (isBase) { <text> — Base</text> }</th>
-        }
-      </tr>
-    </thead>
-    <tbody>
-      @foreach (var row in Model.Rows)
-      {
-        <tr>
-          <td class="td-label">@row.MeasurementPoint</td>
-          @for (var i = 0; i < row.Values.Count; i++)
+
+  <div class="tbl-wrap tbl-wrap--primary sc-table-wrap">
+    <div class="tbl-toolbar">
+      <div class="tbl-toolbar__row">
+        <span class="tbl-label">Body measurements</span>
+        <span class="sc-unit-badge">UNIT · CM</span>
+        <span class="sc-table-hint">Click cells to edit · changes save on blur</span>
+      </div>
+    </div>
+    <div class="sc-table-scroll">
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th class="sc-col-point">Measurement point</th>
+            <th class="sc-col-tol">± cm</th>
+            <th class="sc-col-method">Method</th>
+            @for (var i = 0; i < Model.ColumnLabels.Count; i++)
+            {
+              var col = Model.ColumnLabels[i];
+              var isBase = string.Equals(col, "M", StringComparison.Ordinal);
+              <th class="sc-col-size @(isBase ? "sch-m sc-col-base" : null)">
+                <div class="sc-col-head">
+                  <span>@col@if (isBase) { <span class="sc-base-tag">Base</span> }</span>
+                  @if (!isBase)
+                  {
+                    <button type="button" class="sc-del-btn" data-action="delete-column" data-col="@i" data-label="@col" title="Delete size @col" aria-label="Delete size @col">×</button>
+                  }
+                </div>
+              </th>
+            }
+            <th class="sc-col-actions">Row</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var row in Model.Rows)
           {
-            var isBase = i < Model.ColumnLabels.Count && string.Equals(Model.ColumnLabels[i], "M", StringComparison.Ordinal);
-            <td class="td-mono @(isBase ? "td-base" : null)">@row.Values[i]</td>
+            <tr>
+              <td class="td-bold sc-col-point">@row.MeasurementPoint</td>
+              <td class="sc-col-tol">
+                <input type="number" class="sc-meta-input sc-tolerance-input" step="0.1" min="0"
+                       data-measurement="@row.MeasurementPoint" data-field="tolerance"
+                       value="@row.ToleranceCm.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                       aria-label="@row.MeasurementPoint tolerance cm" />
+              </td>
+              <td class="sc-col-method">
+                <input type="text" class="sc-meta-input sc-method-input"
+                       data-measurement="@row.MeasurementPoint" data-field="method"
+                       value="@row.MeasurementMethod" maxlength="128"
+                       aria-label="@row.MeasurementPoint measurement method" />
+              </td>
+              @for (var i = 0; i < row.Values.Count; i++)
+              {
+                var isBase = i < Model.ColumnLabels.Count && string.Equals(Model.ColumnLabels[i], "M", StringComparison.Ordinal);
+                <td class="td-mono sc-col-size @(isBase ? "sc-cell-base" : null)">
+                  <input type="number" class="sc-cell-input" step="0.1"
+                         data-measurement="@row.MeasurementPoint" data-col="@i"
+                         value="@row.Values[i].ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                         aria-label="@row.MeasurementPoint @Model.ColumnLabels[i] cm" />
+                </td>
+              }
+              <td class="sc-col-actions">
+                <button type="button" class="sc-del-btn sc-del-btn--row" data-action="delete-row" data-measurement="@row.MeasurementPoint" title="Delete @row.MeasurementPoint">Delete</button>
+              </td>
+            </tr>
           }
-        </tr>
-      }
-    </tbody>
-  </table>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <details class="dash-analytics" id="sc-measurement-guide">
+    <summary class="dash-analytics__toggle">Measurement guide</summary>
+    <div class="dash-analytics__body sc-guide">
+      <div class="sc-guide__grid">
+        <div class="sc-guide__item">
+          <strong>Body chart</strong>
+          <span>Customer body measurements. Block Generator adds ease when drafting pieces.</span>
+        </div>
+        <div class="sc-guide__item">
+          <strong>± tolerance</strong>
+          <span>Acceptable variance per point for QC (cm).</span>
+        </div>
+        <div class="sc-guide__item">
+          <strong>Method</strong>
+          <span>How to measure — flat, circumference, HPS, etc.</span>
+        </div>
+        <div class="sc-guide__item">
+          <strong>Adding sizes</strong>
+          <span>New columns extrapolate from the last two sizes. Base size <em>M</em> cannot be removed.</span>
+        </div>
+        <div class="sc-guide__item">
+          <strong>Delete</strong>
+          <span>Use × on a size column or <em>Delete</em> on a row. At least one row and one size must remain.</span>
+        </div>
+      </div>
+    </div>
+  </details>
 </div>
 
 @await Html.PartialAsync("_AddSizeColumnModal")

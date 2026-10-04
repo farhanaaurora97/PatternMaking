@@ -17,6 +17,8 @@ public class SizeChartController(ISizeChartService sizeChartService) : Controlle
             Rows = rows.Select(r => new SizeRowViewModel
             {
                 MeasurementPoint = r.MeasurementPoint,
+                ToleranceCm = r.ToleranceCm,
+                MeasurementMethod = r.MeasurementMethod,
                 Values = r.Values,
             }).ToList(),
         };
@@ -58,6 +60,47 @@ public class SizeChartController(ISizeChartService sizeChartService) : Controlle
         return Ok(new { name });
     }
 
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult UpdateCell([FromBody] UpdateSizeCellBody body)
+    {
+        var (ok, err) = sizeChartService.TryUpdateCell(body.MeasurementPoint ?? "", body.ColumnIndex, body.Value);
+        if (!ok)
+            return BadRequest(new { error = err });
+        return Ok(new { measurementPoint = body.MeasurementPoint, columnIndex = body.ColumnIndex, value = body.Value });
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult UpdateRowMeta([FromBody] UpdateSizeRowMetaBody body)
+    {
+        var (ok, err) = sizeChartService.TryUpdateRowMeta(
+            body.MeasurementPoint ?? "", body.ToleranceCm, body.MeasurementMethod);
+        if (!ok)
+            return BadRequest(new { error = err });
+        return Ok();
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult DeleteRow([FromBody] DeleteMeasurementRowBody body)
+    {
+        var (ok, err) = sizeChartService.TryDeleteMeasurementRow(body.MeasurementPoint ?? "");
+        if (!ok)
+            return BadRequest(new { error = err });
+        return Ok(new { measurementPoint = body.MeasurementPoint });
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult DeleteColumn([FromBody] DeleteSizeColumnBody body)
+    {
+        var (ok, err) = sizeChartService.TryDeleteSizeColumn(body.ColumnIndex);
+        if (!ok)
+            return BadRequest(new { error = err });
+        return Ok(new { columnIndex = body.ColumnIndex });
+    }
+
     private void SetLayout(string controller, string title) =>
         ViewData["Layout"] = new LayoutViewModel { ActiveController = controller, PageTitle = title };
 }
@@ -65,3 +108,11 @@ public class SizeChartController(ISizeChartService sizeChartService) : Controlle
 public sealed record AddSizeColumnBody(string? Label);
 
 public sealed record AddMeasurementRowBody(string? Name, string? CopyFrom);
+
+public sealed record UpdateSizeCellBody(string? MeasurementPoint, int ColumnIndex, decimal Value);
+
+public sealed record UpdateSizeRowMetaBody(string? MeasurementPoint, decimal ToleranceCm, string? MeasurementMethod);
+
+public sealed record DeleteMeasurementRowBody(string? MeasurementPoint);
+
+public sealed record DeleteSizeColumnBody(int ColumnIndex);

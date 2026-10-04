@@ -159,6 +159,7 @@ Try-Test "PP3 DraftPieces (Generate Pattern)" {
 }
 
 $uiMarkers = @(
+    @{ Name = "dash header";      Pattern = "dash-header" },
     @{ Name = "Generate Pattern"; Pattern = "Generate Pattern" },
     @{ Name = "Auto-refine";      Pattern = "Auto-refine" },
     @{ Name = "Add Piece";        Pattern = "btn-add-piece" },

@@ -9,6 +9,6 @@ describe('Authentication', () => {
     cy.login();
     cy.visit('/');
     cy.get('.patternpro-dashboard').should('be.visible');
-    cy.contains('All Patterns').should('be.visible');
+    cy.contains('All patterns').should('be.visible');
   });
 });

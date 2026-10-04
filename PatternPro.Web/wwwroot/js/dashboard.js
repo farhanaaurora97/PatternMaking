@@ -421,13 +421,10 @@
     }
   });
 
-  document.getElementById('btn-add-table')?.addEventListener('click', () => {
-    document.getElementById('btn-new-pattern')?.click();
-  });
-
-  document.getElementById('qa-new')?.addEventListener('click', () => {
-    document.getElementById('btn-new-pattern')?.click();
-  });
+  const openNewPattern = () => document.getElementById('btn-new-pattern')?.click();
+  document.getElementById('btn-add-table')?.addEventListener('click', openNewPattern);
+  document.getElementById('btn-add-header')?.addEventListener('click', openNewPattern);
+  document.getElementById('qa-new')?.addEventListener('click', openNewPattern);
 
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input,textarea,select') || e.target.isContentEditable) return;

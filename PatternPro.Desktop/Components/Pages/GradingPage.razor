@@ -7,19 +7,38 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<div class="gr-page">
-    <div class="cv-toolbar">
-        <div>
-            <div class="page-title" style="font-size:1.35rem">Grading</div>
-            <div class="page-sub">Size increments from M base — values in cm</div>
+<div class="patternpro-dashboard grading-page gr-page">
+    <header class="dash-header">
+        <div class="dash-header__main">
+            <div class="dash-eyebrow"><span class="dash-eyebrow__rule"></span> Grade rules</div>
+            <h1 class="dash-title" style="margin:0">Grading</h1>
+            <p class="page-sub" style="margin:6px 0 0">@_styleLabel · delta from <strong>M</strong> base · values in cm</p>
         </div>
-        <div class="cv-toolbar-actions">
-            <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddColAsync">+ Add size</button>
-            <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddRowAsync">+ Add row</button>
-            <button type="button" class="btn btn-outline btn-sm" @onclick="ExportCsv" disabled="@_busy">Export CSV</button>
-            <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+        <div class="dash-header__aside">
+            <div class="dash-kpi-strip">
+                <div class="dash-kpi">
+                    <div class="dash-kpi__val">@_columns.Count</div>
+                    <div class="dash-kpi__label">Sizes</div>
+                </div>
+                <div class="dash-kpi__div"></div>
+                <div class="dash-kpi">
+                    <div class="dash-kpi__val">@_rows.Count</div>
+                    <div class="dash-kpi__label">Points</div>
+                </div>
+                <div class="dash-kpi__div"></div>
+                <div class="dash-kpi">
+                    <div class="dash-kpi__val">M</div>
+                    <div class="dash-kpi__label">Base</div>
+                </div>
+            </div>
+            <div class="dash-header__actions">
+                <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
+                <button type="button" class="btn btn-outline btn-sm" @onclick="ExportCsv" disabled="@_busy">Export CSV</button>
+                <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddRowAsync">+ Row</button>
+                <button type="button" class="btn btn-gold btn-sm" @onclick="OpenAddColAsync">+ Size</button>
+            </div>
         </div>
-    </div>
+    </header>
 
     @if (!string.IsNullOrEmpty(_message))
     {
@@ -30,7 +49,7 @@
         <div class="pcs-success" style="margin-bottom:12px">@_success</div>
     }
 
-    <nav class="fit-tabs">
+    <nav class="gr-fit-tabs fit-tabs" aria-label="Fit switcher">
         @foreach (var opt in StyleOptions)
         {
             <button type="button"
@@ -41,65 +60,70 @@
         }
     </nav>
 
-    <div class="tbl-wrap">
-        <div class="tbl-header">
-            <span class="tbl-label">Grade rules — @_styleLabel</span>
-            <span style="flex:1"></span>
-            <span class="gr-hint">Delta from M base · edit cells</span>
+    <div class="tbl-wrap tbl-wrap--primary gr-table-wrap">
+        <div class="tbl-toolbar">
+            <div class="tbl-toolbar__row">
+                <span class="tbl-label">Grade rules — @_styleLabel</span>
+                <span class="gr-unit-badge">DELTA · CM</span>
+                <span class="gr-hint gr-table-hint">Delta from M base · edit cells</span>
+            </div>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Measurement point</th>
-                    @for (var i = 0; i < _columns.Count; i++)
-                    {
-                        var col = i;
-                        var isBase = col == _baseIndex;
-                        <th class="@(isBase ? "gr-col-base" : "")" style="text-align:@(isBase ? "center" : "right")">
-                            <div style="display:flex;flex-direction:column;align-items:@(isBase ? "center" : "flex-end");gap:4px">
-                                <span>@_columns[col]</span>
-                                @if (!isBase)
-                                {
-                                    <button type="button" class="pp-btn-delete" title="Delete size @_columns[col]"
-                                            @onclick="() => DeleteColumnAsync(col)">×</button>
-                                }
-                            </div>
-                        </th>
-                    }
-                    <th style="width:72px;text-align:center">Row</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var row in _rows)
-                {
+        <div class="gr-table-scroll">
+            <table class="gr-table">
+                <thead>
                     <tr>
-                        <td class="td-bold">@row.MeasurementPoint</td>
-                        @for (var i = 0; i < row.Deltas.Count; i++)
+                        <th class="gr-col-point">Measurement point</th>
+                        @for (var i = 0; i < _columns.Count; i++)
                         {
                             var col = i;
-                            if (col == row.BaseIndex)
-                            {
-                                <td class="gr-cell-base">0</td>
-                            }
-                            else
-                            {
-                                <td class="gr-cell-delta">
-                                    <input type="number"
-                                           class="gr-delta-input"
-                                           step="0.1"
-                                           value="@row.Deltas[col].ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                                           @onchange="e => OnDeltaChanged(row.MeasurementPoint, col, e)" />
-                                </td>
-                            }
+                            var isBase = col == _baseIndex;
+                            <th class="gr-col-size @(isBase ? "gr-col-base sch-m" : "")">
+                                <div class="gr-col-head">
+                                    <span>@_columns[col]@if (isBase) { <span class="gr-base-tag">Base</span> }</span>
+                                    @if (!isBase)
+                                    {
+                                        <button type="button" class="gr-del-btn" title="Delete size @_columns[col]"
+                                                @onclick="() => DeleteColumnAsync(col)">×</button>
+                                    }
+                                </div>
+                            </th>
                         }
-                        <td style="text-align:center">
-                            <button type="button" class="pp-btn-delete" title="Delete row"
-                                    @onclick="() => DeleteRowAsync(row.MeasurementPoint)">Delete</button>
-                        </td>
+                        <th class="gr-col-actions">Row</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var row in _rows)
+                    {
+                        <tr>
+                            <td class="td-bold gr-col-point">@row.MeasurementPoint</td>
+                            @for (var i = 0; i < row.Deltas.Count; i++)
+                            {
+                                var col = i;
+                                if (col == row.BaseIndex)
+                                {
+                                    <td class="gr-cell-base sch-m">0</td>
+                                }
+                                else
+                                {
+                                    var delta = row.Deltas[col];
+                                    <td class="gr-col-size gr-cell-delta @(delta < 0 ? "gr-cell-dn" : delta > 0 ? "gr-cell-up" : null)">
+                                        <input type="number"
+                                               class="gr-delta-input"
+                                               step="0.1"
+                                               value="@delta.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                               @onchange="e => OnDeltaChanged(row.MeasurementPoint, col, e)" />
+                                    </td>
+                                }
+                            }
+                            <td class="gr-col-actions">
+                                <button type="button" class="gr-del-btn gr-del-btn--row" title="Delete row"
+                                        @onclick="() => DeleteRowAsync(row.MeasurementPoint)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

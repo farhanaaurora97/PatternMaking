@@ -134,12 +134,16 @@ Try-Test "GR1 Page loads (slim)" {
 }
 
 $uiMarkers = @(
+    @{ Name = "dash header";        Pattern = "dash-header" },
     @{ Name = "fit tabs";           Pattern = "fit-tabs" },
     @{ Name = "add size button";    Pattern = "btn-add-col" },
     @{ Name = "add row button";     Pattern = "btn-add-row" },
     @{ Name = "export link";        Pattern = "ExportCsv" },
     @{ Name = "M base column";      Pattern = "sch-m" },
     @{ Name = "editable deltas";    Pattern = "gr-delta-input" },
+    @{ Name = "delete row btn";     Pattern = 'data-action="delete-row"' },
+    @{ Name = "delete column btn";  Pattern = 'data-action="delete-column"' },
+    @{ Name = "grading.js";        Pattern = "grading.js" },
     @{ Name = "Waist row";          Pattern = "Waist" },
     @{ Name = "Slim Fit title";     Pattern = "Slim Fit" }
 )
@@ -172,7 +176,7 @@ foreach ($s in $styles) {
     Try-Test "GR2 Style $($s.Key)" {
         $r = Invoke-WebRequest -Uri "$BaseUrl/Grading?style=$($s.Key)" -WebSession $session -UseBasicParsing
         if ($r.Content -notmatch [regex]::Escape($s.Label)) { throw "Missing $($s.Label)" }
-        if ($r.Content -notmatch "Grade Rules") { throw "Missing table title" }
+        if ($r.Content -notmatch "Grade rules") { throw "Missing table title" }
         Pass "GR2 $($s.Key)" $s.Label
     }
 }

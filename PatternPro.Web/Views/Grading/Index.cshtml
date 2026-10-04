@@ -1,111 +1,168 @@
 @model GradingViewModel
 @{ ViewData["Title"] = "Grading"; }
 
-<div class="page-hdr">
-  <div>
-    <div class="page-title">Grading Table</div>
-    <div class="page-sub">Size increments from M base — all values in cm</div>
-  </div>
-  <div class="row gap-8">
-    <span class="tag tag-teal">Industry Standard Grading</span>
-    <button class="btn btn-outline btn-sm" id="btn-add-col">＋ Add Size</button>
-    <button class="btn btn-outline btn-sm" id="btn-add-row">＋ Add Row</button>
-    <a class="btn btn-outline btn-sm"
-       asp-controller="Grading" asp-action="ExportCsv"
-       asp-route-style="@Model.StyleKey">↓ Export</a>
-  </div>
-</div>
+<div class="patternpro-dashboard grading-page">
+  <header class="dash-header">
+    <div class="dash-header__main">
+      <div class="dash-eyebrow"><span class="dash-eyebrow__rule"></span> Grade rules</div>
+      <h1 class="dash-title">Grading</h1>
+      <p class="dash-sub">@Model.StyleLabel · delta from <strong>M</strong> base · values in cm</p>
+    </div>
+    <div class="dash-header__aside">
+      <div class="dash-kpi-strip" aria-label="Grading summary">
+        <div class="dash-kpi stat-card">
+          <div class="dash-kpi__val">@Model.ColumnLabels.Count</div>
+          <div class="dash-kpi__label">Sizes</div>
+          <div class="dash-kpi__meta">XS–XXL</div>
+        </div>
+        <div class="dash-kpi__div" aria-hidden="true"></div>
+        <div class="dash-kpi stat-card">
+          <div class="dash-kpi__val">@Model.Rows.Count</div>
+          <div class="dash-kpi__label">Points</div>
+          <div class="dash-kpi__meta">POM rows</div>
+        </div>
+        <div class="dash-kpi__div" aria-hidden="true"></div>
+        <div class="dash-kpi stat-card">
+          <div class="dash-kpi__val">M</div>
+          <div class="dash-kpi__label">Base</div>
+          <div class="dash-kpi__meta">Always zero</div>
+        </div>
+      </div>
+      <div class="dash-header__actions">
+        <a class="btn-dash btn-dash--ghost" asp-controller="Home" asp-action="Index">Dashboard</a>
+        <a class="btn-dash btn-dash--ghost"
+           asp-controller="Grading" asp-action="ExportCsv"
+           asp-route-style="@Model.StyleKey">Export CSV</a>
+        <button type="button" class="btn-dash btn-dash--ghost" id="btn-add-row">+ Row</button>
+        <button type="button" class="btn-dash btn-dash--primary" id="btn-add-col">+ Size</button>
+      </div>
+    </div>
+  </header>
 
-@{
-  var fits = new[]
-  {
-    ("skinny",   "Skinny"),
-    ("slim",     "Slim"),
-    ("straight", "Straight"),
-    ("bootcut",  "Bootcut"),
-    ("wideLeg",  "Wide Leg"),
-  };
-}
-<nav class="fit-tabs" aria-label="Fit switcher">
-  @foreach (var (key, label) in fits)
-  {
-    <a class="fit-tab @(Model.StyleKey == key ? "active" : "")"
-       asp-controller="Grading" asp-action="Index" asp-route-style="@key">@label</a>
+  @{
+    var fits = new[]
+    {
+      ("skinny",   "Skinny"),
+      ("slim",     "Slim"),
+      ("straight", "Straight"),
+      ("bootcut",  "Bootcut"),
+      ("wideLeg",  "Wide Leg"),
+    };
   }
-</nav>
+  <nav class="gr-fit-tabs fit-tabs" aria-label="Fit switcher">
+    @foreach (var (key, label) in fits)
+    {
+      <a class="fit-tab @(Model.StyleKey == key ? "active" : "")"
+         asp-controller="Grading" asp-action="Index" asp-route-style="@key">@label</a>
+    }
+  </nav>
 
-<div class="tbl-wrap">
-  <div class="tbl-header">
-    <span class="tbl-title">Grade Rules — @Model.StyleLabel</span>
-    <span class="spacer"></span>
-    <span style="font-size:10.5px;color:var(--ink4);font-family:'DM Mono',monospace;font-weight:600">DELTA FROM M BASE · CLICK TO EDIT</span>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Measurement Point</th>
-        @for (int i = 0; i < Model.ColumnLabels.Count; i++)
-        {
-          if (i == Model.BaseIndex)
-          {
-            <th class="sch-m" style="text-align:center">@Model.ColumnLabels[i]</th>
-          }
-          else
-          {
-            <th style="text-align:right">@Model.ColumnLabels[i]</th>
-          }
-        }
-      </tr>
-    </thead>
-    <tbody>
-      @foreach (var row in Model.Rows)
-      {
-        <tr>
-          <td class="td-label">@row.MeasurementPoint</td>
-          @for (int i = 0; i < row.Deltas.Count; i++)
-          {
-            if (i == row.BaseIndex)
+  <div class="tbl-wrap tbl-wrap--primary gr-table-wrap">
+    <div class="tbl-toolbar">
+      <div class="tbl-toolbar__row">
+        <span class="tbl-label">Grade rules — @Model.StyleLabel</span>
+        <span class="gr-unit-badge">DELTA · CM</span>
+        <span class="gr-table-hint">Click cells to edit · changes save on blur</span>
+      </div>
+    </div>
+    <div class="gr-table-scroll">
+      <table class="gr-table">
+        <thead>
+          <tr>
+            <th class="gr-col-point">Measurement point</th>
+            @for (var i = 0; i < Model.ColumnLabels.Count; i++)
             {
-              <td class="td-base">0</td>
+              var col = Model.ColumnLabels[i];
+              var isBase = i == Model.BaseIndex;
+              <th class="gr-col-size @(isBase ? "sch-m gr-col-base" : null)">
+                <div class="gr-col-head">
+                  <span>@col@if (isBase) { <span class="gr-base-tag">Base</span> }</span>
+                  @if (!isBase)
+                  {
+                    <button type="button" class="gr-del-btn" data-action="delete-column" data-col="@i" data-label="@col" title="Delete size @col" aria-label="Delete size @col">×</button>
+                  }
+                </div>
+              </th>
             }
-            else
-            {
-              <td class="@(row.Deltas[i] < 0 ? "td-dn" : "td-up")">
-                <input type="number" class="gr-delta-input ss-inline" step="0.1"
-                       data-style="@Model.StyleKey" data-measurement="@row.MeasurementPoint" data-col="@i"
-                       value="@row.Deltas[i].ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                       aria-label="@row.MeasurementPoint @Model.ColumnLabels[i] delta cm" />
+            <th class="gr-col-actions">Row</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var row in Model.Rows)
+          {
+            <tr>
+              <td class="td-bold gr-col-point">@row.MeasurementPoint</td>
+              @for (var i = 0; i < row.Deltas.Count; i++)
+              {
+                if (i == row.BaseIndex)
+                {
+                  <td class="gr-cell-base sch-m">0</td>
+                }
+                else
+                {
+                  var delta = row.Deltas[i];
+                  <td class="gr-col-size gr-cell-delta @(delta < 0 ? "gr-cell-dn" : delta > 0 ? "gr-cell-up" : null)">
+                    <input type="number" class="gr-delta-input"
+                           step="0.1"
+                           data-style="@Model.StyleKey" data-measurement="@row.MeasurementPoint" data-col="@i"
+                           value="@delta.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                           aria-label="@row.MeasurementPoint @Model.ColumnLabels[i] delta cm" />
+                  </td>
+                }
+              }
+              <td class="gr-col-actions">
+                <button type="button" class="gr-del-btn gr-del-btn--row" data-action="delete-row" data-measurement="@row.MeasurementPoint" title="Delete @row.MeasurementPoint">Delete</button>
               </td>
-            }
+            </tr>
           }
-        </tr>
-      }
-    </tbody>
-  </table>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <details class="dash-analytics" id="gr-grading-guide">
+    <summary class="dash-analytics__toggle">Grading guide</summary>
+    <div class="dash-analytics__body gr-guide">
+      <div class="gr-guide__grid">
+        <div class="gr-guide__item">
+          <strong>Fit profiles</strong>
+          <span>Each fit (Skinny, Slim, etc.) has its own grade table. Switch tabs above — columns are shared across fits.</span>
+        </div>
+        <div class="gr-guide__item">
+          <strong>M base</strong>
+          <span>Medium is the reference size. All other sizes show the cm increment (+/−) from M.</span>
+        </div>
+        <div class="gr-guide__item">
+          <strong>Adding sizes</strong>
+          <span>New columns extrapolate from the last two sizes. Base size <em>M</em> cannot be removed.</span>
+        </div>
+        <div class="gr-guide__item">
+          <strong>Delete</strong>
+          <span>Use × on a size column or <em>Delete</em> on a row. At least one row and one size must remain.</span>
+        </div>
+      </div>
+    </div>
+  </details>
 </div>
 
-<!-- ══ ADD ROW MODAL ══ -->
 <div class="modal-overlay" id="modal-add-row">
   <div class="modal">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
-      <div class="modal-title">Add Measurement Row</div>
-      <button class="modal-close-btn" id="modal-add-row-close" type="button">
+      <div class="modal-title">Add measurement row</div>
+      <button class="modal-close-btn" id="modal-add-row-close" type="button" aria-label="Close">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
     <div class="modal-sub">A new measurement point row will be added to the <strong>@Model.StyleLabel</strong> grading table.</div>
-
     <div id="add-row-error" class="modal-error"></div>
-
     <div class="form-field">
-      <label class="form-label" for="row-label">Measurement Point <span class="req">*</span></label>
-      <input class="form-input" id="row-label" placeholder="e.g. Thigh Width" maxlength="64" autocomplete="off" />
+      <label class="form-label" for="row-label">Measurement point <span class="req">*</span></label>
+      <input class="form-input" id="row-label" placeholder="e.g. Thigh width" maxlength="64" autocomplete="off" />
     </div>
-
     <div class="form-field">
-      <label class="form-label" for="row-copy-from">Copy Deltas From <span style="font-weight:400;color:var(--ink4)">(optional)</span></label>
+      <label class="form-label" for="row-copy-from">Copy deltas from <span style="font-weight:400;color:var(--ink4)">(optional)</span></label>
       <select class="form-input" id="row-copy-from">
         <option value="">— blank (all zeros) —</option>
         @foreach (var row in Model.Rows)
@@ -114,225 +171,50 @@
         }
       </select>
     </div>
-
     <div class="modal-actions">
       <button type="button" class="btn btn-outline btn-sm" id="modal-add-row-cancel">Cancel</button>
-      <button type="button" class="btn btn-primary btn-sm" id="row-submit">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Add Row
-      </button>
+      <button type="button" class="btn btn-primary btn-sm" id="row-submit">Add row</button>
     </div>
   </div>
 </div>
 
-<!-- ══ ADD SIZE COLUMN MODAL ══ -->
 <div class="modal-overlay" id="modal-add-col">
   <div class="modal">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
-      <div class="modal-title">Add Size Column</div>
-      <button class="modal-close-btn" id="modal-add-col-close" type="button">
+      <div class="modal-title">Add size column</div>
+      <button class="modal-close-btn" id="modal-add-col-close" type="button" aria-label="Close">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
     <div class="modal-sub">A new column will be appended to all fit grading tables, with deltas extrapolated from the last two sizes.</div>
-
     <div id="add-col-error" class="modal-error"></div>
-
     <div class="form-field">
-      <label class="form-label" for="col-label">Size Label <span class="req">*</span></label>
+      <label class="form-label" for="col-label">Size label <span class="req">*</span></label>
       <input class="form-input" id="col-label" placeholder="e.g. 3XL" maxlength="8" autocomplete="off" />
       <div style="font-size:11px;color:var(--ink4);margin-top:5px">Will be converted to uppercase (e.g. 3XL)</div>
     </div>
-
-    <!-- Preview of where it will appear -->
     <div class="col-preview" id="col-preview">
       <div class="col-preview-label">Preview — column order after adding</div>
       <div class="col-preview-chips" id="col-preview-chips">
-        @for (int ci = 0; ci < Model.ColumnLabels.Count; ci++)
+        @for (var ci = 0; ci < Model.ColumnLabels.Count; ci++)
         {
           <span class="size-chip @(ci == Model.BaseIndex ? "size-chip--base" : "")">@Model.ColumnLabels[ci]</span>
         }
         <span class="size-chip size-chip--new" id="col-preview-new" style="display:none">—</span>
       </div>
     </div>
-
     <div class="modal-actions">
       <button type="button" class="btn btn-outline btn-sm" id="modal-add-col-cancel">Cancel</button>
-      <button type="button" class="btn btn-primary btn-sm" id="col-submit">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Add Column
-      </button>
+      <button type="button" class="btn btn-primary btn-sm" id="col-submit">Add column</button>
     </div>
   </div>
 </div>
 
 @section Scripts {
-<script>
-(() => {
-  const overlay  = document.getElementById('modal-add-col');
-  const input    = document.getElementById('col-label');
-  const errBox   = document.getElementById('add-col-error');
-  const newChip  = document.getElementById('col-preview-new');
-
-  const open  = () => { overlay.classList.add('open'); input.focus(); };
-  const close = () => { overlay.classList.remove('open'); resetForm(); };
-
-  document.getElementById('btn-add-col')       ?.addEventListener('click', open);
-  document.getElementById('modal-add-col-close') ?.addEventListener('click', close);
-  document.getElementById('modal-add-col-cancel')?.addEventListener('click', close);
-  overlay?.addEventListener('click', e => { if (e.target === overlay) close(); });
-
-  // Live preview chip
-  input?.addEventListener('input', () => {
-    const val = input.value.trim().toUpperCase();
-    if (val) { newChip.textContent = val; newChip.style.display = ''; }
-    else      { newChip.style.display = 'none'; }
-  });
-
-  // Enter key submits
-  input?.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-
-  // Submit
-  document.getElementById('col-submit')?.addEventListener('click', submit);
-
-  async function submit() {
-    const label = input.value.trim();
-    errBox.classList.remove('show');
-
-    if (!label) {
-      errBox.textContent = 'Size label is required.';
-      errBox.classList.add('show');
-      input.focus();
-      return;
-    }
-
-    const btn = document.getElementById('col-submit');
-    btn.disabled = true;
-    btn.textContent = 'Adding…';
-
-    try {
-      const body = new URLSearchParams({ label });
-      const resp = await fetch('/Grading/AddColumn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString(),
-      });
-
-      if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
-        errBox.textContent = data.error ?? 'Failed to add column.';
-        errBox.classList.add('show');
-        return;
-      }
-
-      // Reload page to show new column in table
-      window.location.reload();
-
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Add Column';
-    }
-  }
-
-  function resetForm() {
-    input.value = '';
-    newChip.style.display = 'none';
-    errBox.classList.remove('show');
-  }
-})();
-
-// ── Add Row ──────────────────────────────────────────────
-(() => {
-  const overlay  = document.getElementById('modal-add-row');
-  const inputEl  = document.getElementById('row-label');
-  const errBox   = document.getElementById('add-row-error');
-  const copyFrom = document.getElementById('row-copy-from');
-  const style    = '@Model.StyleKey';
-
-  const open  = () => { overlay.classList.add('open'); inputEl.focus(); };
-  const close = () => { overlay.classList.remove('open'); resetForm(); };
-
-  document.getElementById('btn-add-row')         ?.addEventListener('click', open);
-  document.getElementById('modal-add-row-close') ?.addEventListener('click', close);
-  document.getElementById('modal-add-row-cancel')?.addEventListener('click', close);
-  overlay?.addEventListener('click', e => { if (e.target === overlay) close(); });
-
-  inputEl?.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-  document.getElementById('row-submit')?.addEventListener('click', submit);
-
-  async function submit() {
-    const label = inputEl.value.trim();
-    errBox.classList.remove('show');
-    if (!label) {
-      errBox.textContent = 'Measurement point name is required.';
-      errBox.classList.add('show');
-      inputEl.focus();
-      return;
-    }
-    const btn = document.getElementById('row-submit');
-    btn.disabled = true;
-    btn.textContent = 'Adding…';
-    try {
-      const body = new URLSearchParams({ style, measurementPoint: label });
-      if (copyFrom.value) body.append('copyFrom', copyFrom.value);
-      const resp = await fetch('/Grading/AddRow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString(),
-      });
-      if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
-        errBox.textContent = data.error ?? 'Failed to add row.';
-        errBox.classList.add('show');
-        return;
-      }
-      window.location.reload();
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Add Row';
-    }
-  }
-
-  function resetForm() {
-    inputEl.value = '';
-    copyFrom.value = '';
-    errBox.classList.remove('show');
-  }
-})();
-
-// ── Edit grade delta ─────────────────────────────────────
-document.querySelectorAll('.gr-delta-input').forEach((input) => {
-  input.addEventListener('focusin', () => { input.dataset.prevValue = input.value; });
-
-  input.addEventListener('change', async () => {
-    const styleKey = input.dataset.style ?? '';
-    const measurementPoint = input.dataset.measurement ?? '';
-    const columnIndex = parseInt(input.dataset.col ?? '-1', 10);
-    const delta = parseFloat(input.value);
-    const prev = input.dataset.prevValue ?? input.value;
-    if (!styleKey || !measurementPoint || columnIndex < 0 || Number.isNaN(delta)) return;
-
-    const res = await fetch('/Grading/UpdateDelta', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ styleKey, measurementPoint, columnIndex, delta }),
-    });
-
-    if (res.ok) {
-      input.dataset.prevValue = String(delta);
-      window.toast?.('Grading saved', `${measurementPoint} updated`, 'success', '✓');
-    } else {
-      input.value = prev;
-      let msg = 'Could not save delta.';
-      try {
-        const data = await res.json();
-        if (data?.error) msg = data.error;
-      } catch { /* ignore */ }
-      window.toast?.('Save failed', msg, 'error', '⚠️');
-    }
-  });
-});
-</script>
+  <script>
+    window.__gradingStyleKey = '@Model.StyleKey';
+  </script>
+  <script src="~/js/grading.js" asp-append-version="true"></script>
 }

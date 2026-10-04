@@ -12,44 +12,38 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<div class="pcs-page">
-    <div class="pcs-header">
-        <div class="pcs-header-left">
-            <div class="pcs-eyebrow">
-                <span class="pcs-eyebrow-rule"></span>
-                <span>Technical Pattern Sheet</span>
-            </div>
-            <h1 class="page-title" style="margin:0">Pattern Pieces</h1>
+<div class="patternpro-dashboard pieces-page pcs-page">
+    <header class="dash-header">
+        <div class="dash-header__main">
+            <div class="dash-eyebrow"><span class="dash-eyebrow__rule"></span> Pattern pieces</div>
+            <h1 class="dash-title" style="margin:0">Piece library</h1>
             <p class="page-sub" style="margin:6px 0 0">
                 @if (_pattern is not null)
                 {
                     <span class="page-sub-code">@_pattern.Code</span>
-                    <span>@_pattern.Name &nbsp;·&nbsp; </span>
+                    <span>@_pattern.Name · </span>
                 }
-                @_styleLabel — @_cards.Count pieces &nbsp;·&nbsp; @_totalPanels total fabric panels cut
+                @_styleLabel — @_cards.Count pieces · @_totalPanels total fabric panels cut
             </p>
-            <span class="tag tag-navy" style="font-family:var(--font-mono);letter-spacing:.06em;margin-top:8px;display:inline-block">
-                ◈ @_styleLabel
-            </span>
         </div>
-        <div class="pcs-header-right">
-            <div class="pcs-summary">
-                <div class="pcs-stat">
-                    <div class="pcs-stat-val">@_cards.Count</div>
-                    <div class="pcs-stat-label">Pieces</div>
+        <div class="dash-header__aside">
+            <div class="dash-kpi-strip">
+                <div class="dash-kpi">
+                    <div class="dash-kpi__val">@_cards.Count</div>
+                    <div class="dash-kpi__label">Pieces</div>
                 </div>
-                <div class="pcs-stat-div"></div>
-                <div class="pcs-stat">
-                    <div class="pcs-stat-val">@_totalPanels</div>
-                    <div class="pcs-stat-label">Panels Cut</div>
+                <div class="dash-kpi__div"></div>
+                <div class="dash-kpi">
+                    <div class="dash-kpi__val">@_totalPanels</div>
+                    <div class="dash-kpi__label">Panels</div>
                 </div>
-                <div class="pcs-stat-div"></div>
-                <div class="pcs-stat">
-                    <div class="pcs-stat-val">@_groups.Count()</div>
-                    <div class="pcs-stat-label">Groups</div>
+                <div class="dash-kpi__div"></div>
+                <div class="dash-kpi">
+                    <div class="dash-kpi__val">@_groups.Count()</div>
+                    <div class="dash-kpi__label">Groups</div>
                 </div>
             </div>
-            <div class="pcs-header-actions">
+            <div class="dash-header__actions">
                 <select class="status-select" @bind="_patternId" @bind:after="LoadData">
                     <option value="0">— Select pattern —</option>
                     @foreach (var p in _patterns)
@@ -65,15 +59,15 @@
                 </select>
                 @if (_patternId > 0)
                 {
-                    <button type="button" class="btn btn-outline btn-sm" @onclick="DraftPieces" disabled="@_busy">⬡ Generate</button>
-                    <button type="button" class="btn btn-outline btn-sm" title="Balance seams, seam allowance, notches" @onclick="RefinePieces" disabled="@_busy">⚙ Auto-refine</button>
-                    <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddAsync">＋ Add Piece</button>
+                    <button type="button" class="btn btn-outline btn-sm" @onclick="DraftPieces" disabled="@_busy">Generate Pattern</button>
+                    <button type="button" class="btn btn-outline btn-sm" title="Balance seams, seam allowance, notches" @onclick="RefinePieces" disabled="@_busy">Auto-refine</button>
+                    <button type="button" class="btn btn-outline btn-sm" @onclick="OpenAddAsync">+ Piece</button>
                     <NavLink class="btn btn-gold btn-sm" href="@CanvasHref">Open All in Canvas</NavLink>
                 }
                 <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
             </div>
         </div>
-    </div>
+    </header>
 
     @if (!string.IsNullOrEmpty(_message))
     {
@@ -93,31 +87,42 @@
     else if (_cards.Count == 0)
     {
         <div class="pp-empty-hint">
-            <p class="page-sub">No pieces yet. Click <strong>⬡ Generate</strong> to draft a full pattern set from the style block.</p>
+            <p class="page-sub">No pieces yet. Click <strong>Generate Pattern</strong> to draft a full pattern set from the style block.</p>
         </div>
     }
     else
     {
-        <div class="pcs-filter-bar">
-            <div class="pcs-filter-label">Filter:</div>
-            <button class="pcs-filter-btn @(_filter == "all" ? "active" : "")" @onclick='() => _filter = "all"'>All Pieces</button>
-            @foreach (var g in _groups)
-            {
-                var key = g.Key;
-                <button class="pcs-filter-btn @(_filter == key ? "active" : "")" @onclick="() => _filter = key">@key</button>
-            }
-            <div style="flex:1"></div>
-            <div class="pcs-view-toggle">
-                <button class="pvt-btn @(_view == "grid" ? "active" : "")" title="Grid view" @onclick='() => _view = "grid"'>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" fill="currentColor"/><rect x="8" y="1" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="8" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/><rect x="8" y="8" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/></svg>
-                </button>
-                <button class="pvt-btn @(_view == "list" ? "active" : "")" title="List view" @onclick='() => _view = "list"'>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="2" rx="1" fill="currentColor"/><rect x="1" y="6" width="12" height="2" rx="1" fill="currentColor" opacity=".6"/><rect x="1" y="10" width="12" height="2" rx="1" fill="currentColor" opacity=".4"/></svg>
-                </button>
-            </div>
+        <div class="pcs-scope-bar sc-scope-bar">
+            <span class="sc-scope-bar__label">Pattern</span>
+            <span class="sc-scope-bar__value">@(_pattern?.Code) — @(_pattern?.Name)</span>
+            <span class="pcs-fit-badge">@_styleLabel</span>
+            <span class="sc-scope-bar__hint">Click a piece to open in canvas</span>
         </div>
 
-        <div class="pcs-body">
+        <div class="tbl-wrap tbl-wrap--primary pcs-gallery-wrap">
+            <div class="tbl-toolbar pcs-filter-toolbar">
+                <div class="tbl-toolbar__row">
+                    <span class="tbl-label">Piece groups</span>
+                    <span class="pcs-unit-badge">@_cards.Count POMs</span>
+                    <div class="pcs-filter-chips">
+                        <button class="pcs-filter-btn @(_filter == "all" ? "active" : "")" @onclick='() => _filter = "all"'>All</button>
+                        @foreach (var g in _groups)
+                        {
+                            var key = g.Key;
+                            <button class="pcs-filter-btn @(_filter == key ? "active" : "")" @onclick="() => _filter = key">@key</button>
+                        }
+                    </div>
+                    <div class="pcs-view-toggle">
+                        <button class="pvt-btn @(_view == "grid" ? "active" : "")" title="Grid view" @onclick='() => _view = "grid"'>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" fill="currentColor"/><rect x="8" y="1" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="8" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/><rect x="8" y="8" width="5" height="5" rx="1.2" fill="currentColor" opacity=".5"/></svg>
+                        </button>
+                        <button class="pvt-btn @(_view == "list" ? "active" : "")" title="List view" @onclick='() => _view = "list"'>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="2" rx="1" fill="currentColor"/><rect x="1" y="6" width="12" height="2" rx="1" fill="currentColor" opacity=".6"/><rect x="1" y="10" width="12" height="2" rx="1" fill="currentColor" opacity=".4"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="pcs-body">
             @foreach (var grp in _groups.Where(g => _filter == "all" || g.Key == _filter))
             {
                 <div class="pcs-group">
@@ -132,8 +137,8 @@
                         {
                             var col = card.Color;
                             var cutNum = CutNumber(card.CutInstruction);
-                            <div class="pcs-card">
-                                <NavLink class="pcs-card-link" href="@CanvasPieceHref(card.Index)" title="@($"Open {card.Name} in Canvas Editor")">
+                            <div class="pcs-card-wrap">
+                                <NavLink class="pcs-card pcs-card-link" href="@CanvasPieceHref(card.Index)" title="@($"Open {card.Name} in Canvas Editor")">
                                     <div class="pcs-card-rule" style="background:@col"></div>
                                     <div class="pcs-card-preview">
                                         <div class="pcs-card-grid-bg"></div>
@@ -162,47 +167,57 @@
                                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
                                     </div>
                                 </NavLink>
-                                <button type="button" class="pcs-card-delete" title="Delete piece" @onclick="() => DeletePieceAsync(card.Name)">
-                                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2l-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
-                                </button>
+                                <button type="button" class="pcs-del-btn" title="Delete @card.Name" @onclick="() => DeletePieceAsync(card.Name)">×</button>
                             </div>
                         }
                     </div>
                 </div>
             }
+            </div>
         </div>
 
-        <div class="pcs-cut-table-wrap">
-            <div class="pcs-cut-table-hdr">
-                <div class="pcs-cut-table-title">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L1 4v5l6 4 6-4V4L7 1z" stroke="currentColor" stroke-width="1.3" fill="none" /></svg>
-                    Fabric Cut Summary
+        <div class="tbl-wrap tbl-wrap--primary pcs-cut-wrap">
+            <div class="tbl-toolbar">
+                <div class="tbl-toolbar__row">
+                    <span class="tbl-label">Fabric Cut Summary</span>
+                    <span class="pcs-cut-table-sub">@_styleLabel — all panels</span>
                 </div>
-                <div class="pcs-cut-table-sub">@_styleLabel — all panels</div>
             </div>
-            <div class="pcs-cut-rows">
-                @foreach (var card in _cards)
-                {
-                    var col = card.Color;
-                    var cutNum = CutNumber(card.CutInstruction);
-                    var cutInt = int.TryParse(cutNum, out var n) ? n : 2;
-                    <div class="pcs-cut-row">
-                        <div class="pcs-cut-swatch" style="background:@(col)22;border-color:@(col)44">
-                            <div class="pcs-cut-swatch-dot" style="background:@col"></div>
-                        </div>
-                        <div class="pcs-cut-num-label">#@(card.Index + 1)</div>
-                        <div class="pcs-cut-name">@card.Name</div>
-                        <div class="pcs-cut-bar-wrap">
-                            <div class="pcs-cut-bar-track">
-                                <div class="pcs-cut-bar-fill" style="width:@(cutInt * 12.5)%;background:@col"></div>
-                            </div>
-                        </div>
-                        <div class="pcs-cut-count">×@cutNum</div>
-                        <NavLink class="pcs-cut-open" href="@CanvasPieceHref(card.Index)" title="Open in canvas">
-                            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 5.5h9M6.5 2l3.5 3.5L6.5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                        </NavLink>
-                    </div>
-                }
+            <div class="pcs-cut-scroll">
+                <table class="pcs-cut-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Piece</th>
+                            <th>Group</th>
+                            <th>Cut qty</th>
+                            <th>Relative</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var card in _cards)
+                        {
+                            var col = card.Color;
+                            var cutNum = CutNumber(card.CutInstruction);
+                            var cutInt = int.TryParse(cutNum, out var n) ? n : 2;
+                            <tr class="pcs-cut-row">
+                                <td class="pcs-cut-num-label"><span class="pcs-cut-dot" style="background:@col"></span>#@(card.Index + 1)</td>
+                                <td class="pcs-cut-name">@card.Name</td>
+                                <td class="pcs-cut-group">@PieceGroupHelper.GroupFor(card.Name)</td>
+                                <td class="pcs-cut-count"><span class="pcs-cut-badge">×@cutNum</span></td>
+                                <td class="pcs-cut-bar-wrap">
+                                    <div class="pcs-cut-bar-track">
+                                        <div class="pcs-cut-bar-fill" style="width:@(Math.Min(cutInt * 12.5, 100))%;background:@col"></div>
+                                    </div>
+                                </td>
+                                <td class="pcs-cut-open-cell">
+                                    <NavLink class="pcs-cut-open" href="@CanvasPieceHref(card.Index)">Canvas</NavLink>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
             <div class="pcs-cut-footer">
                 <span>Total fabric panels: <strong>@_totalPanels</strong></span>

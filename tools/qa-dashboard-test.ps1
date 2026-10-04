@@ -101,7 +101,8 @@ $requiredMarkers = @(
     @{ Name = "Category tabs";     Pattern = "cat-tabs" },
     @{ Name = "Style progress";    Pattern = "prog-row" },
     @{ Name = "Recent activity";   Pattern = "act-row" },
-    @{ Name = "Due this week";     Pattern = "due-week-strip" },
+    @{ Name = "PLM alerts";        Pattern = "plm-alerts" },
+    @{ Name = "Dashboard header";  Pattern = "dash-header" },
     @{ Name = "Chart.js bundle";   Pattern = "dashboard-charts.js" }
 )
 

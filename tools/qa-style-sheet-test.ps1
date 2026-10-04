@@ -111,7 +111,8 @@ Try-Test "SS1 Style Sheet page loads" {
 }
 
 $uiMarkers = @(
-    @{ Name = "lifecycle legend";     Pattern = "style-sheet-legend" },
+    @{ Name = "lifecycle guide";      Pattern = "ss-lifecycle-guide" },
+    @{ Name = "table-first layout";   Pattern = "tbl-wrap--primary" },
     @{ Name = "search input";         Pattern = "ss-search" },
     @{ Name = "lifecycle tabs";       Pattern = "ss-lifecycle-tabs" },
     @{ Name = "style table";          Pattern = "style-sheet-table" },

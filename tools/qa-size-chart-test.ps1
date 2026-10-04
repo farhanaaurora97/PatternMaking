@@ -137,6 +137,11 @@ $uiMarkers = @(
     @{ Name = "Add measurement";    Pattern = "btn-add-measurement" },
     @{ Name = "editable cells";     Pattern = "sc-cell-input" },
     @{ Name = "M base column";       Pattern = "sch-m" },
+    @{ Name = "tolerance column";    Pattern = "sc-tolerance-input" },
+    @{ Name = "method column";       Pattern = "sc-method-input" },
+    @{ Name = "dash header";         Pattern = "dash-header" },
+    @{ Name = "delete row btn";      Pattern = 'data-action="delete-row"' },
+    @{ Name = "delete column btn";   Pattern = 'data-action="delete-column"' },
     @{ Name = "Waist row";           Pattern = "Waist" },
     @{ Name = "size-chart.js";       Pattern = "size-chart.js" }
 )
@@ -223,7 +228,7 @@ Try-Test "SC4 UpdateRowMeta Waist tolerance" {
 Write-Host ""
 Write-Host "--- SC5. Add size column ---" -ForegroundColor Cyan
 
-$testCol = "ZQA"
+$testCol = "ZQA$(Get-Date -Format 'HHmmss')"
 Try-Test "SC5 AddColumn duplicate XS rejected" {
     Post-Json-ExpectFail "$BaseUrl/SizeChart/AddColumn" $session @{ label = "XS" }
     Pass "SC5 Duplicate XS rejected"
@@ -269,6 +274,41 @@ Try-Test "SC6 AddRow" {
 Try-Test "SC6 AddRow duplicate rejected" {
     Post-Json-ExpectFail "$BaseUrl/SizeChart/AddRow" $session @{ name = $testRow; copyFrom = "Waist" }
     Pass "SC6 Duplicate row rejected"
+}
+
+# --- Delete row / column ---
+Write-Host ""
+Write-Host "--- SC7. Delete row and column ---" -ForegroundColor Cyan
+
+Try-Test "SC7 DeleteRow" {
+    Post-Json "$BaseUrl/SizeChart/DeleteRow" $session @{ measurementPoint = $testRow }
+    $csvAfter = Get-SizeChartCsv $session
+    if ($csvAfter -match "(?m)^$([regex]::Escape($testRow)),") { throw "Row still in CSV" }
+    Pass "SC7 DeleteRow" $testRow
+}
+
+Try-Test "SC7 Cannot delete base M column" {
+    $csvNow = Get-SizeChartCsv $session
+    $headerParts = ($csvNow -split "`n")[0] -split ","
+    $mIdx = [array]::IndexOf($headerParts, "M") - 3
+    if ($mIdx -lt 0) { throw "M column not found in header" }
+    Post-Json-ExpectFail "$BaseUrl/SizeChart/DeleteColumn" $session @{ columnIndex = $mIdx }
+    Pass "SC7 Base M protected"
+}
+
+Try-Test "SC7 DeleteColumn if added" {
+    $csvNow = Get-SizeChartCsv $session
+    $headerParts = ($csvNow -split "`n")[0] -split ","
+    $lastLabel = $headerParts[$headerParts.Count - 1]
+    if ($lastLabel -ne $testCol) {
+        Pass "SC7 DeleteColumn" "last column '$lastLabel' is not $testCol - skip"
+        return
+    }
+    $colIdx = $headerParts.Count - 4
+    Post-Json "$BaseUrl/SizeChart/DeleteColumn" $session @{ columnIndex = $colIdx }
+    $csvAfter = Get-SizeChartCsv $session
+    if ($csvAfter -match ",$([regex]::Escape($testCol))") { throw "Column still in CSV" }
+    Pass "SC7 DeleteColumn" $testCol
 }
 
 # --- Summary ---

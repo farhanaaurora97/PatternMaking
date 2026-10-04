@@ -6,6 +6,8 @@ describe('Style Sheet', () => {
 
   it('loads PLM register with pagination', () => {
     cy.contains('Style Sheet').should('be.visible');
+    cy.get('.tbl-wrap--primary').should('exist');
+    cy.get('#ss-lifecycle-guide').should('exist');
     cy.get('#ss-tbody').scrollIntoView().should('exist');
     cy.get('#ss-pagination').scrollIntoView().should('exist');
     cy.get('#ss-page-size').should('exist');
