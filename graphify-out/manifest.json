@@ -1,12 +1,12 @@
 {
   "E:\\Code\\PatternMaking\\e2e\\cypress.config.js": {
-    "mtime": 1790576026.8391101,
-    "ast_hash": "ac849051a4d6983b392a23db4bc39664",
+    "mtime": 1791948472.0235832,
+    "ast_hash": "99e205cb4cde3bec4d1200229c6e5ded",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\e2e\\package.json": {
-    "mtime": 1790576026.8391101,
-    "ast_hash": "2020996fba2157e84ec98ba5c588b84b",
+    "mtime": 1791948472.0125096,
+    "ast_hash": "4211573c961b2f0e8919908e4dd51209",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\e2e\\cypress\\e2e\\auth.cy.js": {
@@ -17,6 +17,11 @@
   "E:\\Code\\PatternMaking\\e2e\\cypress\\e2e\\dashboard.cy.js": {
     "mtime": 1791084003.1652455,
     "ast_hash": "5472d5bf6309d87ba2d5734596aa59c3",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\e2e\\cypress\\e2e\\screenshots.cy.js": {
+    "mtime": 1791948472.0305867,
+    "ast_hash": "32a906555289ca2d938640f3bebe8f67",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\e2e\\cypress\\e2e\\style-sheet.cy.js": {
@@ -140,8 +145,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Core.Model\\StyleAssemblyCatalog.cs": {
-    "mtime": 1781673332.4330971,
-    "ast_hash": "a91d8f8e7bc5911518193531ad0010da",
+    "mtime": 1791436590.3660998,
+    "ast_hash": "60901db6809a84d5da76aa2e3e19a1de",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Core.Model\\StyleDefinition.cs": {
@@ -235,23 +240,23 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\PatternAutoRefineService.cs": {
-    "mtime": 1781673323.3108933,
-    "ast_hash": "5f44b21b46ad090018a69828527ef863",
+    "mtime": 1791436582.9281907,
+    "ast_hash": "af442727e5dc14771360b19366e186ce",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\PatternDraftingService.cs": {
-    "mtime": 1784097439.5267546,
-    "ast_hash": "7a7b2a60c544f668186ffdcc2f837fa9",
+    "mtime": 1791436588.8691921,
+    "ast_hash": "a57e2b8219c4fa89cf28edbf7971559a",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\PatternService.cs": {
-    "mtime": 1787717062.8824897,
-    "ast_hash": "c2d8995e9889c3718384c9ebd4d4b98c",
+    "mtime": 1791948472.0305867,
+    "ast_hash": "eefce1bd5a1205ac36238378fd3d6df4",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\PieceService.cs": {
-    "mtime": 1787717062.9051433,
-    "ast_hash": "d75bd30b1b9637d48550ef0a1eeab619",
+    "mtime": 1791948472.0315876,
+    "ast_hash": "32f4b8233a4eeee1e5184aef03d5b1ea",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\ProductionCertificationService.cs": {
@@ -265,13 +270,13 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\SeamGeometry.cs": {
-    "mtime": 1781673183.9284978,
-    "ast_hash": "8b5e31a3e35dc98acbf416ba4799126c",
+    "mtime": 1791436583.0715184,
+    "ast_hash": "497835833202d6e3dcac0b3f9f8c273c",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\SeamValidationService.cs": {
-    "mtime": 1781673330.132768,
-    "ast_hash": "910cdaba55b4630f6b4bf45e20b7eb26",
+    "mtime": 1791436582.335494,
+    "ast_hash": "8f524f086affb51a416794a7d7953aa3",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.PublicServices\\Services\\SizeChartService.cs": {
@@ -290,8 +295,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\appsettings.Development.json": {
-    "mtime": 1785218359.723644,
-    "ast_hash": "142c5eb6c8aae02c4f28dbc9d6e7a526",
+    "mtime": 1791700394.354362,
+    "ast_hash": "23b19f8b44e99e61b3c3082d92e26b3e",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\appsettings.json": {
@@ -325,8 +330,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\AdminController.cs": {
-    "mtime": 1781587312.8054688,
-    "ast_hash": "4d7d03013a0cef5fa073f597cc0d57fe",
+    "mtime": 1791948472.039189,
+    "ast_hash": "599936902e671d5ded78d184bc123b0d",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\BlockGeneratorController.cs": {
@@ -355,7 +360,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\Controllers\\HomeController.cs": {
-    "mtime": 1791171834.4890974,
+    "mtime": 1791434284.0275636,
     "ast_hash": "752c122883c98a9b4741c3e4b2968b0c",
     "semantic_hash": ""
   },
@@ -410,7 +415,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web\\wwwroot\\js\\dashboard-charts.js": {
-    "mtime": 1791171834.4920933,
+    "mtime": 1791948472.039189,
     "ast_hash": "cafac1c25692a9311f21e87c4fe6468e",
     "semantic_hash": ""
   },
@@ -455,8 +460,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\AdminViewModels.cs": {
-    "mtime": 1781590349.8687015,
-    "ast_hash": "c5c0c67468180f59181fb49ed42104fa",
+    "mtime": 1791948472.0135102,
+    "ast_hash": "2243f14c1c8d85a2b447ea9e8f711b91",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\BlockGeneratorViewModel.cs": {
@@ -480,7 +485,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\Pattern.Web.Model\\DashboardViewModel.cs": {
-    "mtime": 1791171834.4920933,
+    "mtime": 1791434284.03501,
     "ast_hash": "1a59f0b5d03d0f165b7e495826eb1ecd",
     "semantic_hash": ""
   },
@@ -570,8 +575,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\IPieceService.cs": {
-    "mtime": 1787717062.9051433,
-    "ast_hash": "8d3cab451eeaf7ae69140ae9c4af1f2f",
+    "mtime": 1791948472.0305867,
+    "ast_hash": "69bcc7567d7f4b33131c3caa23312878",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Core\\IServices\\IProductionCertificationService.cs": {
@@ -955,8 +960,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\DesktopServiceRegistration.cs": {
-    "mtime": 1787717062.8744779,
-    "ast_hash": "dbce38c878a69690e23710b4018a9d5a",
+    "mtime": 1791442909.9861825,
+    "ast_hash": "65c5d8aecb5856f67ee9a4707900277b",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\DesktopStartup.cs": {
@@ -975,8 +980,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\MainPage.xaml.cs": {
-    "mtime": 1782803535.4156222,
-    "ast_hash": "76ff4d8cca759076ccb1c274d4ccc445",
+    "mtime": 1791948472.0315876,
+    "ast_hash": "d237852ad344e785b545ffbdb3127f8f",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\MauiProgram.cs": {
@@ -1089,6 +1094,21 @@
     "ast_hash": "163b70841929ca2459153a26fb74bd8a",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Helpers\\DesktopAuthGuard.cs": {
+    "mtime": 1791948472.015507,
+    "ast_hash": "a2e1f24dce8a0e54d64769f4df415178",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Helpers\\DesktopShellNavigation.cs": {
+    "mtime": 1791948472.0115077,
+    "ast_hash": "cf3028d209ee7310a66652e05ed1b50b",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Helpers\\DesktopShellRefresh.cs": {
+    "mtime": 1791948472.0195072,
+    "ast_hash": "87ad959113f180629cd205cbe79009d9",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Helpers\\FitStyleKeys.cs": {
     "mtime": 1787717062.8824897,
     "ast_hash": "9c419e8f7a5a0d0c9819499f948373f9",
@@ -1150,7 +1170,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Services\\DashboardChartsBuilder.cs": {
-    "mtime": 1791171834.4880972,
+    "mtime": 1791434284.0255637,
     "ast_hash": "fc3bc0d83e069d57be1ea001a40242e8",
     "semantic_hash": ""
   },
@@ -1160,8 +1180,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Services\\DesktopCanvasHost.cs": {
-    "mtime": 1787717062.8744779,
-    "ast_hash": "a232799d5dc191fff9a223a472ade2dd",
+    "mtime": 1791948472.0355902,
+    "ast_hash": "049f065699665e45d6ed26c427a334bf",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Services\\DesktopConfirm.cs": {
@@ -1179,19 +1199,24 @@
     "ast_hash": "c179ce53eb1d551c83c9a84dcb6f0c00",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Services\\DesktopShellEvents.cs": {
+    "mtime": 1791442886.7846107,
+    "ast_hash": "2546bc09389de23a89167caf4f41b4b8",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Services\\DesktopToastService.cs": {
     "mtime": 1782897725.7419572,
     "ast_hash": "a172fdceb2e2d7b14249a48226372d16",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\wwwroot\\js\\dashboard-charts.js": {
-    "mtime": 1791171834.4900925,
+    "mtime": 1791434284.0295663,
     "ast_hash": "4175779900402307cea4aa9afe29a378",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\wwwroot\\js\\patternpro.js": {
-    "mtime": 1789615781.6781566,
-    "ast_hash": "9a2649c63d1083bae37568943743e817",
+    "mtime": 1791948472.0185113,
+    "ast_hash": "181db455760719cbd07f7a214de4a78f",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Tests\\AamaDxfExporterTests.cs": {
@@ -1205,8 +1230,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Tests\\PatternAutoRefineServiceTests.cs": {
-    "mtime": 1784604789.3895383,
-    "ast_hash": "2151aa39c1046972c5421934848daefc",
+    "mtime": 1791436593.5496821,
+    "ast_hash": "23837a43a52ebb603d29aa4311ff1bbc",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Tests\\ProductionCertificationServiceTests.cs": {
@@ -1215,7 +1240,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Tests\\SeamValidationServiceTests.cs": {
-    "mtime": 1780889317.4842815,
+    "mtime": 1791436880.146057,
     "ast_hash": "2e20112fcccfdcf21f9bb61906309706",
     "semantic_hash": ""
   },
@@ -1250,7 +1275,7 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Web.Model\\DashboardViewModel.cs": {
-    "mtime": 1791171834.4910936,
+    "mtime": 1791434284.0295663,
     "ast_hash": "02eb3b19e6fb7254cfb545eb19e47ab6",
     "semantic_hash": ""
   },
@@ -1314,19 +1339,44 @@
     "ast_hash": "5f9ae53fff7a66c3232c1563debafc0b",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\tools\\build-delivery-pack.ps1": {
+    "mtime": 1791948472.0355902,
+    "ast_hash": "f83ca397e749e586c6b7657c275d95e8",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\tools\\clean-desktop.ps1": {
+    "mtime": 1791444645.6823406,
+    "ast_hash": "48baeb97224273e6a75d628e97a77482",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\tools\\copy-readme-screenshots.ps1": {
+    "mtime": 1791959960.0965743,
+    "ast_hash": "8fad615277aa0c80404c2b1b6636037b",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\tools\\generate-handover-pack.ps1": {
+    "mtime": 1791948472.039189,
+    "ast_hash": "f98420501698a096df9ba695937c9636",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\tools\\install-patternpro-desktop.ps1": {
     "mtime": 1783486022.1177547,
     "ast_hash": "21cc8c5e4f7c38cd8bd8f815926eb853",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\tools\\prepare-delivery-security.ps1": {
+    "mtime": 1791948472.0265877,
+    "ast_hash": "a34d2a831ded15ca9f21f8ac89944fca",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\tools\\publish-desktop-windows.ps1": {
-    "mtime": 1785218359.7381554,
-    "ast_hash": "c34b5118db35c37902366655966e46a3",
+    "mtime": 1791948472.022475,
+    "ast_hash": "a88b5eb7c6b9c287e1c98b94d3a35f82",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\publish-team-package.ps1": {
-    "mtime": 1785218359.728643,
-    "ast_hash": "05cbe3ad3d9260342d46a8b75923a5e4",
+    "mtime": 1791948472.0305867,
+    "ast_hash": "954c2f39303fb162b8a8c2258cb09575",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-account-test.ps1": {
@@ -1344,6 +1394,11 @@
     "ast_hash": "5b6a05de446a4eb44dde753031bd22ec",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\tools\\qa-customer-sim-test.ps1": {
+    "mtime": 1791948472.039189,
+    "ast_hash": "469335b5993095907340f1fd448675b2",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\tools\\qa-cypress.ps1": {
     "mtime": 1790576026.8302486,
     "ast_hash": "5b8e1caf33200dd1d6c482851a2986e7",
@@ -1354,9 +1409,14 @@
     "ast_hash": "14044142979efbc29cc653a4788a5ebf",
     "semantic_hash": ""
   },
+  "E:\\Code\\PatternMaking\\tools\\qa-desktop-delivery-checklist.ps1": {
+    "mtime": 1791948472.038588,
+    "ast_hash": "4d7c25fd89344290880c5bf45a136456",
+    "semantic_hash": ""
+  },
   "E:\\Code\\PatternMaking\\tools\\qa-desktop-test.ps1": {
-    "mtime": 1785218359.7414763,
-    "ast_hash": "d6c2b03a31a5bda368e02b18b1e18a42",
+    "mtime": 1791948472.0345871,
+    "ast_hash": "296238ea8c689cda5a0460280a0372a8",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\qa-export-test.ps1": {
@@ -1415,8 +1475,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\setup-postgres-server.ps1": {
-    "mtime": 1785218359.723644,
-    "ast_hash": "784e14896dcc4c310d9ccb537c6fc4ad",
+    "mtime": 1791948472.039189,
+    "ast_hash": "5d1f12f07cfb2e5b9292e2b867f497c8",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\stop-patternpro.ps1": {
@@ -1430,18 +1490,103 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\tools\\PatternPro.DbTool\\Program.cs": {
-    "mtime": 1785218359.7316463,
-    "ast_hash": "5f657601ebaf5299937696bf9ad831ae",
+    "mtime": 1791948472.0265877,
+    "ast_hash": "893530bdee8fe8ecf7e8060a67bc6622",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\appsettings.Development.example.json": {
+    "mtime": 1782791811.417254,
+    "ast_hash": "a6b31b5f8c8aa480a04a65d53207f185",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\appsettings.Development.json": {
+    "mtime": 1782792179.675256,
+    "ast_hash": "cca97acb5d43e5ab764a7711c58fc1fa",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\appsettings.json": {
+    "mtime": 1782790341.8822834,
+    "ast_hash": "00e458b6f2e4670b483c5db33cff6a34",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\appsettings.Team.example.json": {
+    "mtime": 1785218359.723644,
+    "ast_hash": "e9c92b0126981ebae7e3649e5d79a6a3",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\Pattern.Core.Model.deps.json": {
+    "mtime": 1791450430.3213704,
+    "ast_hash": "3a4809c44fad97033b924e29482cbe5c",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\Pattern.PublicServices.deps.json": {
+    "mtime": 1791450430.677064,
+    "ast_hash": "7d67ab337c3454ec7636167a4e35ab20",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\Pattern.Web.Model.deps.json": {
+    "mtime": 1791450430.8815863,
+    "ast_hash": "a7ef88c407ab30e60820e72aa6b2d102",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\PatternPro.Business.deps.json": {
+    "mtime": 1791450430.7326248,
+    "ast_hash": "d4359bc77fed59bf52c3b11e7ec229ec",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\PatternPro.Core.deps.json": {
+    "mtime": 1791450430.4735675,
+    "ast_hash": "75866c60aea245d879fe72795763897a",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\PatternPro.DataAccess.deps.json": {
+    "mtime": 1791450430.77331,
+    "ast_hash": "e49da02d613782f683e888f5d34d59ee",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\PatternPro.Desktop.deps.json": {
+    "mtime": 1791450442.9302611,
+    "ast_hash": "a78034de712353d2273d84f0437505cd",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\PatternPro.Desktop.runtimeconfig.json": {
+    "mtime": 1791450442.9752538,
+    "ast_hash": "3d7ee482154cc5b7e8f03800d38fc6b6",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\wwwroot\\js\\dashboard-charts.js": {
+    "mtime": 1791434284.0295663,
+    "ast_hash": "4175779900402307cea4aa9afe29a378",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\wwwroot\\js\\patternpro.js": {
+    "mtime": 1789615781.6781566,
+    "ast_hash": "9a2649c63d1083bae37568943743e817",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\README.md": {
-    "mtime": 1785667305.3018143,
-    "ast_hash": "6755d9d3072ff546f8b65413ed06e523",
+    "mtime": 1791959965.6682198,
+    "ast_hash": "453c6b892f1c40e9f600d5f0706ef813",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\docs\\ADMIN_PANEL.md": {
     "mtime": 1781946711.5180192,
     "ast_hash": "bb24197b172e07678861990ff2106541",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\docs\\AFTER_DELIVERY.md": {
+    "mtime": 1791948472.0245843,
+    "ast_hash": "764d961dfbfd08eb7c41c9252b5ad850",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\docs\\CUSTOMER_HANDOVER.md": {
+    "mtime": 1791948472.039189,
+    "ast_hash": "c96ba468c5c1173b7eb9820ed167ede5",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\docs\\DELIVERY_HANDOVER.md": {
+    "mtime": 1791948472.0315876,
+    "ast_hash": "3004f85a3add317aca42cde072cfc344",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\docs\\DEPLOYMENT.md": {
@@ -1455,8 +1600,8 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\docs\\MULTI_PC_SETUP.md": {
-    "mtime": 1791171834.4890974,
-    "ast_hash": "eed158d6d99531a2e1d59155a0aff0d3",
+    "mtime": 1791948472.0315876,
+    "ast_hash": "3e65c660e22c4954f8821b17f716e259",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\docs\\OTHER_PC_SETUP.md": {
@@ -1500,8 +1645,23 @@
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\wwwroot\\index.html": {
-    "mtime": 1782968126.1153967,
-    "ast_hash": "0932d72fcb0551b36b5b199e7cb0d0dc",
+    "mtime": 1791948472.0265877,
+    "ast_hash": "47f85ef44f3c480472e579949bea9fdb",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\AboutAssets.txt": {
+    "mtime": 1782725374.9273589,
+    "ast_hash": "dca8514f7e2eb872ecf1f3edbf30ec64",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\Microsoft.UI.Xaml\\Assets\\map.html": {
+    "mtime": 1722603408.0,
+    "ast_hash": "412da3cd295f02a6c8387acfa3d42af6",
+    "semantic_hash": ""
+  },
+  "E:\\Code\\PatternMaking\\_build-check-desktop\\wwwroot\\index.html": {
+    "mtime": 1791442917.761059,
+    "ast_hash": "44a015ae2d592027f77dcf3a07e6b1cf",
     "semantic_hash": ""
   },
   "E:\\Code\\PatternMaking\\PatternPro.Desktop\\Resources\\AppIcon\\appicon.svg": {
