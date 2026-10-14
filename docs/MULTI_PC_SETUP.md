@@ -19,7 +19,7 @@ This builds **`dist\PatternPro-Desktop-1.0-win-x64.zip`** with your Wi-Fi IP and
 
 1. Extract the ZIP
 2. Double-click **`PatternPro.Desktop.exe`** (or **`START-PatternPro.bat`**)
-3. Login: **admin** / **Admin@123**
+3. Login with the **username and password** your administrator assigned (not a shared default).
 
 No editing JSON. No deleting App_Data. No PostgreSQL on other PCs.
 

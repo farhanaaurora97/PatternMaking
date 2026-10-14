@@ -553,6 +553,11 @@ th {
 }
 
 dialog.pp-create-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
   border: none;
   border-radius: var(--r3);
   padding: 24px;
@@ -561,6 +566,7 @@ dialog.pp-create-dialog {
   overflow: auto;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   font-family: var(--font-ui);
+  z-index: 10002;
 }
 
 dialog.pp-create-dialog::backdrop {
@@ -953,8 +959,10 @@ dialog.pp-create-dialog.pp-create-dialog--wide {
   border-top: 1px solid var(--bdr);
   overflow: hidden;
   background: #fff;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  width: 100%;
+  align-self: stretch;
 }
 
 .canvas-pieces-list {
@@ -1087,7 +1095,9 @@ dialog.pp-create-dialog.pp-create-dialog--wide {
   gap: 8px;
   background: var(--cream2);
   flex-shrink: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .ctb-group {
@@ -1111,11 +1121,11 @@ dialog.pp-create-dialog.pp-create-dialog--wide {
 }
 
 .canvas-draw {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   background: var(--cream);
   position: relative;
   overflow: hidden;
-  min-height: 320px;
 }
 
 .canvas-grid-bg {
@@ -1132,6 +1142,7 @@ dialog.pp-create-dialog.pp-create-dialog--wide {
   position: absolute;
   inset: 0;
   z-index: 2;
+  pointer-events: none;
 }
 
 .cv-empty-state {
@@ -2009,6 +2020,12 @@ dialog.pp-create-dialog.pp-create-dialog--wide {
   gap: 28px;
 }
 
+button.export-card {
+  font: inherit;
+  width: 100%;
+  text-align: center;
+}
+
 .export-format-row {
   display: flex;
   flex-wrap: wrap;
@@ -2472,14 +2489,12 @@ dialog.pp-create-dialog.pp-create-dialog--wide {
 .lib-page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.lib-stats {
-  font-size: 12px;
-  color: var(--ink3);
-  font-family: var(--font-mono);
-  align-self: center;
+  gap: 16px;
+  max-width: none;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 0 36px;
 }
 
 .lib-section-title {
@@ -2512,8 +2527,9 @@ dialog.pp-create-dialog.pp-create-dialog--wide {
 
 .lib-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 14px;
+  width: 100%;
 }
 
 .lib-grid--muted {
@@ -2598,12 +2614,27 @@ dialog.pp-create-dialog.pp-create-dialog--wide {
   font-family: var(--font-mono);
 }
 
-.lib-empty-saved {
+.lib-empty-saved,
+.lib-panel {
   text-align: center;
-  padding: 48px 20px;
+  padding: 48px 28px;
   background: #fff;
   border: 1px solid var(--bdr);
   border-radius: var(--r3);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lib-panel--center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lib-panel--loading {
+  min-height: min(420px, calc(100vh - 280px));
 }
 
 .lib-empty-title {

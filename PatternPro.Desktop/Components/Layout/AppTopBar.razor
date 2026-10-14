@@ -1,0 +1,114 @@
+@implements IDisposable
+@using PatternPro.Desktop.Auth
+@using PatternPro.Desktop.Helpers
+@using PatternPro.Desktop.Services
+@inject NavigationManager Navigation
+@inject DesktopAuthService Auth
+@inject DesktopShellEvents ShellEvents
+@inject DesktopToastService Toast
+@inject DesktopDataRefreshService DataRefresh
+@inject DesktopCanvasHost CanvasHost
+
+<div class="topbar">
+    <div class="tb-breadcrumb">
+        <span>PatternPro</span><span class="tb-sep">›</span>
+        <span>Patterns</span><span class="tb-sep">›</span>
+        <span>@_pageTitle</span>
+    </div>
+    <TopBarClock />
+
+    <div class="tb-notif" title="Notifications">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6v3l-1.5 2h12l-1.5-2V6C12.5 3.5 10.5 1.5 8 1.5Z" stroke="currentColor" stroke-width="1.3" fill="none"/>
+            <path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <div class="tb-notif-dot"></div>
+    </div>
+
+    <div class="style-switcher @(_lockStyle ? "style-switcher--locked" : "")"
+         title="@(_lockStyle ? "Fit is fixed to this pattern on Canvas / Pieces / Export." : null)">
+        @foreach (var opt in _styleOptions)
+        {
+            <button type="button"
+                    class="style-pill @(_styleKey == opt.Key ? "active" : "")"
+                    disabled="@(_lockStyle && _styleKey != opt.Key)"
+                    @onclick="() => SelectStyle(opt.Key)">@opt.Label</button>
+        }
+    </div>
+
+    <div class="tb-actions">
+        <button type="button" class="btn btn-outline btn-sm" @onclick="RefreshPageAsync" disabled="@_refreshing" title="Reload from database">↻ Refresh</button>
+        <button type="button" class="btn btn-outline btn-sm pp-signout-btn" @onclick="Logout">Sign out</button>
+        <button type="button" class="btn btn-outline btn-sm" @onclick="OnImport">↑ Import</button>
+        <NavLink class="btn btn-outline btn-sm" href="module/library">⊞ Library</NavLink>
+        <button type="button" class="btn btn-gold btn-sm" @onclick="OnNewPattern">＋ New Pattern</button>
+    </div>
+</div>
+
+@code {
+    private static readonly (string Key, string Label)[] _styleOptions =
+    [
+        ("skinny", "Skinny"),
+        ("slim", "Slim"),
+        ("straight", "Straight"),
+        ("bootcut", "Bootcut"),
+        ("wideLeg", "Wide Leg"),
+    ];
+
+    private string _pageTitle = "Dashboard";
+    private string _styleKey = "skinny";
+    private bool _lockStyle;
+    private bool _refreshing;
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        RefreshFromUri();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => RefreshFromUri();
+
+    private void RefreshFromUri()
+    {
+        _pageTitle = DesktopShellNavigation.PageTitle(Navigation);
+        _styleKey = DesktopShellNavigation.StyleFromUri(Navigation);
+        _lockStyle = DesktopShellNavigation.LockStyleSwitcher(Navigation);
+    }
+
+    private void SelectStyle(string key)
+    {
+        if (_lockStyle) return;
+        DesktopShellNavigation.NavigateWithStyle(Navigation, key);
+    }
+
+    private void OnNewPattern() =>
+        DesktopShellNavigation.RequestNewPattern(Navigation, ShellEvents);
+
+    private void OnImport() =>
+        Navigation.NavigateTo(DesktopShellNavigation.HrefWithStyle("module/canvas", _styleKey));
+
+    private async Task RefreshPageAsync()
+    {
+        if (_refreshing) return;
+        _refreshing = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            DesktopShellRefresh.ReloadCurrentRoute(Navigation, DataRefresh, CanvasHost, Toast);
+            await Task.Delay(150);
+        }
+        finally
+        {
+            _refreshing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void Logout()
+    {
+        Auth.SignOut();
+        Navigation.NavigateTo("login", replace: true);
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+}

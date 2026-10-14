@@ -29,6 +29,7 @@ internal static class DesktopServiceRegistration
         builder.Services.AddSingleton<DashboardDataService>();
         builder.Services.AddSingleton<DesktopToastService>();
         builder.Services.AddSingleton<DesktopDataRefreshService>();
+        builder.Services.AddSingleton<DesktopShellEvents>();
 
         builder.Services.AddSingleton<DesktopAuthService>();
         builder.Services.AddSingleton<PatternProAuthStateProvider>();

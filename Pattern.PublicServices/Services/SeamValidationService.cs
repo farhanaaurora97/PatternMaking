@@ -55,9 +55,9 @@ public class SeamValidationService : ISeamValidationService
         var wb = SeamGeometry.FindPiece(pieces, "Waistband");
         if (front is not null && back is not null && wb is not null && front.Points.Count > 0 && back.Points.Count > 0)
         {
-            var waistFront = SeamGeometry.EdgeLengthPx(front, 0);
-            var waistBack = SeamGeometry.EdgeLengthPx(back, 0);
-            var wbLen = SeamGeometry.EdgeLengthPx(wb, 0);
+            var waistFront = SeamGeometry.LegWaistLengthPx(front);
+            var waistBack = SeamGeometry.LegWaistLengthPx(back);
+            var wbLen = SeamGeometry.WaistbandAttachLengthPx(wb);
             var totalWaist = waistFront + waistBack;
             var waistDiffCm = SeamGeometry.ToCm(Math.Abs(totalWaist - wbLen));
             if (waistDiffCm > SeamToleranceCm * 2)

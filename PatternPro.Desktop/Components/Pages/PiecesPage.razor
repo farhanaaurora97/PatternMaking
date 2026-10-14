@@ -456,15 +456,16 @@
             ? _patterns.FirstOrDefault(p => p.Id == _patternId)
             : null;
 
+        var styleDef = PieceService.GetStyleDefinition(_styleKey);
+        _styleLabel = styleDef.Label;
+
         if (_patternId <= 0)
         {
             _cards = [];
             _groups = [];
+            _totalPanels = 0;
             return;
         }
-
-        var styleDef = PieceService.GetStyleDefinition(_styleKey);
-        _styleLabel = styleDef.Label;
 
         var defs = PieceService.GetPieceDefinitions(_patternId, _styleKey);
         _cards = defs.Select((d, i) => new PieceCardViewModel

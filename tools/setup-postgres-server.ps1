@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path $PSScriptRoot -Parent
 
 Write-Host ""
-Write-Host "=== PatternPro — PostgreSQL server setup (PC 1) ===" -ForegroundColor Cyan
+Write-Host "=== PatternPro PostgreSQL server setup (PC 1) ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Local IPv4 addresses (skip loopback)
@@ -21,21 +21,21 @@ $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
     Where-Object { $_.IPAddress -notlike "127.*" -and $_.PrefixOrigin -ne "WellKnown" } |
     Select-Object -ExpandProperty IPAddress -Unique
 
-Write-Host "This PC's IP address(es) — use one as Host on other PCs:" -ForegroundColor Yellow
+Write-Host "This PC IP address(es) - use one as Host on other PCs:" -ForegroundColor Yellow
 if ($ips) { $ips | ForEach-Object { Write-Host "  $_" -ForegroundColor Green } }
-else { Write-Host "  (could not detect — run ipconfig)" -ForegroundColor Red }
+else { Write-Host "  (could not detect - run ipconfig)" -ForegroundColor Red }
 
 Write-Host ""
 Write-Host "1) PostgreSQL config (edit manually, then restart PostgreSQL service):" -ForegroundColor Cyan
 Write-Host "   postgresql.conf:"
-Write-Host '     listen_addresses = *'
+Write-Host ('     listen_addresses = ' + '*')
 Write-Host "     port = $Port"
 Write-Host ""
 Write-Host "   pg_hba.conf (adjust subnet to your office LAN):"
 Write-Host "     host    patternpro    postgres    192.168.1.0/24    scram-sha-256"
 Write-Host ""
 
-Write-Host "2) Windows Firewall — allow inbound TCP $Port ..." -ForegroundColor Cyan
+Write-Host "2) Windows Firewall - allow inbound TCP $Port ..." -ForegroundColor Cyan
 $ruleName = "PatternPro PostgreSQL ($Port)"
 $existing = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
 if ($existing) {

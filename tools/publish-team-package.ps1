@@ -45,5 +45,5 @@ Write-Host ""
 Write-Host "They only need to:" -ForegroundColor Cyan
 Write-Host "  1. Extract ZIP"
 Write-Host "  2. Double-click PatternPro.Desktop.exe (or START-PatternPro.bat)"
-Write-Host "  3. Login: admin / Admin@123"
+Write-Host "  3. Login with credentials from your administrator (not shipped in the ZIP)"
 Write-Host ""

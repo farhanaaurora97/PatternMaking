@@ -12,50 +12,25 @@ public class AdminController(IUserService userService) : Controller
 {
     public IActionResult Index()
     {
-        var users = userService.GetAll()
-            .Select(u => new AdminUserRowViewModel
-            {
-                Id = u.Id,
-                EmployeeId = u.EmployeeId,
-                UserName = u.UserName,
-                DisplayName = u.DisplayName,
-                Role = u.Role,
-                RoleLabel = AppRoles.Label(u.Role),
-                IsActive = u.IsActive,
-                CreatedAt = u.CreatedAt,
-                LastLoginAt = u.LastLoginAt,
-            })
-            .ToList();
-
         SetLayout("Admin", "Admin panel");
-        return View(new AdminUsersViewModel { Users = users });
+        return View(BuildUsersViewModel());
     }
 
     [HttpGet]
-    public IActionResult Create()
-    {
-        SetLayout("Admin", "Admin / New user");
-        return View(new AdminUserFormViewModel());
-    }
+    public IActionResult Create() => RedirectToAction(nameof(Index));
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(AdminUserFormViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            SetLayout("Admin", "Admin / New user");
-            return View(model);
-        }
-
         if (string.IsNullOrWhiteSpace(model.Password))
             ModelState.AddModelError(nameof(model.Password), "Password is required.");
         if (model.Password != model.ConfirmPassword)
             ModelState.AddModelError(nameof(model.ConfirmPassword), "Passwords do not match.");
         if (!ModelState.IsValid)
         {
-            SetLayout("Admin", "Admin / New user");
-            return View(model);
+            SetLayout("Admin", "Admin panel");
+            return View("Index", BuildUsersViewModel(model, showNewUserModal: true));
         }
 
         try
@@ -72,8 +47,8 @@ public class AdminController(IUserService userService) : Controller
         catch (InvalidOperationException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
-            SetLayout("Admin", "Admin / New user");
-            return View(model);
+            SetLayout("Admin", "Admin panel");
+            return View("Index", BuildUsersViewModel(model, showNewUserModal: true));
         }
     }
 
@@ -202,6 +177,31 @@ public class AdminController(IUserService userService) : Controller
     {
         var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(raw, out var id) ? id : 0;
+    }
+
+    private AdminUsersViewModel BuildUsersViewModel(AdminUserFormViewModel? newUser = null, bool showNewUserModal = false)
+    {
+        var users = userService.GetAll()
+            .Select(u => new AdminUserRowViewModel
+            {
+                Id = u.Id,
+                EmployeeId = u.EmployeeId,
+                UserName = u.UserName,
+                DisplayName = u.DisplayName,
+                Role = u.Role,
+                RoleLabel = AppRoles.Label(u.Role),
+                IsActive = u.IsActive,
+                CreatedAt = u.CreatedAt,
+                LastLoginAt = u.LastLoginAt,
+            })
+            .ToList();
+
+        return new AdminUsersViewModel
+        {
+            Users = users,
+            NewUser = newUser ?? new AdminUserFormViewModel(),
+            ShowNewUserModal = showNewUserModal,
+        };
     }
 
     private void SetLayout(string controller, string title) =>

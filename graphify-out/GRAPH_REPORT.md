@@ -1,16 +1,16 @@
-# Graph Report - PatternMaking  (2026-10-04)
+# Graph Report - PatternMaking  (2026-10-05)
 
 ## Corpus Check
-- 299 files · ~124,362 words
+- 299 files · ~125,681 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 7630 nodes · 9182 edges · 838 communities (532 shown, 306 thin omitted)
+- 7652 nodes · 9216 edges · 815 communities (510 shown, 305 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9c4d4ed6`
+- Built from commit: `d2689e8c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -677,34 +677,17 @@
 - [[_COMMUNITY_Community 722|Community 722]]
 - [[_COMMUNITY_Community 723|Community 723]]
 - [[_COMMUNITY_Community 724|Community 724]]
-- [[_COMMUNITY_Community 725|Community 725]]
-- [[_COMMUNITY_Community 726|Community 726]]
 - [[_COMMUNITY_Community 727|Community 727]]
-- [[_COMMUNITY_Community 728|Community 728]]
 - [[_COMMUNITY_Community 729|Community 729]]
 - [[_COMMUNITY_Community 730|Community 730]]
 - [[_COMMUNITY_Community 731|Community 731]]
-- [[_COMMUNITY_Community 734|Community 734]]
-- [[_COMMUNITY_Community 735|Community 735]]
-- [[_COMMUNITY_Community 736|Community 736]]
-- [[_COMMUNITY_Community 737|Community 737]]
-- [[_COMMUNITY_Community 738|Community 738]]
 - [[_COMMUNITY_Community 739|Community 739]]
 - [[_COMMUNITY_Community 740|Community 740]]
 - [[_COMMUNITY_Community 741|Community 741]]
 - [[_COMMUNITY_Community 742|Community 742]]
 - [[_COMMUNITY_Community 744|Community 744]]
-- [[_COMMUNITY_Community 745|Community 745]]
 - [[_COMMUNITY_Community 746|Community 746]]
 - [[_COMMUNITY_Community 747|Community 747]]
-- [[_COMMUNITY_Community 748|Community 748]]
-- [[_COMMUNITY_Community 749|Community 749]]
-- [[_COMMUNITY_Community 750|Community 750]]
-- [[_COMMUNITY_Community 751|Community 751]]
-- [[_COMMUNITY_Community 752|Community 752]]
-- [[_COMMUNITY_Community 753|Community 753]]
-- [[_COMMUNITY_Community 754|Community 754]]
-- [[_COMMUNITY_Community 755|Community 755]]
 - [[_COMMUNITY_Community 760|Community 760]]
 - [[_COMMUNITY_Community 761|Community 761]]
 - [[_COMMUNITY_Community 762|Community 762]]
@@ -714,10 +697,8 @@
 - [[_COMMUNITY_Community 766|Community 766]]
 - [[_COMMUNITY_Community 767|Community 767]]
 - [[_COMMUNITY_Community 768|Community 768]]
-- [[_COMMUNITY_Community 769|Community 769]]
 - [[_COMMUNITY_Community 770|Community 770]]
 - [[_COMMUNITY_Community 771|Community 771]]
-- [[_COMMUNITY_Community 772|Community 772]]
 - [[_COMMUNITY_Community 773|Community 773]]
 - [[_COMMUNITY_Community 774|Community 774]]
 - [[_COMMUNITY_Community 775|Community 775]]
@@ -728,7 +709,6 @@
 - [[_COMMUNITY_Community 780|Community 780]]
 - [[_COMMUNITY_Community 781|Community 781]]
 - [[_COMMUNITY_Community 782|Community 782]]
-- [[_COMMUNITY_Community 783|Community 783]]
 - [[_COMMUNITY_Community 784|Community 784]]
 - [[_COMMUNITY_Community 785|Community 785]]
 - [[_COMMUNITY_Community 786|Community 786]]
@@ -737,17 +717,14 @@
 - [[_COMMUNITY_Community 789|Community 789]]
 - [[_COMMUNITY_Community 790|Community 790]]
 - [[_COMMUNITY_Community 791|Community 791]]
-- [[_COMMUNITY_Community 792|Community 792]]
 - [[_COMMUNITY_Community 793|Community 793]]
 - [[_COMMUNITY_Community 794|Community 794]]
-- [[_COMMUNITY_Community 795|Community 795]]
 - [[_COMMUNITY_Community 796|Community 796]]
 - [[_COMMUNITY_Community 797|Community 797]]
 - [[_COMMUNITY_Community 798|Community 798]]
 - [[_COMMUNITY_Community 799|Community 799]]
 - [[_COMMUNITY_Community 800|Community 800]]
 - [[_COMMUNITY_Community 801|Community 801]]
-- [[_COMMUNITY_Community 802|Community 802]]
 - [[_COMMUNITY_Community 803|Community 803]]
 - [[_COMMUNITY_Community 804|Community 804]]
 - [[_COMMUNITY_Community 805|Community 805]]
@@ -807,7 +784,7 @@
 - `StyleOptionCatalog` --references--> `string`  [EXTRACTED]
   Pattern.Core.Model/StyleOptionCatalog.cs → PatternPro.Web.Model/StyleSheetViewModel.cs
 
-## Communities (838 total, 306 thin omitted)
+## Communities (815 total, 305 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.01
@@ -870,8 +847,8 @@ Cohesion: 0.07
 Nodes (45): frameworks, restore, version, frameworks, restore, version, frameworks, restore (+37 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.06
-Nodes (45): Microsoft.Win32.Primitives, System.AppContext, System.Collections, System.Collections.Concurrent, System.Console, System.Diagnostics.Debug, System.Diagnostics.Tools, System.Diagnostics.Tracing (+37 more)
+Cohesion: 0.05
+Nodes (47): Microsoft.Win32.Primitives, System.AppContext, System.Collections, System.Collections.Concurrent, System.Console, System.Diagnostics.Debug, System.Diagnostics.Tools, System.Diagnostics.Tracing (+39 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.07
@@ -882,8 +859,8 @@ Cohesion: 0.05
 Nodes (40): lib/netcoreapp3.1/Microsoft.CodeAnalysis.dll, Microsoft.CodeAnalysis.Analyzers, System.Collections.Immutable, System.Reflection.Metadata, System.Runtime.CompilerServices.Unsafe, System.Text.Encoding.CodePages, locale, locale (+32 more)
 
 ### Community 18 - "Community 18"
-Cohesion: 0.05
-Nodes (40): lib/netcoreapp3.1/Microsoft.CodeAnalysis.dll, Microsoft.CodeAnalysis.Analyzers, System.Collections.Immutable, System.Reflection.Metadata, System.Runtime.CompilerServices.Unsafe, System.Text.Encoding.CodePages, locale, locale (+32 more)
+Cohesion: 0.07
+Nodes (27): locale, locale, locale, locale, locale, locale, locale, locale (+19 more)
 
 ### Community 19 - "Community 19"
 Cohesion: 0.06
@@ -914,8 +891,8 @@ Cohesion: 0.07
 Nodes (33): Microsoft.Win32.Primitives, System.AppContext, System.Collections.Concurrent, System.Console, System.Diagnostics.Tools, System.Globalization.Calendars, System.IO.Compression.ZipFile, System.Linq (+25 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.07
-Nodes (32): lib/netstandard1.0/_._, runtime.osx.10.10-x64.runtime.native.System.Security.Cryptography.Apple, compile, runtime, type, compile, runtime, type (+24 more)
+Cohesion: 0.08
+Nodes (30): lib/netstandard1.0/_._, runtime.osx.10.10-x64.runtime.native.System.Security.Cryptography.Apple, compile, runtime, type, compile, runtime, type (+22 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.09
@@ -970,16 +947,16 @@ Cohesion: 0.08
 Nodes (25): Microsoft.CodeCoverage, Microsoft.TestPlatform.TestHost, runtime.osx.10.10-x64.runtime.native.System.Security.Cryptography.Apple, dependencies, coverlet.collector/6.0.0, Microsoft.NET.Test.Sdk/17.8.0, Microsoft.NETCore.Platforms/1.1.0, Microsoft.NETCore.Targets/1.1.0 (+17 more)
 
 ### Community 40 - "Community 40"
-Cohesion: 0.08
-Nodes (25): locale, locale, locale, locale, locale, locale, locale, locale (+17 more)
+Cohesion: 0.29
+Nodes (7): locale, locale, locale, resource, lib/netcoreapp3.1/cs/Microsoft.TestPlatform.CoreUtilities.resources.dll, lib/netcoreapp3.1/cs/Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll, lib/netcoreapp3.1/tr/Microsoft.TestPlatform.CoreUtilities.resources.dll
 
 ### Community 41 - "Community 41"
 Cohesion: 0.09
 Nodes (20): patternGeometry, 0, 1, 16, 19, 2, 20, 21 (+12 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.17
-Nodes (12): assemblyVersion, fileVersion, assemblyVersion, fileVersion, runtime, runtime, Microsoft.EntityFrameworkCore.Abstractions/8.0.11, Microsoft.EntityFrameworkCore.Analyzers/8.0.11 (+4 more)
+Cohesion: 0.09
+Nodes (22): assemblyVersion, fileVersion, assemblyVersion, fileVersion, assemblyVersion, fileVersion, runtime, runtime (+14 more)
 
 ### Community 43 - "Community 43"
 Cohesion: 0.3
@@ -990,8 +967,8 @@ Cohesion: 0.13
 Nodes (4): List, object, DesktopToastService, GradingService
 
 ### Community 45 - "Community 45"
-Cohesion: 0.18
-Nodes (12): Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.Options, assemblyVersion, fileVersion, dependencies, runtime (+4 more)
+Cohesion: 0.1
+Nodes (22): Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.Options, assemblyVersion, fileVersion, assemblyVersion, fileVersion (+14 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.16
@@ -1010,8 +987,8 @@ Cohesion: 0.1
 Nodes (20): Microsoft.TestPlatform.ObjectModel, Newtonsoft.Json, assemblyVersion, fileVersion, assemblyVersion, fileVersion, assemblyVersion, fileVersion (+12 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.15
-Nodes (13): Microsoft.Extensions.Primitives, assemblyVersion, fileVersion, assemblyVersion, fileVersion, dependencies, runtime, dependencies (+5 more)
+Cohesion: 0.11
+Nodes (19): Microsoft.Extensions.Primitives, assemblyVersion, fileVersion, assemblyVersion, fileVersion, assemblyVersion, fileVersion, dependencies (+11 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.05
@@ -1026,24 +1003,24 @@ Cohesion: 0.11
 Nodes (19): locale, locale, locale, locale, locale, locale, locale, locale (+11 more)
 
 ### Community 55 - "Community 55"
-Cohesion: 0.12
-Nodes (18): Humanizer.Core, Microsoft.Bcl.AsyncInterfaces, Microsoft.CodeAnalysis.Common, Microsoft.CodeAnalysis.CSharp, Microsoft.CodeAnalysis.Workspaces.Common, System.Composition, System.IO.Pipelines, System.Threading.Channels (+10 more)
+Cohesion: 0.09
+Nodes (25): lib/netstandard2.0/Microsoft.CodeAnalysis.Razor.dll, Humanizer.Core, Microsoft.Bcl.AsyncInterfaces, Microsoft.CodeAnalysis.Common, Microsoft.CodeAnalysis.CSharp, Microsoft.CodeAnalysis.Workspaces.Common, System.Composition, System.IO.Pipelines (+17 more)
 
 ### Community 56 - "Community 56"
 Cohesion: 0.12
 Nodes (18): Pattern.Core.Model, Pattern.PublicServices, assemblyVersion, fileVersion, Pattern.Web.Model/1.0.0, PatternPro.Core/1.0.0, SharpZipLib/1.4.2, dependencies (+10 more)
 
 ### Community 57 - "Community 57"
-Cohesion: 0.12
-Nodes (16): Microsoft.EntityFrameworkCore, Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Relational, Npgsql, assemblyVersion, fileVersion, assemblyVersion, fileVersion (+8 more)
+Cohesion: 0.11
+Nodes (18): Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.EntityFrameworkCore.Relational, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Logging, Npgsql, assemblyVersion, fileVersion (+10 more)
 
 ### Community 58 - "Community 58"
-Cohesion: 0.14
-Nodes (18): ref/netstandard1.3/Microsoft.Win32.Primitives.dll, ref/netstandard1.3/System.Collections.dll, Microsoft.NETCore.Platforms, Microsoft.NETCore.Targets, System.Runtime, compile, dependencies, type (+10 more)
+Cohesion: 0.13
+Nodes (19): ref/netstandard1.3/Microsoft.Win32.Primitives.dll, ref/netstandard1.3/System.Collections.dll, Microsoft.NETCore.Platforms, Microsoft.NETCore.Targets, compile, dependencies, type, Microsoft.Win32.Primitives/4.3.0 (+11 more)
 
 ### Community 59 - "Community 59"
-Cohesion: 0.09
-Nodes (16): addMpOverlay, addSizeOverlay, btnAddMp, btnAddSize, btnCancelMp, btnCancelSize, btnConfirmMp, btnConfirmSize (+8 more)
+Cohesion: 0.06
+Nodes (31): addMpOverlay, addSizeOverlay, baseSize, btnAddMp, btnAddSize, btnCancelMp, btnCancelSize, btnConfirmMp (+23 more)
 
 ### Community 60 - "Community 60"
 Cohesion: 0.32
@@ -1082,8 +1059,8 @@ Cohesion: 0.16
 Nodes (16): System.Buffers, System.IO, System.IO.Compression, System.IO.FileSystem, System.IO.FileSystem.Primitives, System.Runtime.Handles, System.Text.Encoding, System.Threading.Tasks (+8 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.12
-Nodes (15): compilationOptions, allowUnsafe, debugType, defines, emitEntryPoint, keyFile, languageVersion, optimize (+7 more)
+Cohesion: 0.18
+Nodes (11): compilationOptions, allowUnsafe, debugType, defines, emitEntryPoint, keyFile, languageVersion, optimize (+3 more)
 
 ### Community 74 - "Community 74"
 Cohesion: 0.15
@@ -1094,8 +1071,8 @@ Cohesion: 0.14
 Nodes (15): Microsoft.EntityFrameworkCore, Microsoft.Extensions.Configuration.Abstractions, Npgsql.EntityFrameworkCore.PostgreSQL, assemblyVersion, fileVersion, dependencies, runtime, Microsoft.EntityFrameworkCore.Relational/8.0.11 (+7 more)
 
 ### Community 76 - "Community 76"
-Cohesion: 0.29
-Nodes (7): dependencies, runtime, Npgsql, PatternPro.Core, PatternPro.DataAccess, DbSnapshot/1.0.0, DbSnapshot.dll
+Cohesion: 0.13
+Nodes (15): dependencies, runtime, Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Relational, Npgsql, PatternPro.Core, PatternPro.DataAccess, assemblyVersion (+7 more)
 
 ### Community 77 - "Community 77"
 Cohesion: 0.13
@@ -1131,11 +1108,11 @@ Nodes (14): NuGet.Frameworks, System.Reflection.Metadata, assemblyVersion, fileV
 
 ### Community 85 - "Community 85"
 Cohesion: 0.15
-Nodes (14): buildTransitive/net6.0/Microsoft.Extensions.Options.targets, lib/net8.0/Microsoft.Extensions.Options.dll, related, Microsoft.Extensions.Options/8.0.2, build, compile, dependencies, files (+6 more)
+Nodes (13): lib/netcoreapp3.1/Microsoft.CodeAnalysis.dll, Microsoft.CodeAnalysis.Analyzers, System.Collections.Immutable, System.Reflection.Metadata, System.Runtime.CompilerServices.Unsafe, System.Text.Encoding.CodePages, assemblyVersion, fileVersion (+5 more)
 
 ### Community 86 - "Community 86"
-Cohesion: 0.09
-Nodes (29): Microsoft.EntityFrameworkCore, Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.Configuration.Json, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.DependencyInjection.Abstractions, Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.Options, Npgsql.EntityFrameworkCore.PostgreSQL (+21 more)
+Cohesion: 0.06
+Nodes (40): Microsoft.EntityFrameworkCore, Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.EntityFrameworkCore.Relational, Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Configuration.Json, Microsoft.Extensions.DependencyInjection (+32 more)
 
 ### Community 89 - "Community 89"
 Cohesion: 0.15
@@ -1167,15 +1144,15 @@ Nodes (13): libraries, Pattern.Core.Model/1.0.0, PatternPro.Core/1.0.0, PatternP
 
 ### Community 96 - "Community 96"
 Cohesion: 0.15
-Nodes (13): locale, locale, locale, locale, locale, locale, resources, lib/netcoreapp3.1/cs/Microsoft.TestPlatform.CoreUtilities.resources.dll (+5 more)
+Nodes (13): locale, locale, locale, locale, locale, locale, resources, lib/netcoreapp3.1/cs/Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll (+5 more)
 
 ### Community 97 - "Community 97"
 Cohesion: 0.18
 Nodes (13): Humanizer.Core, Microsoft.Bcl.AsyncInterfaces, Microsoft.CodeAnalysis.Common, Microsoft.CodeAnalysis.CSharp, Microsoft.CodeAnalysis.Workspaces.Common, System.Composition, System.IO.Pipelines, System.Threading.Channels (+5 more)
 
 ### Community 98 - "Community 98"
-Cohesion: 0.29
-Nodes (7): lib/netstandard2.0/Microsoft.AspNetCore.Mvc.Razor.Extensions.dll, assemblyVersion, fileVersion, compile, runtime, Microsoft.AspNetCore.Mvc.Razor.Extensions/6.0.0, lib/netstandard2.0/Microsoft.AspNetCore.Mvc.Razor.Extensions.dll
+Cohesion: 0.15
+Nodes (13): lib/netstandard2.0/Microsoft.AspNetCore.Mvc.Razor.Extensions.dll, Microsoft.AspNetCore.Mvc.Razor.Extensions, Microsoft.AspNetCore.Razor.Language, Microsoft.CodeAnalysis.Razor, Microsoft.Extensions.DependencyModel, assemblyVersion, fileVersion, compile (+5 more)
 
 ### Community 99 - "Community 99"
 Cohesion: 0.17
@@ -1202,8 +1179,8 @@ Cohesion: 0.17
 Nodes (12): SharpZipLib, SixLabors.Fonts, SixLabors.ImageSharp, locale, assemblyVersion, fileVersion, PdfSharpCore/1.3.67, dependencies (+4 more)
 
 ### Community 105 - "Community 105"
-Cohesion: 0.12
-Nodes (17): assemblyVersion, fileVersion, assemblyVersion, fileVersion, runtime, Microsoft.Bcl.AsyncInterfaces/6.0.0, Microsoft.CodeAnalysis.Analyzers/3.3.3, PatternPro.Business/1.0.0 (+9 more)
+Cohesion: 0.07
+Nodes (27): runtime, assemblyVersion, fileVersion, assemblyVersion, fileVersion, assemblyVersion, fileVersion, assemblyVersion (+19 more)
 
 ### Community 106 - "Community 106"
 Cohesion: 0.17
@@ -1246,8 +1223,8 @@ Cohesion: 0.17
 Nodes (12): SharpZipLib, SixLabors.Fonts, SixLabors.ImageSharp, locale, assemblyVersion, fileVersion, PdfSharpCore/1.3.67, dependencies (+4 more)
 
 ### Community 117 - "Community 117"
-Cohesion: 0.17
-Nodes (12): runtime, assemblyVersion, fileVersion, assemblyVersion, fileVersion, runtime, Humanizer.Core/2.14.1, Microsoft.Bcl.AsyncInterfaces/6.0.0 (+4 more)
+Cohesion: 0.12
+Nodes (16): runtime, assemblyVersion, fileVersion, assemblyVersion, fileVersion, runtime, Humanizer.Core/2.14.1, Microsoft.CodeAnalysis.Analyzers/3.3.3 (+8 more)
 
 ### Community 118 - "Community 118"
 Cohesion: 0.17
@@ -1258,8 +1235,8 @@ Cohesion: 0.17
 Nodes (12): css, patternpro-shell.css, site.css, Asset, Children, Patterns, Asset, Children (+4 more)
 
 ### Community 120 - "Community 120"
-Cohesion: 0.2
-Nodes (12): lib/netcoreapp3.1/testhost.dll, related, runtime, runtime, lib/netcoreapp3.1/Microsoft.TestPlatform.CommunicationUtilities.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.CoreUtilities.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.CrossPlatEngine.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.PlatformAbstractions.dll (+4 more)
+Cohesion: 0.16
+Nodes (14): NuGet.Frameworks, System.Reflection.Metadata, dependencies, runtime, type, runtime, Microsoft.TestPlatform.ObjectModel/17.8.0, lib/netcoreapp3.1/Microsoft.TestPlatform.CommunicationUtilities.dll (+6 more)
 
 ### Community 121 - "Community 121"
 Cohesion: 0.18
@@ -1270,8 +1247,8 @@ Cohesion: 0.18
 Nodes (12): lib/net8.0/Microsoft.Extensions.Configuration.Json.dll, related, Microsoft.Extensions.Configuration.Json/8.0.1, build, compile, files, path, runtime (+4 more)
 
 ### Community 123 - "Community 123"
-Cohesion: 0.1
-Nodes (21): buildTransitive/net6.0/_._, lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll, lib/net8.0/Microsoft.Extensions.DependencyModel.dll, related, related, Microsoft.Extensions.DependencyInjection.Abstractions/8.0.2, build, compile (+13 more)
+Cohesion: 0.18
+Nodes (12): lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll, related, Microsoft.Extensions.DependencyInjection.Abstractions/8.0.2, build, compile, files, path, runtime (+4 more)
 
 ### Community 124 - "Community 124"
 Cohesion: 0.18
@@ -1311,7 +1288,7 @@ Nodes (12): Humanizer.Core, Microsoft.Bcl.AsyncInterfaces, Microsoft.CodeAnalysi
 
 ### Community 135 - "Community 135"
 Cohesion: 0.22
-Nodes (11): ContentRootIndex, SubPath, Asset, Asset, Children, Patterns, canvas.js, size-chart.js (+3 more)
+Nodes (11): ContentRootIndex, SubPath, Asset, dashboard-charts.js, size-chart.js, Asset, Children, Patterns (+3 more)
 
 ### Community 136 - "Community 136"
 Cohesion: 0.22
@@ -1323,7 +1300,7 @@ Nodes (9): Assets, BasePath, DiscoveryPatterns, Hash, ManifestType, Mode, Refere
 
 ### Community 138 - "Community 138"
 Cohesion: 0.22
-Nodes (11): ContentRootIndex, SubPath, Asset, dashboard-charts.js, size-chart.js, Asset, Children, Patterns (+3 more)
+Nodes (11): ContentRootIndex, SubPath, Asset, Asset, Children, Patterns, canvas.js, size-chart.js (+3 more)
 
 ### Community 139 - "Community 139"
 Cohesion: 0.18
@@ -1350,24 +1327,24 @@ Cohesion: 0.05
 Nodes (10): CanvasUnits, double, ISeamValidationService, AamaDxfExporter, ExportAnnotations, HpglHelpers, NotchGrainResolver, PatternAutoRefineService (+2 more)
 
 ### Community 145 - "Community 145"
-Cohesion: 0.18
-Nodes (11): bin/placeholder/PatternPro.Core.dll, PatternPro.Core/1.0.0, PatternPro.Core/1.0.0, compile, dependencies, framework, msbuildProject, path (+3 more)
+Cohesion: 0.2
+Nodes (10): bin/placeholder/PatternPro.Core.dll, PatternPro.Core/1.0.0, PatternPro.Core/1.0.0, compile, framework, msbuildProject, path, runtime (+2 more)
 
 ### Community 146 - "Community 146"
 Cohesion: 0.2
 Nodes (9): Auth, SeedAdminPassword, SeedAdminUserName, ConnectionStrings, Postgres, Logging, LogLevel, Default (+1 more)
 
 ### Community 147 - "Community 147"
-Cohesion: 0.18
-Nodes (11): locale, locale, locale, locale, locale, resource, lib/netcoreapp3.1/cs/Microsoft.TestPlatform.CommunicationUtilities.resources.dll, lib/netcoreapp3.1/it/Microsoft.TestPlatform.CommunicationUtilities.resources.dll (+3 more)
+Cohesion: 0.07
+Nodes (27): locale, locale, locale, locale, locale, locale, locale, locale (+19 more)
 
 ### Community 148 - "Community 148"
 Cohesion: 0.18
 Nodes (11): runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl, runtime.fedora.23-x64.runtime.native.System.Security.Cryptography.OpenSsl, runtime.fedora.24-x64.runtime.native.System.Security.Cryptography.OpenSsl, runtime.opensuse.13.2-x64.runtime.native.System.Security.Cryptography.OpenSsl, runtime.opensuse.42.1-x64.runtime.native.System.Security.Cryptography.OpenSsl, runtime.osx.10.10-x64.runtime.native.System.Security.Cryptography.OpenSsl, runtime.rhel.7-x64.runtime.native.System.Security.Cryptography.OpenSsl, runtime.ubuntu.14.04-x64.runtime.native.System.Security.Cryptography.OpenSsl (+3 more)
 
 ### Community 149 - "Community 149"
-Cohesion: 0.18
-Nodes (11): compilationOptions, allowUnsafe, debugType, defines, emitEntryPoint, keyFile, languageVersion, optimize (+3 more)
+Cohesion: 0.13
+Nodes (15): compilationOptions, allowUnsafe, debugType, defines, emitEntryPoint, keyFile, languageVersion, optimize (+7 more)
 
 ### Community 150 - "Community 150"
 Cohesion: 0.16
@@ -1418,8 +1395,8 @@ Cohesion: 0.28
 Nodes (7): AllowedHosts, ConnectionStrings, Postgres, Logging, LogLevel, Default, Microsoft.AspNetCore
 
 ### Community 164 - "Community 164"
-Cohesion: 0.12
-Nodes (17): Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.EntityFrameworkCore.Relational, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Logging, assemblyVersion, fileVersion, assemblyVersion (+9 more)
+Cohesion: 0.22
+Nodes (9): Microsoft.EntityFrameworkCore.Analyzers, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Logging, assemblyVersion, fileVersion, dependencies, runtime, Microsoft.EntityFrameworkCore/8.0.11 (+1 more)
 
 ### Community 165 - "Community 165"
 Cohesion: 0.22
@@ -1434,8 +1411,8 @@ Cohesion: 0.1
 Nodes (19): 1. Publish the app, 2. PostgreSQL (recommended), 3. Configuration (secrets on server), 4. Run on Windows (Kestrel service), 5. Reverse proxy (HTTPS), 6. Post-deploy verification, 7. Local dev (unchanged), code:powershell (cd E:\Code\PatternMaking) (+11 more)
 
 ### Community 168 - "Community 168"
-Cohesion: 0.4
-Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.EntityFrameworkCore/8.0.11, lib/net8.0/Microsoft.EntityFrameworkCore.dll
+Cohesion: 0.29
+Nodes (7): Pattern.Core.Model, PatternPro.Core/1.0.0, dependencies, runtime, assemblyVersion, fileVersion, PatternPro.Core.dll
 
 ### Community 169 - "Community 169"
 Cohesion: 0.22
@@ -1446,8 +1423,8 @@ Cohesion: 0.22
 Nodes (8): js, ContentRoots, Asset, Patterns, Root, Asset, Children, Patterns
 
 ### Community 171 - "Community 171"
-Cohesion: 0.28
-Nodes (9): lib/netcoreapp3.1/Microsoft.TestPlatform.CommunicationUtilities.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.CoreUtilities.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.CrossPlatEngine.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.PlatformAbstractions.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.Utilities.dll, lib/netcoreapp3.1/Microsoft.VisualStudio.TestPlatform.Common.dll, lib/netcoreapp3.1/Microsoft.VisualStudio.TestPlatform.ObjectModel.dll, compile (+1 more)
+Cohesion: 0.2
+Nodes (12): lib/netcoreapp3.1/Microsoft.TestPlatform.CommunicationUtilities.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.CoreUtilities.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.CrossPlatEngine.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.PlatformAbstractions.dll, lib/netcoreapp3.1/Microsoft.TestPlatform.Utilities.dll, lib/netcoreapp3.1/Microsoft.VisualStudio.TestPlatform.Common.dll, lib/netcoreapp3.1/Microsoft.VisualStudio.TestPlatform.ObjectModel.dll, lib/netcoreapp3.1/testhost.dll (+4 more)
 
 ### Community 172 - "Community 172"
 Cohesion: 0.06
@@ -1466,8 +1443,8 @@ Cohesion: 0.25
 Nodes (9): compile, dependencies, runtime, type, lib/net6.0/Castle.Core.dll, System.Diagnostics.EventLog, related, Castle.Core/5.1.1 (+1 more)
 
 ### Community 178 - "Community 178"
-Cohesion: 0.22
-Nodes (9): libraries, Pattern.Core.Model/1.0.0, Pattern.Web/1.0.0, serviceable, sha512, type, serviceable, sha512 (+1 more)
+Cohesion: 0.05
+Nodes (37): libraries, Pattern.Core.Model/1.0.0, Pattern.PublicServices/1.0.0, Pattern.Web/1.0.0, Pattern.Web.Model/1.0.0, PatternPro.Business/1.0.0, PatternPro.Core/1.0.0, SixLabors.Fonts/1.0.0-beta17 (+29 more)
 
 ### Community 179 - "Community 179"
 Cohesion: 0.2
@@ -1522,8 +1499,8 @@ Cohesion: 0.25
 Nodes (8): lib/net6.0/Moq.dll, Castle.Core, compile, dependencies, runtime, type, Moq/4.20.72, lib/net6.0/Moq.dll
 
 ### Community 194 - "Community 194"
-Cohesion: 0.25
-Nodes (8): ref/netstandard1.6/System.AppContext.dll, System.AppContext/4.3.0, related, lib/netstandard1.6/System.AppContext.dll, compile, dependencies, runtime, type
+Cohesion: 0.29
+Nodes (7): ref/netstandard1.6/System.AppContext.dll, System.AppContext/4.3.0, related, lib/netstandard1.6/System.AppContext.dll, compile, runtime, type
 
 ### Community 196 - "Community 196"
 Cohesion: 0.29
@@ -1554,16 +1531,16 @@ Cohesion: 0.29
 Nodes (7): lib/netstandard2.0/Microsoft.AspNetCore.Razor.Language.dll, assemblyVersion, fileVersion, compile, runtime, Microsoft.AspNetCore.Razor.Language/6.0.0, lib/netstandard2.0/Microsoft.AspNetCore.Razor.Language.dll
 
 ### Community 205 - "Community 205"
-Cohesion: 0.18
-Nodes (12): lib/net8.0/Microsoft.Extensions.FileSystemGlobbing.dll, related, Microsoft.Extensions.FileSystemGlobbing/8.0.0, build, compile, files, path, runtime (+4 more)
+Cohesion: 0.1
+Nodes (21): buildTransitive/net6.0/_._, lib/net8.0/Microsoft.Extensions.DependencyModel.dll, lib/net8.0/Microsoft.Extensions.FileSystemGlobbing.dll, related, related, Microsoft.Extensions.FileSystemGlobbing/8.0.0, build, compile (+13 more)
 
 ### Community 206 - "Community 206"
-Cohesion: 0.13
-Nodes (17): Pattern.Core.Model, Pattern.PublicServices, PatternPro.Core, PdfSharpCore, Pattern.PublicServices/1.0.0, Pattern.Web.Model/1.0.0, dependencies, runtime (+9 more)
+Cohesion: 0.08
+Nodes (28): Pattern.Core.Model, Pattern.PublicServices, PatternPro.Core, PdfSharpCore, Pattern.PublicServices/1.0.0, Pattern.Web.Model/1.0.0, PatternPro.Business/1.0.0, PatternPro.Core/1.0.0 (+20 more)
 
 ### Community 208 - "Community 208"
-Cohesion: 0.1
-Nodes (21): lib/net8.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll, Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.EntityFrameworkCore.Relational, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Logging, Npgsql, related (+13 more)
+Cohesion: 0.2
+Nodes (11): lib/net8.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll, related, Npgsql.EntityFrameworkCore.PostgreSQL/8.0.11, Npgsql.EntityFrameworkCore.PostgreSQL/8.0.11, compile, files, path, runtime (+3 more)
 
 ### Community 209 - "Community 209"
 Cohesion: 0.07
@@ -1586,8 +1563,8 @@ Cohesion: 0.29
 Nodes (7): lib/netstandard2.0/Microsoft.AspNetCore.Razor.Language.dll, assemblyVersion, fileVersion, compile, runtime, Microsoft.AspNetCore.Razor.Language/6.0.0, lib/netstandard2.0/Microsoft.AspNetCore.Razor.Language.dll
 
 ### Community 214 - "Community 214"
-Cohesion: 0.15
-Nodes (13): lib/net8.0/Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation.dll, Microsoft.AspNetCore.Mvc.Razor.Extensions, Microsoft.AspNetCore.Razor.Language, Microsoft.CodeAnalysis.Razor, Microsoft.Extensions.DependencyModel, assemblyVersion, fileVersion, dependencies (+5 more)
+Cohesion: 0.29
+Nodes (7): lib/net8.0/Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation.dll, assemblyVersion, fileVersion, compile, runtime, Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation/8.0.11, lib/net8.0/Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation.dll
 
 ### Community 215 - "Community 215"
 Cohesion: 0.33
@@ -1866,8 +1843,8 @@ Cohesion: 0.33
 Nodes (6): Microsoft.Extensions.Configuration.Json, PatternPro.DataAccess, PatternPro.DbTool/1.0.0, dependencies, runtime, PatternPro.DbTool.dll
 
 ### Community 287 - "Community 287"
-Cohesion: 0.15
-Nodes (13): assemblyVersion, fileVersion, assemblyVersion, fileVersion, dependencies, runtime, runtime, Microsoft.EntityFrameworkCore.Analyzers/8.0.11 (+5 more)
+Cohesion: 0.33
+Nodes (6): assemblyVersion, fileVersion, dependencies, runtime, Microsoft.Extensions.Caching.Abstractions/8.0.0, lib/net8.0/Microsoft.Extensions.Caching.Abstractions.dll
 
 ### Community 288 - "Community 288"
 Cohesion: 0.2
@@ -1966,8 +1943,8 @@ Cohesion: 0.33
 Nodes (6): SharpZipLib/1.4.2, hashPath, path, serviceable, sha512, type
 
 ### Community 313 - "Community 313"
-Cohesion: 0.18
-Nodes (10): compilationOptions, libraries, Pattern.Core.Model/1.0.0, serviceable, sha512, type, runtimeTarget, name (+2 more)
+Cohesion: 0.33
+Nodes (5): compilationOptions, runtimeTarget, name, signature, targets
 
 ### Community 314 - "Community 314"
 Cohesion: 0.33
@@ -2010,12 +1987,12 @@ Cohesion: 0.11
 Nodes (8): IBlockGeneratorService, IGradingService, IPatternService, IPieceService, ISizeChartService, FakeBlockGenerator, PatternAutoRefineServiceTests, DesktopDataRefreshService
 
 ### Community 325 - "Community 325"
-Cohesion: 0.09
-Nodes (26): lib/net8.0/Microsoft.Extensions.Configuration.dll, Microsoft.Extensions.Configuration, Microsoft.Extensions.Configuration.Abstractions, Microsoft.Extensions.Configuration.FileExtensions, Microsoft.Extensions.FileProviders.Abstractions, Microsoft.Extensions.FileProviders.Physical, Microsoft.Extensions.FileSystemGlobbing, Microsoft.Extensions.Primitives (+18 more)
+Cohesion: 0.06
+Nodes (40): buildTransitive/net6.0/Microsoft.Extensions.Options.targets, lib/net8.0/Microsoft.Extensions.Configuration.dll, lib/net8.0/Microsoft.Extensions.Options.dll, Microsoft.Extensions.Configuration, Microsoft.Extensions.Configuration.Abstractions, Microsoft.Extensions.Configuration.FileExtensions, Microsoft.Extensions.FileProviders.Abstractions, Microsoft.Extensions.FileProviders.Physical (+32 more)
 
 ### Community 326 - "Community 326"
-Cohesion: 0.15
-Nodes (13): Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.EntityFrameworkCore.Relational, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Logging, Npgsql, assemblyVersion, fileVersion (+5 more)
+Cohesion: 0.11
+Nodes (18): Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.EntityFrameworkCore.Relational, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Logging, Npgsql, assemblyVersion, fileVersion (+10 more)
 
 ### Community 328 - "Community 328"
 Cohesion: 0.4
@@ -2055,7 +2032,7 @@ Nodes (7): lib/netcoreapp3.1/Microsoft.CodeAnalysis.CSharp.dll, assemblyVersion,
 
 ### Community 337 - "Community 337"
 Cohesion: 0.18
-Nodes (12): Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.Options, assemblyVersion, fileVersion, dependencies, dependencies (+4 more)
+Nodes (12): Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.Options, assemblyVersion, fileVersion, dependencies, runtime (+4 more)
 
 ### Community 338 - "Community 338"
 Cohesion: 0.15
@@ -2128,10 +2105,6 @@ Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.CodeCoverage/17.8.0,
 ### Community 359 - "Community 359"
 Cohesion: 0.4
 Nodes (5): assemblyVersion, fileVersion, SixLabors.ImageSharp/1.0.4, lib/netcoreapp3.1/SixLabors.ImageSharp.dll, runtime
-
-### Community 360 - "Community 360"
-Cohesion: 0.33
-Nodes (3): Migration, AddAppUsers, PatternPro.DataAccess.Migrations
 
 ### Community 361 - "Community 361"
 Cohesion: 0.4
@@ -2239,7 +2212,7 @@ Nodes (4): export.js, Asset, Children, Patterns
 
 ### Community 394 - "Community 394"
 Cohesion: 0.33
-Nodes (6): assemblyVersion, fileVersion, dependencies, runtime, Microsoft.Extensions.Options/8.0.2, lib/net8.0/Microsoft.Extensions.Options.dll
+Nodes (6): assemblyVersion, fileVersion, dependencies, runtime, Microsoft.Extensions.Configuration.Abstractions/8.0.0, lib/net8.0/Microsoft.Extensions.Configuration.Abstractions.dll
 
 ### Community 395 - "Community 395"
 Cohesion: 0.5
@@ -2261,17 +2234,25 @@ Nodes (4): Fail(), Get-PatternById(), Get-PatternList(), Try-Test()
 Cohesion: 0.5
 Nodes (3): bars, body, obs
 
+### Community 420 - "Community 420"
+Cohesion: 0.5
+Nodes (3): SizeChartPatternOption, SizeChartViewModel, SizeRowViewModel
+
+### Community 421 - "Community 421"
+Cohesion: 0.33
+Nodes (6): assemblyVersion, fileVersion, dependencies, runtime, Microsoft.Extensions.FileProviders.Abstractions/8.0.0, lib/net8.0/Microsoft.Extensions.FileProviders.Abstractions.dll
+
 ### Community 425 - "Community 425"
 Cohesion: 0.33
-Nodes (6): runtime.opensuse.13.2-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.0, runtimeTargets, type, assetType, rid, runtimes/opensuse.13.2-x64/native/System.Security.Cryptography.Native.OpenSsl.so
+Nodes (6): runtime.fedora.24-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.0, runtimeTargets, type, assetType, rid, runtimes/fedora.24-x64/native/System.Security.Cryptography.Native.OpenSsl.so
 
 ### Community 432 - "Community 432"
 Cohesion: 0.21
 Nodes (13): closeDraw(), draw(), drawAllDraftSizes(), drawDraftPiece(), drawInProgress(), getGrainHandle(), getNearestNotch(), getVertexHandle() (+5 more)
 
 ### Community 441 - "Community 441"
-Cohesion: 0.33
-Nodes (6): Microsoft.Extensions.Configuration.Abstractions/8.0.0, hashPath, path, serviceable, sha512, type
+Cohesion: 0.4
+Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Extensions.Logging/8.0.1, lib/net8.0/Microsoft.Extensions.Logging.dll
 
 ### Community 443 - "Community 443"
 Cohesion: 0.2
@@ -2287,7 +2268,7 @@ Nodes (11): Auth, RegistrationEnabled, RequireAdminApproval, SeedAdminPassword, 
 
 ### Community 473 - "Community 473"
 Cohesion: 0.4
-Nodes (5): Pattern.Core.Model/1.0.0, runtime, assemblyVersion, fileVersion, Pattern.Core.Model.dll
+Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Extensions.Logging/8.0.1, lib/net8.0/Microsoft.Extensions.Logging.dll
 
 ### Community 474 - "Community 474"
 Cohesion: 0.1
@@ -2299,7 +2280,7 @@ Nodes (10): After sync, code:bash (dotnet run --project tools/PatternPro.DbTool 
 
 ### Community 476 - "Community 476"
 Cohesion: 0.4
-Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Extensions.Caching.Memory/8.0.1, lib/net8.0/Microsoft.Extensions.Caching.Memory.dll
+Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Bcl.AsyncInterfaces/6.0.0, lib/netstandard2.1/Microsoft.Bcl.AsyncInterfaces.dll
 
 ### Community 477 - "Community 477"
 Cohesion: 0.29
@@ -2334,8 +2315,12 @@ Cohesion: 0.25
 Nodes (7): AdminUserFormViewModel, AdminUserRowViewModel, AdminUsersViewModel, ChangePasswordViewModel, LoginViewModel, RegisterViewModel, UserProfileViewModel
 
 ### Community 491 - "Community 491"
-Cohesion: 0.33
-Nodes (6): SixLabors.Fonts/1.0.0-beta17, hashPath, path, serviceable, sha512, type
+Cohesion: 0.5
+Nodes (4): Asset, Children, Patterns, canvas.js
+
+### Community 492 - "Community 492"
+Cohesion: 0.5
+Nodes (3): SizeChartPatternOption, SizeChartViewModel, SizeRowViewModel
 
 ### Community 499 - "Community 499"
 Cohesion: 0.2
@@ -2349,9 +2334,9 @@ Nodes (7): 7. Export formats for cutters, code:block5 (/Export/DownloadPackage?p
 Cohesion: 0.33
 Nodes (6): projectReferences, E:\\Code\\PatternMaking\\Pattern.Core.Model\\Pattern.Core.Model.csproj, E:\\Code\\PatternMaking\\PatternPro.Business\\PatternPro.Business.csproj, E:\\Code\\PatternMaking\\PatternPro.Core\\PatternPro.Core.csproj, E:\\Code\\PatternMaking\\PatternPro.DataAccess\\PatternPro.DataAccess.csproj, E:\\Code\\PatternMaking\\PatternPro.Web.Model\\PatternPro.Web.Model.csproj
 
-### Community 511 - "Community 511"
-Cohesion: 0.22
-Nodes (9): Microsoft.EntityFrameworkCore.Analyzers, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Logging, assemblyVersion, fileVersion, dependencies, runtime, Microsoft.EntityFrameworkCore/8.0.11 (+1 more)
+### Community 509 - "Community 509"
+Cohesion: 0.5
+Nodes (4): dashboard-charts.js, Asset, Children, Patterns
 
 ### Community 515 - "Community 515"
 Cohesion: 0.4
@@ -2369,17 +2354,9 @@ Nodes (3): PatternPro.DataAccess.Migrations, PatternProDbContextModelSnapshot, M
 Cohesion: 0.4
 Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Extensions.Primitives/8.0.0, lib/net8.0/Microsoft.Extensions.Primitives.dll
 
-### Community 601 - "Community 601"
-Cohesion: 0.33
-Nodes (6): SixLabors.ImageSharp/1.0.4, hashPath, path, serviceable, sha512, type
-
 ### Community 602 - "Community 602"
 Cohesion: 0.24
 Nodes (4): Fail(), Get-WaistMValue(), Parse-CsvLine(), Try-Test()
-
-### Community 603 - "Community 603"
-Cohesion: 0.4
-Nodes (4): runtimeTarget, name, signature, targets
 
 ### Community 605 - "Community 605"
 Cohesion: 0.25
@@ -2389,13 +2366,9 @@ Nodes (7): EaseOverridesStore, GradingStore, GradingStyleEntry, MeasurementProfi
 Cohesion: 0.5
 Nodes (4): 5. Every screen explained, Dashboard stats, Fits and piece lists, Navigation (sidebar)
 
-### Community 614 - "Community 614"
-Cohesion: 0.5
-Nodes (4): dashboard-charts.js, Asset, Children, Patterns
-
 ### Community 615 - "Community 615"
-Cohesion: 0.33
-Nodes (6): assemblyVersion, fileVersion, dependencies, runtime, Microsoft.Extensions.Configuration.Abstractions/8.0.0, lib/net8.0/Microsoft.Extensions.Configuration.Abstractions.dll
+Cohesion: 0.17
+Nodes (12): assemblyVersion, fileVersion, assemblyVersion, fileVersion, runtime, runtime, Microsoft.EntityFrameworkCore.Abstractions/8.0.11, Microsoft.EntityFrameworkCore.Analyzers/8.0.11 (+4 more)
 
 ### Community 616 - "Community 616"
 Cohesion: 0.5
@@ -2403,7 +2376,7 @@ Nodes (4): restoreAuditProperties, auditLevel, auditMode, enableAudit
 
 ### Community 621 - "Community 621"
 Cohesion: 0.13
-Nodes (15): Npgsql.EntityFrameworkCore.PostgreSQL, Pattern.Core.Model, PatternPro.Core, PatternPro.Core/1.0.0, PatternPro.DataAccess/1.0.0, dependencies, runtime, assemblyVersion (+7 more)
+Nodes (15): Microsoft.EntityFrameworkCore, Npgsql.EntityFrameworkCore.PostgreSQL, PatternPro.Core, assemblyVersion, fileVersion, dependencies, runtime, Microsoft.EntityFrameworkCore.Relational/8.0.11 (+7 more)
 
 ### Community 622 - "Community 622"
 Cohesion: 0.17
@@ -2446,8 +2419,8 @@ Cohesion: 0.29
 Nodes (7): dependencies, runtime, System.Diagnostics.EventLog, assemblyVersion, fileVersion, Castle.Core/5.1.1, lib/net6.0/Castle.Core.dll
 
 ### Community 638 - "Community 638"
-Cohesion: 0.33
-Nodes (6): assemblyVersion, fileVersion, dependencies, runtime, Microsoft.Extensions.Logging.Abstractions/8.0.2, lib/net8.0/Microsoft.Extensions.Logging.Abstractions.dll
+Cohesion: 0.11
+Nodes (19): Microsoft.Extensions.DependencyInjection.Abstractions, assemblyVersion, fileVersion, assemblyVersion, fileVersion, assemblyVersion, fileVersion, dependencies (+11 more)
 
 ### Community 641 - "Community 641"
 Cohesion: 0.6
@@ -2457,25 +2430,17 @@ Nodes (5): Ensure-SizeChartWaistM(), Get-SizeChartCsv(), Get-WaistMValue(), Post
 Cohesion: 0.29
 Nodes (6): Auth, SeedAdminPassword, SeedAdminUserName, _comment, ConnectionStrings, Postgres
 
-### Community 646 - "Community 646"
-Cohesion: 0.4
-Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.CodeAnalysis.CSharp.Workspaces/4.5.0, lib/netcoreapp3.1/Microsoft.CodeAnalysis.CSharp.Workspaces.dll
-
 ### Community 647 - "Community 647"
 Cohesion: 0.43
 Nodes (5): Fail(), Get-Antiforgery(), Login-User(), Post-ChangePassword(), Try-Test()
 
 ### Community 648 - "Community 648"
-Cohesion: 0.5
-Nodes (4): PatternPro.Core/1.0.0, serviceable, sha512, type
+Cohesion: 0.22
+Nodes (9): libraries, Pattern.Core.Model/1.0.0, PatternPro.Core/1.0.0, serviceable, sha512, type, serviceable, sha512 (+1 more)
 
 ### Community 649 - "Community 649"
 Cohesion: 0.5
 Nodes (4): nest.js, Asset, Children, Patterns
-
-### Community 650 - "Community 650"
-Cohesion: 0.33
-Nodes (6): Microsoft.Extensions.Caching.Memory/8.0.1, hashPath, path, serviceable, sha512, type
 
 ### Community 652 - "Community 652"
 Cohesion: 0.15
@@ -2488,10 +2453,6 @@ Nodes (4): dashboard.js, Asset, Children, Patterns
 ### Community 654 - "Community 654"
 Cohesion: 0.67
 Nodes (3): escapeAttr(), escapeHtml(), productionBadgeHtml()
-
-### Community 657 - "Community 657"
-Cohesion: 0.29
-Nodes (7): lib/netstandard2.0/Microsoft.CodeAnalysis.Razor.dll, assemblyVersion, fileVersion, compile, runtime, Microsoft.CodeAnalysis.Razor/6.0.0, lib/netstandard2.0/Microsoft.CodeAnalysis.Razor.dll
 
 ### Community 659 - "Community 659"
 Cohesion: 0.33
@@ -2509,41 +2470,17 @@ Nodes (5): code:powershell (powershell -ExecutionPolicy Bypass -File tools/qa-si
 Cohesion: 0.4
 Nodes (5): assemblyVersion, fileVersion, SharpZipLib/1.4.2, lib/net6.0/ICSharpCode.SharpZipLib.dll, runtime
 
-### Community 668 - "Community 668"
-Cohesion: 0.33
-Nodes (6): assemblyVersion, fileVersion, dependencies, runtime, Microsoft.Extensions.Options/8.0.2, lib/net8.0/Microsoft.Extensions.Options.dll
-
 ### Community 673 - "Community 673"
 Cohesion: 0.4
 Nodes (4): CanvasDrawOverlay, CanvasEditorOverlay, CanvasMeasureOverlay, PendingNewPiece
 
-### Community 684 - "Community 684"
-Cohesion: 0.33
-Nodes (6): PatternPro.Core/1.0.0, dependencies, runtime, assemblyVersion, fileVersion, PatternPro.Core.dll
-
-### Community 686 - "Community 686"
-Cohesion: 0.33
-Nodes (6): assemblyVersion, fileVersion, dependencies, runtime, Microsoft.Extensions.Options/8.0.2, lib/net8.0/Microsoft.Extensions.Options.dll
-
-### Community 691 - "Community 691"
-Cohesion: 0.4
-Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Extensions.DependencyInjection.Abstractions/8.0.2, lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
-
 ### Community 692 - "Community 692"
-Cohesion: 0.09
-Nodes (24): Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.DependencyInjection.Abstractions, Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.Options, assemblyVersion, fileVersion, assemblyVersion (+16 more)
-
-### Community 695 - "Community 695"
-Cohesion: 0.4
-Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Extensions.Logging/8.0.1, lib/net8.0/Microsoft.Extensions.Logging.dll
+Cohesion: 0.12
+Nodes (17): Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.Options, assemblyVersion, fileVersion, assemblyVersion, fileVersion (+9 more)
 
 ### Community 697 - "Community 697"
 Cohesion: 0.5
 Nodes (4): runtime, assemblyVersion, fileVersion, PatternPro.Core.dll
-
-### Community 699 - "Community 699"
-Cohesion: 0.4
-Nodes (5): Pattern.Core.Model/1.0.0, runtime, assemblyVersion, fileVersion, Pattern.Core.Model.dll
 
 ### Community 700 - "Community 700"
 Cohesion: 0.4
@@ -2552,6 +2489,10 @@ Nodes (5): clamp(), clearDraft(), fitAll(), updateZoomLabel(), zoom()
 ### Community 701 - "Community 701"
 Cohesion: 0.5
 Nodes (4): site.js, Asset, Children, Patterns
+
+### Community 705 - "Community 705"
+Cohesion: 0.33
+Nodes (3): Migration, MovePatternProToSchema, PatternPro.DataAccess.Migrations
 
 ### Community 715 - "Community 715"
 Cohesion: 0.4
@@ -2569,41 +2510,9 @@ Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Extensions.FileProvi
 Cohesion: 0.4
 Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Extensions.FileSystemGlobbing/8.0.0, lib/net8.0/Microsoft.Extensions.FileSystemGlobbing.dll
 
-### Community 725 - "Community 725"
-Cohesion: 0.4
-Nodes (5): assemblyVersion, fileVersion, Npgsql/8.0.6, runtime, lib/net8.0/Npgsql.dll
-
-### Community 726 - "Community 726"
-Cohesion: 0.4
-Nodes (5): runtime, assemblyVersion, fileVersion, Humanizer.Core/2.14.1, lib/net6.0/Humanizer.dll
-
 ### Community 727 - "Community 727"
-Cohesion: 0.22
-Nodes (9): serviceable, sha512, type, libraries, DbSnapshot/1.0.0, Pattern.Core.Model/1.0.0, serviceable, sha512 (+1 more)
-
-### Community 728 - "Community 728"
-Cohesion: 0.5
-Nodes (4): PatternPro.Core/1.0.0, serviceable, sha512, type
-
-### Community 734 - "Community 734"
-Cohesion: 0.5
-Nodes (4): PatternPro.DataAccess/1.0.0, serviceable, sha512, type
-
-### Community 735 - "Community 735"
-Cohesion: 0.5
-Nodes (4): Pattern.PublicServices/1.0.0, serviceable, sha512, type
-
-### Community 736 - "Community 736"
-Cohesion: 0.4
-Nodes (5): assemblyVersion, fileVersion, SixLabors.Fonts/1.0.0-beta17, lib/netcoreapp3.1/SixLabors.Fonts.dll, runtime
-
-### Community 737 - "Community 737"
-Cohesion: 0.5
-Nodes (4): PatternPro.Business/1.0.0, serviceable, sha512, type
-
-### Community 738 - "Community 738"
-Cohesion: 0.5
-Nodes (4): PatternPro.Core/1.0.0, serviceable, sha512, type
+Cohesion: 0.07
+Nodes (29): serviceable, sha512, type, libraries, DbSnapshot/1.0.0, Microsoft.Extensions.Caching.Memory/8.0.1, Microsoft.Extensions.Configuration.Abstractions/8.0.0, Pattern.Core.Model/1.0.0 (+21 more)
 
 ### Community 739 - "Community 739"
 Cohesion: 0.5
@@ -2625,22 +2534,6 @@ Nodes (5): assemblyVersion, fileVersion, Npgsql/8.0.6, runtime, lib/net8.0/Npgsq
 Cohesion: 0.4
 Nodes (5): Pattern.Core.Model/1.0.0, runtime, assemblyVersion, fileVersion, Pattern.Core.Model.dll
 
-### Community 749 - "Community 749"
-Cohesion: 0.4
-Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.EntityFrameworkCore.Abstractions/8.0.11, lib/net8.0/Microsoft.EntityFrameworkCore.Abstractions.dll
-
-### Community 751 - "Community 751"
-Cohesion: 0.4
-Nodes (5): assemblyVersion, fileVersion, runtime, Microsoft.Extensions.Caching.Memory/8.0.1, lib/net8.0/Microsoft.Extensions.Caching.Memory.dll
-
-### Community 752 - "Community 752"
-Cohesion: 0.4
-Nodes (5): NuGet.Frameworks, System.Reflection.Metadata, dependencies, type, Microsoft.TestPlatform.ObjectModel/17.8.0
-
-### Community 769 - "Community 769"
-Cohesion: 0.5
-Nodes (4): Pattern.Web.Model/1.0.0, serviceable, sha512, type
-
 ### Community 770 - "Community 770"
 Cohesion: 0.5
 Nodes (4): nest.js, Asset, Children, Patterns
@@ -2649,26 +2542,22 @@ Nodes (4): nest.js, Asset, Children, Patterns
 Cohesion: 0.5
 Nodes (4): PatternPro.DbTool/1.0.0, serviceable, sha512, type
 
-### Community 772 - "Community 772"
-Cohesion: 0.5
-Nodes (4): Asset, Children, Patterns, canvas.js
-
 ## Knowledge Gaps
-- **3272 isolated node(s):** `{ defineConfig }`, `name`, `private`, `version`, `description` (+3267 more)
+- **3284 isolated node(s):** `{ defineConfig }`, `name`, `private`, `version`, `description` (+3279 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **306 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **305 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `net8.0` connect `Community 47` to `Community 129`, `Community 130`, `Community 132`, `Community 139`, `Community 140`, `Community 141`, `Community 142`, `Community 143`, `Community 145`, `Community 24`, `Community 26`, `Community 156`, `Community 157`, `Community 158`, `Community 159`, `Community 160`, `Community 297`, `Community 298`, `Community 43`, `Community 299`, `Community 425`, `Community 300`, `Community 175`, `Community 176`, `Community 304`, `Community 306`, `Community 307`, `Community 301`, `Community 308`, `Community 310`, `Community 309`, `Community 303`, `Community 58`, `Community 61`, `Community 191`, `Community 64`, `Community 192`, `Community 193`, `Community 194`, `Community 325`, `Community 205`, `Community 79`, `Community 80`, `Community 208`, `Community 339`, `Community 85`, `Community 215`, `Community 216`, `Community 217`, `Community 218`, `Community 219`, `Community 481`, `Community 99`, `Community 100`, `Community 101`, `Community 622`, `Community 752`, `Community 302`, `Community 631`, `Community 121`, `Community 122`, `Community 123`, `Community 124`, `Community 125`, `Community 126`?**
+- **Why does `net8.0` connect `Community 47` to `Community 129`, `Community 130`, `Community 132`, `Community 139`, `Community 140`, `Community 141`, `Community 142`, `Community 143`, `Community 145`, `Community 24`, `Community 26`, `Community 156`, `Community 157`, `Community 158`, `Community 159`, `Community 160`, `Community 297`, `Community 298`, `Community 43`, `Community 299`, `Community 425`, `Community 300`, `Community 175`, `Community 176`, `Community 304`, `Community 306`, `Community 307`, `Community 301`, `Community 308`, `Community 310`, `Community 309`, `Community 303`, `Community 58`, `Community 61`, `Community 191`, `Community 64`, `Community 192`, `Community 193`, `Community 194`, `Community 325`, `Community 205`, `Community 79`, `Community 80`, `Community 208`, `Community 339`, `Community 215`, `Community 216`, `Community 217`, `Community 218`, `Community 219`, `Community 481`, `Community 99`, `Community 100`, `Community 101`, `Community 622`, `Community 302`, `Community 631`, `Community 120`, `Community 121`, `Community 122`, `Community 123`, `Community 124`, `Community 125`, `Community 126`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **Why does `dependencies` connect `Community 1` to `Community 328`, `Community 206`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `.NETCoreApp,Version=v8.0` connect `Community 105` to `Community 736`, `Community 740`, `Community 328`, `Community 104`, `Community 204`, `Community 684`, `Community 206`, `Community 336`, `Community 17`, `Community 657`, `Community 726`, `Community 55`, `Community 473`, `Community 90`, `Community 603`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+- **Why does `string` connect `Community 474` to `Community 384`, `Community 71`, `Community 172`, `Community 144`, `Community 305`, `Community 87`, `Community 760`, `Community 506`, `Community 27`, `Community 63`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **What connects `{ defineConfig }`, `name`, `private` to the rest of the system?**
-  _3272 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _3284 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.01 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

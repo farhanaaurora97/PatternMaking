@@ -1,57 +1,69 @@
 @page "/"
 @attribute [Authorize]
+@implements IDisposable
 @using System.Text.Json
 @using Pattern.Core.Model
 @using Pattern.Web.Model
+@using PatternPro.Desktop.Helpers
 @using PatternPro.Desktop.Mapping
 @using PatternPro.Desktop.Services
 @inject DashboardDataService DashboardData
 @inject IPatternService PatternService
 @inject ISizeChartService SizeChartService
 @inject DesktopToastService Toast
+@inject DesktopShellEvents ShellEvents
+@inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<div class="pp-page patternpro-dashboard">
-    <div class="pcs-header">
-        <div class="pcs-header-left">
-            <div class="pcs-eyebrow">
-                <span class="pcs-eyebrow-rule"></span>
-                <span>Workspace</span>
-            </div>
-            <h1 class="page-title" style="margin:0">Pattern workspace</h1>
-            <p class="page-sub" style="margin:6px 0 0">Bottom wear — denim, chinos, trousers &amp; more · @_vm.CurrentStyleLabel</p>
+<div class="patternpro-dashboard">
+    <header class="dash-header">
+        <div class="dash-header__main">
+            <div class="dash-eyebrow"><span class="dash-eyebrow__rule"></span> Dashboard</div>
+            <h1 class="dash-title">Pattern workspace</h1>
+            <p class="dash-sub">Bottom wear — denim, chinos, trousers &amp; more · <span class="dash-fit-tag">@_vm.CurrentStyleLabel</span></p>
         </div>
-        <div class="pcs-header-right">
-            <div class="pcs-summary">
-                <div class="pcs-stat">
-                    <div class="pcs-stat-val">@_vm.TotalPatternCount</div>
-                    <div class="pcs-stat-label">Patterns</div>
+        <div class="dash-header__aside">
+            <div class="dash-kpi-strip" aria-label="Key metrics">
+                <div class="dash-kpi stat-card">
+                    <div class="dash-kpi__val">@_vm.ActivePatternCount</div>
+                    <div class="dash-kpi__label">Active</div>
+                    <div class="dash-kpi__meta">@_vm.PatternsCreatedThisWeek this week</div>
                 </div>
-                <div class="pcs-stat-div"></div>
-                <div class="pcs-stat">
-                    <div class="pcs-stat-val">@_vm.ProductionCertifiedCount</div>
-                    <div class="pcs-stat-label">Factory ready</div>
+                <div class="dash-kpi__div" aria-hidden="true"></div>
+                <div class="dash-kpi stat-card">
+                    <div class="dash-kpi__val">@_vm.ProductionCertifiedCount</div>
+                    <div class="dash-kpi__label">Factory ready</div>
+                    <div class="dash-kpi__meta">Export ready</div>
                 </div>
-                
-                <div class="pcs-stat-div"></div>
-                <div class="pcs-stat">
-                    <div class="pcs-stat-val">@_vm.DueThisWeekCount</div>
-                    <div class="pcs-stat-label">Due this week</div>
+                <div class="dash-kpi__div" aria-hidden="true"></div>
+                <div class="dash-kpi stat-card">
+                    <div class="dash-kpi__val">@_vm.DueThisWeekCount</div>
+                    <div class="dash-kpi__label">Due this week</div>
+                    <div class="dash-kpi__meta">Mon–Sun</div>
                 </div>
                 @if (_vm.OverdueCount > 0)
                 {
-                    <div class="pcs-stat-div"></div>
-                    <div class="pcs-stat">
-                        <div class="pcs-stat-val pcs-stat-val--warn">@_vm.OverdueCount</div>
-                        <div class="pcs-stat-label">Overdue</div>
+                    <div class="dash-kpi__div" aria-hidden="true"></div>
+                    <div class="dash-kpi stat-card dash-kpi--warn">
+                        <div class="dash-kpi__val">@_vm.OverdueCount</div>
+                        <div class="dash-kpi__label">Overdue</div>
+                        <div class="dash-kpi__meta">Needs attention</div>
                     </div>
                 }
+                <div class="dash-kpi__div" aria-hidden="true"></div>
+                <div class="dash-kpi stat-card dash-kpi--sm">
+                    <div class="dash-kpi__val">@_vm.AvgPieceCount</div>
+                    <div class="dash-kpi__label">Avg POM</div>
+                    <div class="dash-kpi__meta">Per style</div>
+                </div>
             </div>
-            <div class="pcs-header-actions">
-                <button type="button" class="btn btn-gold btn-sm" @onclick="OpenCreateAsync">+ New style</button>
+            <div class="dash-header__actions">
+                <NavLink class="btn-dash btn-dash--ghost" href="module/style-sheet">Style Sheet</NavLink>
+                <NavLink class="btn-dash btn-dash--ghost" href="@FirstCanvasHref">Canvas</NavLink>
+                <button type="button" class="btn-dash btn-dash--primary" @onclick="OpenCreateAsync">+ New pattern</button>
             </div>
         </div>
-    </div>
+    </header>
 
     <div class="plm-alerts plm-alerts--row" role="status">
         @if (_vm.OverdueCount == 0 && _vm.DueThisWeekCount == 0 && _vm.BulkReadyCount == 0)
@@ -402,6 +414,19 @@
     private string _createDesigner = "Pattern Designer";
     private string? _createError;
     private bool _createBusy;
+    private string _styleKey = "skinny";
+
+    private string FirstCanvasHref
+    {
+        get
+        {
+            var first = _vm.Patterns.FirstOrDefault();
+            if (first is null)
+                return DesktopShellNavigation.HrefWithStyle("module/canvas", _styleKey);
+            return DesktopShellNavigation.HrefWithStyleAndPattern(
+                "module/canvas", FitStyleKeys.Normalize(first.StyleKey), first.Id);
+        }
+    }
 
     private static readonly JsonSerializerOptions ChartJsonOptions = new()
     {
@@ -486,7 +511,42 @@
         }
     }
 
-    protected override void OnInitialized() => Reload();
+    protected override void OnInitialized()
+    {
+        ShellEvents.NewPatternRequested += OpenCreateFromShell;
+        Navigation.LocationChanged += OnLocationChanged;
+        Reload();
+        TryOpenCreateFromQuery();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (TryOpenCreateFromQuery())
+            return;
+
+        var path = Navigation.ToBaseRelativePath(e.Location).Split('?', '#')[0].TrimEnd('/');
+        if (!string.IsNullOrEmpty(path))
+            return;
+        Reload();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private bool TryOpenCreateFromQuery()
+    {
+        if (!DesktopShellNavigation.UriRequestsNewPattern(Navigation))
+            return false;
+        DesktopShellNavigation.ClearNewPatternQuery(Navigation);
+        _ = OpenCreateAsync();
+        return true;
+    }
+
+    private void OpenCreateFromShell() => _ = OpenCreateAsync();
+
+    public void Dispose()
+    {
+        ShellEvents.NewPatternRequested -= OpenCreateFromShell;
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -527,7 +587,8 @@
 
     private void Reload()
     {
-        _vm = DashboardData.Load();
+        _styleKey = DesktopShellNavigation.StyleFromUri(Navigation);
+        _vm = DashboardData.Load(_styleKey);
     }
 
     private void SelectCategory(string cat)

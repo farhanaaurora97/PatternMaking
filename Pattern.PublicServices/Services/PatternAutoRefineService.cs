@@ -29,16 +29,18 @@ public static class PatternAutoRefineService
         if (front is null || back is null || wb is null || wb.Points.Count < 4)
             return;
 
-        var target = SeamGeometry.EdgeLengthPx(front, 0) + SeamGeometry.EdgeLengthPx(back, 0);
-        var current = SeamGeometry.EdgeLengthPx(wb, 0);
+        var target = SeamGeometry.LegWaistLengthPx(front) + SeamGeometry.LegWaistLengthPx(back);
+        var current = SeamGeometry.WaistbandAttachLengthPx(wb);
         if (current < 1 || Math.Abs(target - current) <= SeamTolerancePx)
             return;
 
         var scale = target / current;
         var anchorX = wb.Points[0][0];
-        for (var i = 0; i < wb.Points.Count; i++)
+        // Scale every vertex off the left anchor (keep left edge vertical).
+        for (var i = 1; i < wb.Points.Count; i++)
         {
-            if (i == 0) continue;
+            if (wb.Points[i][0] == anchorX)
+                continue;
             wb.Points[i][0] = (int)Math.Round(anchorX + (wb.Points[i][0] - anchorX) * scale);
         }
     }

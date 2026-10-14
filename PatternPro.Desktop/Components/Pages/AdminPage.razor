@@ -131,112 +131,130 @@
     </div>
 </div>
 
-<dialog @ref="_createDialog" class="pp-create-dialog" @oncancel="CloseCreateAsync">
-    <div class="modal-header" style="padding:0 0 16px;border:none">
-        <div class="modal-title">New user</div>
-        <button class="modal-close-btn" type="button" @onclick="CloseCreateAsync">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
-        </button>
-    </div>
-    @if (!string.IsNullOrEmpty(_createError))
-    {
-        <div class="modal-error show">@_createError</div>
-    }
-    <div class="form-field">
-        <label class="form-label">Employee ID</label>
-        <input class="form-input" @bind="_new.EmployeeId" />
-    </div>
-    <div class="form-field">
-        <label class="form-label">Full name</label>
-        <input class="form-input" @bind="_new.DisplayName" />
-    </div>
-    <div class="form-field">
-        <label class="form-label">Username</label>
-        <input class="form-input" @bind="_new.UserName" />
-    </div>
-    <div class="form-field">
-        <label class="form-label">Role</label>
-        <select class="form-input" @bind="_new.Role">
-            @foreach (var r in AppRoles.All)
+@if (_createOpen)
+{
+    <div @ref="_createOverlayRef" class="modal-overlay open modal-overlay--global pp-center-overlay" role="presentation" @onclick="CloseCreateAsync">
+        <div class="modal admin-user-modal" role="dialog" aria-modal="true" aria-labelledby="admin-new-user-title" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="admin-new-user-title">New user</div>
+                    <div class="modal-sub">Add an employee login for your team.</div>
+                </div>
+                <button class="modal-close-btn" type="button" aria-label="Close" @onclick="CloseCreateAsync">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(_createError))
             {
-                <option value="@r">@AppRoles.Label(r)</option>
+                <div class="modal-error show">@_createError</div>
             }
-        </select>
-    </div>
-    <div class="form-row-2">
-        <div class="form-field">
-            <label class="form-label">Password</label>
-            <input class="form-input" type="password" @bind="_new.Password" />
+            <div class="form-field">
+                <label class="form-label">Employee ID</label>
+                <input class="form-input" @bind="_new.EmployeeId" />
+            </div>
+            <div class="form-field">
+                <label class="form-label">Full name</label>
+                <input class="form-input" @bind="_new.DisplayName" />
+            </div>
+            <div class="form-field">
+                <label class="form-label">Username</label>
+                <input class="form-input" @bind="_new.UserName" />
+            </div>
+            <div class="form-field">
+                <label class="form-label">Role</label>
+                <select class="form-input" @bind="_new.Role">
+                    @foreach (var r in AppRoles.All)
+                    {
+                        <option value="@r">@AppRoles.Label(r)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-row-2">
+                <div class="form-field">
+                    <label class="form-label">Password</label>
+                    <input class="form-input" type="password" @bind="_new.Password" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Confirm password</label>
+                    <input class="form-input" type="password" @bind="_new.ConfirmPassword" />
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline btn-sm" @onclick="CloseCreateAsync">Cancel</button>
+                <button type="button" class="btn btn-gold btn-sm" @onclick="CreateUserAsync" disabled="@_busy">Create user</button>
+            </div>
         </div>
-        <div class="form-field">
-            <label class="form-label">Confirm password</label>
-            <input class="form-input" type="password" @bind="_new.ConfirmPassword" />
-        </div>
     </div>
-    <div class="modal-actions" style="padding:16px 0 0;background:none;border:none">
-        <button type="button" class="btn btn-outline btn-sm" @onclick="CloseCreateAsync">Cancel</button>
-        <button type="button" class="btn btn-gold btn-sm" @onclick="CreateUserAsync" disabled="@_busy">Create user</button>
-    </div>
-</dialog>
+}
 
-<dialog @ref="_editDialog" class="pp-create-dialog" @oncancel="CloseEditAsync">
-    <div class="modal-header" style="padding:0 0 16px;border:none">
-        <div class="modal-title">Edit user</div>
-        <button class="modal-close-btn" type="button" @onclick="CloseEditAsync">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
-        </button>
-    </div>
-    @if (!string.IsNullOrEmpty(_editError))
-    {
-        <div class="modal-error show">@_editError</div>
-    }
-    <div class="form-field">
-        <label class="form-label">Employee ID</label>
-        <input class="form-input" @bind="_edit.EmployeeId" />
-    </div>
-    <div class="form-field">
-        <label class="form-label">Username</label>
-        <input class="form-input" value="@_edit.UserName" disabled />
-    </div>
-    <div class="form-field">
-        <label class="form-label">Full name</label>
-        <input class="form-input" @bind="_edit.DisplayName" />
-    </div>
-    <div class="form-field">
-        <label class="form-label">Role</label>
-        <select class="form-input" @bind="_edit.Role">
-            @foreach (var r in AppRoles.All)
+@if (_editOpen)
+{
+    <div @ref="_editOverlayRef" class="modal-overlay open modal-overlay--global pp-center-overlay" role="presentation" @onclick="CloseEditAsync">
+        <div class="modal admin-user-modal" role="dialog" aria-modal="true" aria-labelledby="admin-edit-user-title" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="admin-edit-user-title">Edit user</div>
+                    <div class="modal-sub">@_edit.UserName</div>
+                </div>
+                <button class="modal-close-btn" type="button" aria-label="Close" @onclick="CloseEditAsync">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(_editError))
             {
-                <option value="@r">@AppRoles.Label(r)</option>
+                <div class="modal-error show">@_editError</div>
             }
-        </select>
-    </div>
-    <div class="form-field">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
-            <input type="checkbox" @bind="_edit.IsActive" />
-            Account active (can sign in)
-        </label>
-    </div>
-    <div class="form-row-2">
-        <div class="form-field">
-            <label class="form-label">New password <span class="form-opt">(blank = keep)</span></label>
-            <input class="form-input" type="password" @bind="_edit.Password" autocomplete="new-password" />
+            <div class="form-field">
+                <label class="form-label">Employee ID</label>
+                <input class="form-input" @bind="_edit.EmployeeId" />
+            </div>
+            <div class="form-field">
+                <label class="form-label">Username</label>
+                <input class="form-input" value="@_edit.UserName" disabled />
+            </div>
+            <div class="form-field">
+                <label class="form-label">Full name</label>
+                <input class="form-input" @bind="_edit.DisplayName" />
+            </div>
+            <div class="form-field">
+                <label class="form-label">Role</label>
+                <select class="form-input" @bind="_edit.Role">
+                    @foreach (var r in AppRoles.All)
+                    {
+                        <option value="@r">@AppRoles.Label(r)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-field">
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" @bind="_edit.IsActive" />
+                    Account active (can sign in)
+                </label>
+            </div>
+            <div class="form-row-2">
+                <div class="form-field">
+                    <label class="form-label">New password <span class="form-opt">(blank = keep)</span></label>
+                    <input class="form-input" type="password" @bind="_edit.Password" autocomplete="new-password" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Confirm password</label>
+                    <input class="form-input" type="password" @bind="_edit.ConfirmPassword" autocomplete="new-password" />
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline btn-sm" @onclick="CloseEditAsync">Cancel</button>
+                <button type="button" class="btn btn-gold btn-sm" @onclick="SaveEditAsync" disabled="@_busy">Save changes</button>
+            </div>
         </div>
-        <div class="form-field">
-            <label class="form-label">Confirm password</label>
-            <input class="form-input" type="password" @bind="_edit.ConfirmPassword" autocomplete="new-password" />
-        </div>
     </div>
-    <div class="modal-actions" style="padding:16px 0 0;background:none;border:none">
-        <button type="button" class="btn btn-outline btn-sm" @onclick="CloseEditAsync">Cancel</button>
-        <button type="button" class="btn btn-gold btn-sm" @onclick="SaveEditAsync" disabled="@_busy">Save changes</button>
-    </div>
-</dialog>
+}
 
 @code {
     private IReadOnlyList<AppUser> _users = [];
-    private ElementReference _createDialog;
-    private ElementReference _editDialog;
+    private bool _createOpen;
+    private bool _editOpen;
+    private ElementReference _createOverlayRef;
+    private ElementReference _editOverlayRef;
     private string _search = "";
     private bool _busy;
     private string? _message;
@@ -266,6 +284,23 @@
     }
 
     protected override void OnInitialized() => Load();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (_createOpen)
+                await JS.InvokeVoidAsync("patternPro.mountToModalRoot", _createOverlayRef);
+            if (_editOpen)
+                await JS.InvokeVoidAsync("patternPro.mountToModalRoot", _editOverlayRef);
+            if (!_createOpen && !_editOpen)
+                await JS.InvokeVoidAsync("patternPro.unmountModalRootIfEmpty");
+        }
+        catch
+        {
+            // WebView bootstrapping.
+        }
+    }
 
     private void Load() => _users = UserService.GetAll();
 
@@ -297,14 +332,16 @@
     {
         _new.Reset();
         _createError = null;
+        _createOpen = true;
         await InvokeAsync(StateHasChanged);
-        await JS.InvokeVoidAsync("patternPro.openDialog", _createDialog);
     }
 
     private async Task CloseCreateAsync()
     {
         _createError = null;
-        await JS.InvokeVoidAsync("patternPro.closeDialog", _createDialog);
+        _createOpen = false;
+        await InvokeAsync(StateHasChanged);
+        try { await JS.InvokeVoidAsync("patternPro.unmountModalRootIfEmpty"); } catch { }
     }
 
     private async Task CreateUserAsync()
@@ -353,14 +390,16 @@
         _edit.IsActive = u.IsActive;
         _edit.Password = "";
         _edit.ConfirmPassword = "";
+        _editOpen = true;
         await InvokeAsync(StateHasChanged);
-        await JS.InvokeVoidAsync("patternPro.openDialog", _editDialog);
     }
 
     private async Task CloseEditAsync()
     {
         _editError = null;
-        await JS.InvokeVoidAsync("patternPro.closeDialog", _editDialog);
+        _editOpen = false;
+        await InvokeAsync(StateHasChanged);
+        try { await JS.InvokeVoidAsync("patternPro.unmountModalRootIfEmpty"); } catch { }
     }
 
     private async Task SaveEditAsync()

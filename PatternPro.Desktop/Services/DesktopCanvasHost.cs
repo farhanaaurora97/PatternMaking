@@ -47,6 +47,11 @@ public sealed class DesktopCanvasHost
     private bool _multiPieceDrag;
     private long _lastInvalidateMs;
     private bool _invalidatePending;
+    private long _lastHostNotifyMs;
+    private double _lastSlotX;
+    private double _lastSlotY;
+    private double _lastSlotW;
+    private double _lastSlotH;
 
     private readonly List<(float X, float Y)> _drawPoints = [];
     private float? _drawCursorX, _drawCursorY;
@@ -224,10 +229,14 @@ public sealed class DesktopCanvasHost
     /// <summary>Hide native Skia overlay when Blazor navigates off Canvas/Nest (avoids ghost drawing over other pages).</summary>
     public void HideOverlayForNavigation()
     {
-        _activeSlots = 0;
+        if (_mode == CanvasSurfaceMode.None)
+            return;
         _mode = CanvasSurfaceMode.None;
         UpdateVisibility();
     }
+
+    /// <summary>Fired when the Blazor canvas slot moves or resizes (refit viewport).</summary>
+    public event Action? SlotBoundsChanged;
 
     public void ConfigurePattern(
         IList<CoreModel.PieceDefinition> pieces,
@@ -432,15 +441,32 @@ public sealed class DesktopCanvasHost
         try
         {
             var rect = await js.InvokeAsync<DomRect>("patternPro.getElementRect", host);
-            SlotWidth = Math.Max(1, rect.Width);
-            SlotHeight = Math.Max(1, rect.Height);
-            _view.Margin = new Thickness(rect.X, rect.Y, 0, 0);
+            var w = Math.Max(1, rect.Width);
+            var h = Math.Max(1, rect.Height);
+            var x = Math.Max(0, rect.X);
+            var y = Math.Max(0, rect.Y);
+            var changed = Math.Abs(w - _lastSlotW) > 0.5
+                || Math.Abs(h - _lastSlotH) > 0.5
+                || Math.Abs(x - _lastSlotX) > 0.5
+                || Math.Abs(y - _lastSlotY) > 0.5;
+            if (!changed)
+                return;
+
+            _lastSlotX = x;
+            _lastSlotY = y;
+            _lastSlotW = w;
+            _lastSlotH = h;
+            SlotWidth = w;
+            SlotHeight = h;
+            // Position native Skia overlay over the Blazor canvas slot (WebView client coords).
+            _view.Margin = new Thickness(x, y, 0, 0);
             _view.WidthRequest = SlotWidth;
             _view.HeightRequest = SlotHeight;
             _view.HorizontalOptions = LayoutOptions.Start;
             _view.VerticalOptions = LayoutOptions.Start;
             UpdateVisibility();
             Invalidate();
+            SlotBoundsChanged?.Invoke();
         }
         catch
         {
@@ -867,7 +893,14 @@ public sealed class DesktopCanvasHost
             var snapped = ApplySnap(CanvasGeometryHelper.ScreenToWorld(x, y, _viewport));
             _lastWorldX = _cursorWorldX = snapped.Wx;
             _lastWorldY = _cursorWorldY = snapped.Wy;
-            _ = NotifyHostChangedAsync();
+            RequestInvalidate();
+            var now = Environment.TickCount64;
+            if (now - _lastHostNotifyMs >= 120)
+            {
+                _lastHostNotifyMs = now;
+                _ = NotifyHostChangedAsync();
+            }
+            return;
         }
 
         if (!_dragging || _primaryIndex is not int si || si < 0 || si >= _pieces.Count)

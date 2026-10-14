@@ -6,6 +6,7 @@
   "scripts": {
     "cy:open": "cypress open",
     "cy:run": "cypress run",
+    "cy:screenshots": "cypress run --spec cypress/e2e/screenshots.cy.js",
     "test": "cypress run"
   },
   "devDependencies": {

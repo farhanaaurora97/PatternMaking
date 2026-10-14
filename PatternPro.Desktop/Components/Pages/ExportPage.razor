@@ -14,36 +14,34 @@
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Navigation
 
-<div class="pp-page exp-page">
-    <div class="pcs-header">
-        <div class="pcs-header-left">
-            <div class="pcs-eyebrow">
-                <span class="pcs-eyebrow-rule"></span>
-                <span>Output</span>
-            </div>
-            <h1 class="page-title" style="margin:0">Export Pattern</h1>
-            <p class="page-sub" style="margin:6px 0 0">Choose format and destination for your pattern files</p>
-            <span class="tag tag-purple" style="margin-top:8px;display:inline-flex">
-                @(_patternId > 0 ? _displayName : "Style template") · @_styleLabel
-            </span>
+<div class="exp-page">
+    <div class="page-hdr">
+        <div>
+            <div class="page-title">Export Pattern</div>
+            <div class="page-sub">Choose format and destination for your pattern files</div>
+            @if (_patternId > 0)
+            {
+                <span class="tag tag-purple" style="margin-top:6px;display:inline-flex">@_displayName · @_styleLabel</span>
+            }
+            else
+            {
+                <span class="tag tag-purple" style="margin-top:6px;display:inline-flex">Style template · @_styleLabel</span>
+            }
         </div>
-        <div class="pcs-header-right">
-            <div class="pcs-header-actions">
-                <select class="status-select" @bind="_patternId" @bind:after="LoadData">
-                    <option value="0">— Style template —</option>
-                    @foreach (var p in _patterns)
-                    {
-                        <option value="@p.Id">@p.Code @p.Name</option>
-                    }
-                </select>
-                <select class="status-select" @bind="_styleKey" @bind:after="LoadData">
-                    @foreach (var opt in StyleOptions)
-                    {
-                        <option value="@opt.Key">@opt.Label</option>
-                    }
-                </select>
-                <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
-            </div>
+        <div class="tb-actions" style="margin-left:0">
+            <select class="status-select" @bind="_patternId" @bind:after="LoadData">
+                <option value="0">— Style template —</option>
+                @foreach (var p in _patterns)
+                {
+                    <option value="@p.Id">@p.Code @p.Name</option>
+                }
+            </select>
+            <select class="status-select" @bind="_styleKey" @bind:after="LoadData">
+                @foreach (var opt in StyleOptions)
+                {
+                    <option value="@opt.Key">@opt.Label</option>
+                }
+            </select>
         </div>
     </div>
 
@@ -56,28 +54,24 @@
         <div class="pcs-success">@_success</div>
     }
 
-    <div>
-        <div class="pp-section-title">Export format</div>
-        <div class="export-format-row">
-            @foreach (var fmt in ExportViewModel.Formats)
-            {
-                <button type="button"
-                        class="export-format-btn @(_format == fmt.Name ? "selected" : "")"
-                        @onclick="() => SelectFormat(fmt.Name)">
-                    <span class="exp-icon">@fmt.Icon</span>
-                    <span>
-                        <span class="exp-name">@fmt.Name</span>
-                        @if (fmt.Recommended)
-                        {
-                            <span class="tag tag-green" style="margin-left:6px;font-size:10px">Recommended</span>
-                        }
-                    </span>
-                </button>
-            }
-        </div>
+    <div class="export-grid">
+        @foreach (var fmt in ExportViewModel.Formats)
+        {
+            <button type="button"
+                    class="export-card @(_format == fmt.Name ? "selected" : "")"
+                    @onclick="() => SelectFormat(fmt.Name)">
+                <div class="exp-icon">@fmt.Icon</div>
+                <div class="exp-name">@fmt.Name</div>
+                <div class="exp-desc">@fmt.Description</div>
+                @if (fmt.Recommended)
+                {
+                    <div style="margin-top:14px"><span class="tag tag-green">Recommended</span></div>
+                }
+            </button>
+        }
     </div>
 
-    <div class="pp-section">
+    <div class="card" style="margin-bottom:20px">
         <div class="exp-card-hdr">
             <span class="pp-section-title" style="margin:0">Production QC — Factory floor</span>
             <span class="tag @(_patternId <= 0 ? "tag-purple" : _validation?.CanExportToFactory == true ? "tag-green" : "tag-gold")">
@@ -115,8 +109,8 @@
                         <div class="page-sub">By @_pattern.ApprovedBy</div>
                     }
                     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-                        <button type="button" class="btn btn-gold btn-sm" @onclick="ApproveForCutting" disabled="@(_busy || _pattern?.ApprovedForCutting == true)">Approve for cutting</button>
-                        <button type="button" class="btn btn-outline btn-sm" @onclick="RevokeApproval" disabled="@(_busy || _pattern?.ApprovedForCutting != true)">Revoke</button>
+                        <button type="button" class="btn btn-gold btn-sm" @onclick="ApproveForCutting" disabled="@(!_canEdit || _busy || _pattern?.ApprovedForCutting == true)">Approve for cutting</button>
+                        <button type="button" class="btn btn-outline btn-sm" @onclick="RevokeApproval" disabled="@(!_canEdit || _busy || _pattern?.ApprovedForCutting != true)">Revoke</button>
                     </div>
                 </div>
                 <div>
@@ -131,8 +125,8 @@
                         <div class="page-sub">By @_pattern.CutterTestedBy</div>
                     }
                     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-                        <button type="button" class="btn btn-gold btn-sm" @onclick="() => RecordCutterTest(true)" disabled="@(_busy || _pattern?.CutterTestPassed == true)">Record pass</button>
-                        <button type="button" class="btn btn-outline btn-sm" @onclick="() => RecordCutterTest(false)" disabled="@_busy">Record fail</button>
+                        <button type="button" class="btn btn-gold btn-sm" @onclick="() => RecordCutterTest(true)" disabled="@(!_canEdit || _busy || _pattern?.CutterTestPassed == true)">Record pass</button>
+                        <button type="button" class="btn btn-outline btn-sm" @onclick="() => RecordCutterTest(false)" disabled="@(!_canEdit || _busy)">Record fail</button>
                     </div>
                 </div>
             </div>
@@ -140,10 +134,10 @@
             <div class="cp-row" style="max-width:360px;margin-bottom:12px">
                 <label>Shrinkage %</label>
                 <input type="number" class="status-select" style="width:72px" min="0" max="15" step="0.5" @bind="_shrinkagePct" />
-                <button type="button" class="btn btn-outline btn-sm" @onclick="SaveShrinkage" disabled="@_busy">Save</button>
+                <button type="button" class="btn btn-outline btn-sm" @onclick="SaveShrinkage" disabled="@(!_canEdit || _busy)">Save</button>
             </div>
 
-            <button type="button" class="btn btn-gold" @onclick="CompleteCertification" disabled="@_busy">
+            <button type="button" class="btn btn-gold" @onclick="CompleteCertification" disabled="@(!_canEdit || _busy)">
                 Prepare &amp; certify for factory
             </button>
 
@@ -264,6 +258,7 @@
     private string? _success;
     private bool _busy;
     private bool _downloading;
+    private bool _canEdit = true;
 
     private int SizeCount => ParseSizes().Count;
     private int TotalFiles => _pieceCount * SizeCount;
@@ -277,8 +272,10 @@
         ("wideLeg", "Wide Leg"),
     ];
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        _canEdit = DesktopAuthGuard.CanEdit(state.User);
         _patterns = PatternService.GetAll();
         ParseQuery();
         LoadData();
@@ -364,8 +361,17 @@
         return DesktopAuthService.DisplayName(state.User) ?? "Desktop User";
     }
 
+    private bool EnsureCanEdit()
+    {
+        if (_canEdit) return true;
+        _message = "View-only account — you cannot change production settings.";
+        Toast.Show("View only", _message, DesktopToastType.Warning);
+        return false;
+    }
+
     private async Task ApproveForCutting()
     {
+        if (!EnsureCanEdit()) return;
         _busy = true;
         _message = null;
         try
@@ -390,6 +396,7 @@
 
     private void RevokeApproval()
     {
+        if (!EnsureCanEdit()) return;
         _busy = true;
         _message = null;
         try
@@ -404,6 +411,7 @@
 
     private async Task RecordCutterTest(bool passed)
     {
+        if (!EnsureCanEdit()) return;
         _busy = true;
         _message = null;
         try
@@ -423,6 +431,7 @@
 
     private void SaveShrinkage()
     {
+        if (!EnsureCanEdit()) return;
         _busy = true;
         _message = null;
         try
@@ -437,6 +446,7 @@
 
     private async Task CompleteCertification()
     {
+        if (!EnsureCanEdit()) return;
         _busy = true;
         _message = null;
         try

@@ -9,6 +9,7 @@ module.exports = defineConfig({
     pageLoadTimeout: 60000,
     video: false,
     screenshotOnRunFailure: true,
+    screenshotsFolder: 'cypress/screenshots',
   },
   env: {
     username: 'admin',

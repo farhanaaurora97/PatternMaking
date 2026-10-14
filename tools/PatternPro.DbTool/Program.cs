@@ -66,6 +66,51 @@ if (command is "reset-admin-password")
     return 0;
 }
 
+if (command is "list-users")
+{
+    ListUsers(options);
+    return 0;
+}
+
+if (command is "set-password")
+{
+    if (args.Length < 3)
+    {
+        Console.Error.WriteLine("Usage: set-password <userName> <newPassword>");
+        return 1;
+    }
+
+    if (!SetUserPassword(options, args[1], args[2]))
+        return 1;
+    return 0;
+}
+
+if (command is "create-user")
+{
+    if (args.Length < 6)
+    {
+        Console.Error.WriteLine("Usage: create-user <employeeId> <userName> <displayName> <role> <password>");
+        return 1;
+    }
+
+    if (!CreateUser(options, args[1], args[2], args[3], args[4], args[5]))
+        return 1;
+    return 0;
+}
+
+if (command is "delete-user")
+{
+    if (args.Length < 2)
+    {
+        Console.Error.WriteLine("Usage: delete-user <userName>");
+        return 1;
+    }
+
+    if (!DeleteUser(options, args[1]))
+        return 1;
+    return 0;
+}
+
 if (command is "verify-login")
 {
     VerifyLogin(config, options, args.Length > 1 ? args[1] : "admin", args.Length > 2 ? args[2] : "Admin@123");
@@ -179,6 +224,114 @@ static string ResolveSeedPassword(IConfiguration config) =>
         ? "Admin@123"
         : config["Auth:SeedAdminPassword"]!.Trim();
 
+static void ListUsers(DbContextOptions<PatternProDbContext> options)
+{
+    using var db = new PatternProDbContext(options);
+    foreach (var u in db.AppUsers.AsNoTracking().OrderBy(u => u.Id))
+    {
+        Console.WriteLine(
+            $"[DbTool] id={u.Id}\tuser={u.UserName}\temp={u.EmployeeId}\tactive={u.IsActive}\trole={u.Role}\tlastLogin={u.LastLoginAt:O}");
+    }
+}
+
+static bool CreateUser(
+    DbContextOptions<PatternProDbContext> options,
+    string employeeId,
+    string userName,
+    string displayName,
+    string role,
+    string password)
+{
+    if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
+    {
+        Console.Error.WriteLine("[DbTool] Password must be at least 6 characters.");
+        return false;
+    }
+
+    using var db = new PatternProDbContext(options);
+    var emp = employeeId.Trim().ToUpperInvariant();
+    var user = userName.Trim();
+    if (db.AppUsers.Any(u => u.UserName.ToLower() == user.ToLower()))
+    {
+        Console.Error.WriteLine($"[DbTool] Username '{user}' already exists.");
+        return false;
+    }
+
+    if (db.AppUsers.Any(u => u.EmployeeId.ToUpper() == emp))
+    {
+        Console.Error.WriteLine($"[DbTool] Employee ID '{emp}' already exists.");
+        return false;
+    }
+
+    var maxId = db.AppUsers.Select(u => (int?)u.Id).Max() ?? 0;
+    var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AppUser>();
+    var entity = new PatternPro.DataAccess.Persistence.AppUserEntity
+    {
+        Id = maxId + 1,
+        EmployeeId = emp,
+        UserName = user,
+        DisplayName = displayName.Trim(),
+        Role = string.IsNullOrWhiteSpace(role) ? AppRoles.Viewer : role.Trim(),
+        IsActive = true,
+        PasswordHash = hasher.HashPassword(new AppUser(), password),
+        CreatedAt = DateTime.UtcNow,
+    };
+    db.AppUsers.Add(entity);
+    db.SaveChanges();
+    Console.WriteLine($"[DbTool] Created user '{entity.UserName}' id={entity.Id} role={entity.Role}.");
+    return true;
+}
+
+static bool DeleteUser(DbContextOptions<PatternProDbContext> options, string userName)
+{
+    using var db = new PatternProDbContext(options);
+    var key = userName.Trim().ToLowerInvariant();
+    var entity = db.AppUsers.FirstOrDefault(u => u.UserName.ToLower() == key);
+    if (entity is null)
+    {
+        Console.Error.WriteLine($"[DbTool] User '{userName}' not found.");
+        return false;
+    }
+
+    if (string.Equals(entity.UserName, "admin", StringComparison.OrdinalIgnoreCase))
+    {
+        Console.Error.WriteLine("[DbTool] Refusing to delete admin.");
+        return false;
+    }
+
+    db.AppUsers.Remove(entity);
+    db.SaveChanges();
+    Console.WriteLine($"[DbTool] Deleted user '{userName}'.");
+    return true;
+}
+
+static bool SetUserPassword(DbContextOptions<PatternProDbContext> options, string userName, string newPassword)
+{
+    if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+    {
+        Console.Error.WriteLine("[DbTool] Password must be at least 6 characters.");
+        return false;
+    }
+
+    using var db = new PatternProDbContext(options);
+    var key = userName.Trim().ToLowerInvariant();
+    var entity = db.AppUsers.FirstOrDefault(u => u.UserName.ToLower() == key)
+        ?? db.AppUsers.FirstOrDefault(u => u.EmployeeId.ToUpper() == userName.Trim().ToUpperInvariant());
+    if (entity is null)
+    {
+        Console.Error.WriteLine($"[DbTool] User '{userName}' not found.");
+        return false;
+    }
+
+    var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AppUser>();
+    entity.PasswordHash = hasher.HashPassword(new AppUser(), newPassword);
+    db.SaveChanges();
+    var hash = entity.PasswordHash ?? string.Empty;
+    var verify = hasher.VerifyHashedPassword(new AppUser { PasswordHash = hash }, hash, newPassword);
+    Console.WriteLine($"[DbTool] Set password for '{entity.UserName}' (active={entity.IsActive}, verify={verify}).");
+    return verify is not Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed;
+}
+
 static void ResetAdminPassword(IConfiguration config, DbContextOptions<PatternProDbContext> options)
 {
     using var db = new PatternProDbContext(options);
@@ -194,7 +347,8 @@ static void ResetAdminPassword(IConfiguration config, DbContextOptions<PatternPr
     var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AppUser>();
     entity.PasswordHash = hasher.HashPassword(new AppUser(), password);
     db.SaveChanges();
-    var verify = hasher.VerifyHashedPassword(new AppUser { PasswordHash = entity.PasswordHash }, entity.PasswordHash, password);
+    var hash = entity.PasswordHash ?? string.Empty;
+    var verify = hasher.VerifyHashedPassword(new AppUser { PasswordHash = hash }, hash, password);
     Console.WriteLine($"[DbTool] Reset password for '{entity.UserName}' (active={entity.IsActive}, verify={verify}).");
 }
 
@@ -234,7 +388,8 @@ static void VerifyLogin(IConfiguration config, DbContextOptions<PatternProDbCont
     }
 
     var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AppUser>();
-    var result = hasher.VerifyHashedPassword(user, user.PasswordHash, password);
+    var hash = user.PasswordHash ?? string.Empty;
+    var result = hasher.VerifyHashedPassword(user, hash, password);
     Console.WriteLine($"[DbTool] ValidateLogin('{userName}'): {(result is Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed ? "FAILED" : "OK")} ({result})");
 }
 

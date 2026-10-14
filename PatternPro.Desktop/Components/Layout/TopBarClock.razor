@@ -1,0 +1,30 @@
+@implements IDisposable
+
+<div class="tb-clock" aria-live="off">@_clock</div>
+
+@code {
+    private string _clock = "00:00:00";
+    private System.Threading.Timer? _timer;
+    private bool _disposed;
+
+    protected override void OnInitialized()
+    {
+        _clock = DateTime.Now.ToString("HH:mm:ss");
+        _timer = new System.Threading.Timer(_ =>
+        {
+            if (_disposed) return;
+            _clock = DateTime.Now.ToString("HH:mm:ss");
+            _ = InvokeAsync(() =>
+            {
+                if (_disposed) return;
+                StateHasChanged();
+            });
+        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _timer?.Dispose();
+    }
+}

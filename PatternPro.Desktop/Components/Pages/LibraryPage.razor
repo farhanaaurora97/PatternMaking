@@ -1,29 +1,45 @@
 @page "/module/library"
 @attribute [Authorize]
+@implements IDisposable
 @using Pattern.Web.Model
 @using PatternPro.Desktop.Helpers
 @using PatternPro.Desktop.Services
 @inject IPatternService PatternService
 @inject IPieceService PieceService
+@inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject DesktopToastService Toast
 
 <div class="lib-page">
-    <div class="cv-toolbar">
-        <div>
-            <div class="page-title" style="font-size:1.35rem">Pattern Library</div>
-            <div class="page-sub">Patterns with saved canvas data — open any to continue editing</div>
+    <header class="lib-header">
+        <div class="lib-header__main">
+            <h1 class="page-title">Pattern Library</h1>
+            <p class="page-sub">Patterns with saved canvas data — open any to continue editing.</p>
         </div>
-        <div class="cv-toolbar-actions">
-            <span class="lib-stats">
-                <strong>@_saved.Count</strong> saved · <strong>@_unsaved.Count</strong> not in canvas
-            </span>
-            <NavLink class="btn btn-gold btn-sm" href="module/canvas">+ New canvas</NavLink>
+        <div class="lib-header__actions">
+            @if (_loading)
+            {
+                <span class="lib-stats lib-stats--pending">Updating…</span>
+            }
+            else
+            {
+                <span class="lib-stats">
+                    <strong>@_saved.Count</strong> saved · <strong>@_unsaved.Count</strong> not in canvas
+                </span>
+            }
+            <NavLink class="btn btn-gold btn-sm" href="@CanvasModuleHref">+ New canvas</NavLink>
             <NavLink class="btn btn-outline btn-sm" href="">Dashboard</NavLink>
         </div>
-    </div>
+    </header>
 
-    @if (_saved.Count > 0)
+    @if (_loading)
+    {
+        <div class="lib-panel lib-panel--center lib-panel--loading" role="status" aria-live="polite">
+            <div class="lib-empty-title">Loading library…</div>
+            <div class="lib-empty-sub">Reading saved canvas patterns from the database.</div>
+        </div>
+    }
+    else if (_saved.Count > 0)
     {
         <div class="lib-section-title">
             <span class="lib-section-dot lib-dot-saved"></span>
@@ -46,8 +62,10 @@
                     <div class="lib-card-pieces">@e.PieceCount piece@(e.PieceCount == 1 ? "" : "s") saved</div>
                     <div class="lib-card-footer">
                         <span class="lib-date">@e.Date</span>
-                        <NavLink class="btn btn-gold btn-sm" href="@CanvasHref(e)">Open canvas</NavLink>
-                        <button type="button" class="pp-btn-delete" style="margin-left:6px" @onclick="() => DeletePatternAsync(e)">Delete</button>
+                        <div class="lib-card-actions">
+                            <NavLink class="btn btn-gold btn-sm" href="@CanvasHref(e)">Open canvas</NavLink>
+                            <button type="button" class="pp-btn-delete" @onclick="() => DeletePatternAsync(e)">Delete</button>
+                        </div>
                     </div>
                 </div>
             }
@@ -55,14 +73,14 @@
     }
     else
     {
-        <div class="lib-empty-saved">
+        <div class="lib-panel lib-panel--center">
             <div class="lib-empty-title">No canvas data saved yet</div>
             <div class="lib-empty-sub">Open a pattern in Canvas and click <strong>Save all</strong> — it will appear here.</div>
-            <NavLink class="btn btn-gold btn-sm" href="module/canvas" style="margin-top:16px">Open canvas</NavLink>
+            <NavLink class="btn btn-gold btn-sm lib-panel-cta" href="@CanvasModuleHref">Open canvas</NavLink>
         </div>
     }
 
-    @if (_unsaved.Count > 0)
+    @if (!_loading && _unsaved.Count > 0)
     {
         <div class="lib-section-title" style="margin-top:28px">
             <span class="lib-section-dot lib-dot-unsaved"></span>
@@ -82,8 +100,10 @@
                     </div>
                     <div class="lib-card-footer">
                         <span class="lib-date">@e.Date</span>
-                        <NavLink class="btn btn-outline btn-sm" href="@CanvasHref(e)">Start in canvas</NavLink>
-                        <button type="button" class="pp-btn-delete" style="margin-left:6px" @onclick="() => DeletePatternAsync(e)">Delete</button>
+                        <div class="lib-card-actions">
+                            <NavLink class="btn btn-outline btn-sm" href="@CanvasHref(e)">Start in canvas</NavLink>
+                            <button type="button" class="pp-btn-delete" @onclick="() => DeletePatternAsync(e)">Delete</button>
+                        </div>
                     </div>
                 </div>
             }
@@ -94,38 +114,77 @@
 @code {
     private List<LibraryEntryViewModel> _saved = [];
     private List<LibraryEntryViewModel> _unsaved = [];
+    private bool _loading = true;
+    private bool _loadInProgress;
 
-    protected override void OnInitialized() => LoadEntries();
+    private string _styleKey = "skinny";
+    private string CanvasModuleHref =>
+        DesktopShellNavigation.HrefWithStyle("module/canvas", _styleKey);
 
-    private void LoadEntries()
+    protected override void OnInitialized()
     {
-        var savedIds = PieceService.GetSavedPatternIds();
-        var entries = PatternService.GetAll().Select(p =>
+        Navigation.LocationChanged += OnLocationChanged;
+        RefreshStyleFromUri();
+        _ = LoadEntriesAsync();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        RefreshStyleFromUri();
+        var path = Navigation.ToBaseRelativePath(e.Location).Split('?', '#')[0];
+        if (path.StartsWith("module/library", StringComparison.OrdinalIgnoreCase))
+            _ = LoadEntriesAsync();
+    }
+
+    private void RefreshStyleFromUri() =>
+        _styleKey = DesktopShellNavigation.StyleFromUri(Navigation);
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+
+    private async Task LoadEntriesAsync()
+    {
+        if (_loadInProgress) return;
+        _loadInProgress = true;
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
         {
-            var styleKey = FitStyleKeys.Normalize(p.Style);
-            var hasSaved = savedIds.Contains(p.Id);
-            var pieceCount = hasSaved
-                ? PieceService.GetPieceDefinitions(p.Id, styleKey).Count
-                : 0;
-
-            return new LibraryEntryViewModel
+            var entries = await Task.Run(() =>
             {
-                Id = p.Id,
-                Code = p.Code,
-                Name = p.Name,
-                Style = p.Style,
-                StyleKey = styleKey,
-                BaseSize = p.BaseSize,
-                Category = p.Category,
-                Status = p.Status,
-                Date = p.Date,
-                HasCanvas = hasSaved,
-                PieceCount = pieceCount,
-            };
-        }).ToList();
+                var savedCounts = PieceService.GetSavedPatternPieceCounts();
+                return PatternService.GetAll().Select(p =>
+                {
+                    var styleKey = FitStyleKeys.Normalize(p.Style);
+                    var hasSaved = savedCounts.ContainsKey(p.Id);
+                    var pieceCount = hasSaved && savedCounts.TryGetValue(p.Id, out var n) ? n : 0;
 
-        _saved = entries.Where(e => e.HasCanvas).ToList();
-        _unsaved = entries.Where(e => !e.HasCanvas).ToList();
+                    return new LibraryEntryViewModel
+                    {
+                        Id = p.Id,
+                        Code = p.Code,
+                        Name = p.Name,
+                        Style = p.Style,
+                        StyleKey = styleKey,
+                        BaseSize = p.BaseSize,
+                        Category = p.Category,
+                        Status = p.Status,
+                        Date = p.Date,
+                        HasCanvas = hasSaved,
+                        PieceCount = pieceCount,
+                    };
+                }).ToList();
+            });
+
+            _saved = entries.Where(e => e.HasCanvas).ToList();
+            _unsaved = entries.Where(e => !e.HasCanvas).ToList();
+        }
+        finally
+        {
+            _loading = false;
+            _loadInProgress = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private static string CanvasHref(LibraryEntryViewModel e) =>
@@ -141,6 +200,6 @@
             return;
         }
         Toast.Show("Pattern deleted", $"{e.Code} removed.", DesktopToastType.Success, "🗑");
-        LoadEntries();
+        await LoadEntriesAsync();
     }
 }

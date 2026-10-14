@@ -1,4 +1,4 @@
-@implements IDisposable
+@implements IAsyncDisposable
 @inject DesktopCanvasHost Host
 @inject IJSRuntime JS
 @using Microsoft.JSInterop
@@ -19,7 +19,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_observing)
+        if (!firstRender)
+            return;
+
+        if (!_observing)
         {
             _dotNetRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("patternPro.observeElement", _host, _dotNetRef);
@@ -52,14 +55,6 @@
             // WebView torn down.
         }
 
-        _dotNetRef?.Dispose();
-    }
-
-    void IDisposable.Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        Host.Deactivate(Mode);
         _dotNetRef?.Dispose();
     }
 }

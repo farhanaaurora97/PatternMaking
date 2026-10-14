@@ -1,5 +1,6 @@
 @page "/module/canvas"
 @attribute [Authorize]
+@implements IDisposable
 @using CoreModel = Pattern.Core.Model
 @using PatternPro.Desktop.Canvas
 @using PatternPro.Desktop.Components.Canvas
@@ -523,7 +524,9 @@
 
             <div class="cp-section">
                 <div class="cp-label">Auto-Draft Sizes</div>
-                <div style="font-size:10.5px;color:var(--ink4);margin-bottom:8px;line-height:1.55">Generate pieces from style block.</div>
+                <div style="font-size:10.5px;color:var(--ink4);margin-bottom:8px;line-height:1.55">
+                    <strong>Generate</strong> uses one size on the canvas. Check extra sizes for <strong>Export</strong> only — multiple sizes stacked here before.
+                </div>
                 <div class="draft-size-grid">
                     @foreach (var sz in _draftSizes)
                     {
@@ -578,6 +581,10 @@
     private bool _generating;
     private bool _saveOk;
     private string? _saveMsg;
+    private bool _fitViewportPending;
+    private int? _queryPieceIndex;
+    private double _lastFitSlotW;
+    private double _lastFitSlotH;
     private string _newPieceName = "New Piece";
     private string _newPieceCategory = "Body Panels";
     private string _newPieceCut = "Cut 2";
@@ -591,7 +598,7 @@
     private readonly List<DraftSizeOption> _draftSizes =
     [
         new("XS", false), new("S", false), new("M", true),
-        new("L", true), new("XL", true), new("XXL", true),
+        new("L", false), new("XL", false), new("XXL", false),
     ];
 
     private static readonly (string Key, string Label)[] StyleOptions =
@@ -639,21 +646,57 @@
 
     protected override async Task OnInitializedAsync()
     {
+        CanvasHost.SlotBoundsChanged += OnCanvasSlotBoundsChanged;
         ParseQuery();
         await LoadPiecesAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        SyncHost();
-        if (_slot is not null)
-            await _slot.RefreshBoundsAsync();
         if (firstRender)
         {
             try { await _pageRoot.FocusAsync(); } catch { /* focus optional */ }
-            if (_pieces.Count > 0)
-                FitAll();
         }
+
+        if (firstRender || _fitViewportPending)
+            await RefreshCanvasSlotAsync(allowFit: true);
+    }
+
+    public void Dispose() => CanvasHost.SlotBoundsChanged -= OnCanvasSlotBoundsChanged;
+
+    private void OnCanvasSlotBoundsChanged()
+    {
+        if (_pieces.Count == 0)
+            return;
+        _fitViewportPending = true;
+        _ = InvokeAsync(() => RefreshCanvasSlotAsync(allowFit: true));
+    }
+
+    private async Task RefreshCanvasSlotAsync(bool allowFit)
+    {
+        SyncHost();
+        if (_slot is not null)
+            await _slot.RefreshBoundsAsync();
+
+        if (!allowFit || _pieces.Count == 0)
+            return;
+
+        var w = CanvasHost.SlotWidth;
+        var h = CanvasHost.SlotHeight;
+        if (w < 32 || h < 32)
+        {
+            _fitViewportPending = true;
+            return;
+        }
+
+        var sizeChanged = Math.Abs(w - _lastFitSlotW) > 6 || Math.Abs(h - _lastFitSlotH) > 6;
+        if (!_fitViewportPending && !sizeChanged)
+            return;
+
+        _lastFitSlotW = w;
+        _lastFitSlotH = h;
+        _fitViewportPending = false;
+        FitAll();
     }
 
     private void OnKeyDown(KeyboardEventArgs e)
@@ -798,6 +841,34 @@
                 _patternId = id;
             if (part.StartsWith("style=", StringComparison.Ordinal))
                 _styleKey = FitStyleKeys.Normalize(Uri.UnescapeDataString(part["style=".Length..]));
+            if (part.StartsWith("piece=", StringComparison.Ordinal)
+                && int.TryParse(part["piece=".Length..], out var pieceIdx)
+                && pieceIdx >= 0)
+                _queryPieceIndex = pieceIdx;
+        }
+    }
+
+    private void ApplyInitialPieceSelection()
+    {
+        if (_pieces.Count == 0)
+        {
+            _selectedIndex = null;
+            _selectedIndices.Clear();
+            return;
+        }
+
+        if (_queryPieceIndex is int qi && qi < _pieces.Count)
+        {
+            _selectedIndex = qi;
+            _selectedIndices = [qi];
+            _queryPieceIndex = null;
+            return;
+        }
+
+        if (_selectedIndex is not int sel || sel < 0 || sel >= _pieces.Count)
+        {
+            _selectedIndex = 0;
+            _selectedIndices = [0];
         }
     }
 
@@ -831,14 +902,15 @@
             _loading = false;
         }
 
-        if (_pieces.Count > 0)
-        {
-            _selectedIndex = 0;
-            _selectedIndices = [0];
-        }
+        ApplyInitialPieceSelection();
 
         CanvasHost.ClearHistory();
         SyncHost();
+        _fitViewportPending = _pieces.Count > 0;
+        _lastFitSlotW = _lastFitSlotH = 0;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        await RefreshCanvasSlotAsync(allowFit: true);
     }
 
     private Task LoadPieces() => LoadPiecesAsync();
@@ -1302,12 +1374,18 @@
     private void FitAll()
     {
         var bounds = CanvasPainter.ComputeBounds(_pieces);
-        if (!bounds.IsEmpty)
+        if (bounds.IsEmpty)
+            return;
+
+        var w = (float)CanvasHost.SlotWidth;
+        var h = (float)CanvasHost.SlotHeight;
+        if (w < 32 || h < 32)
         {
-            var w = (float)(CanvasHost.SlotWidth > 1 ? CanvasHost.SlotWidth : 900);
-            var h = (float)(CanvasHost.SlotHeight > 1 ? CanvasHost.SlotHeight : 600);
-            _viewport.FitToBounds(bounds, w, h);
+            _fitViewportPending = true;
+            return;
         }
+
+        _viewport.FitToBounds(bounds, w, h);
         SyncHost();
         CanvasHost.Invalidate();
     }
@@ -1337,13 +1415,16 @@
 
     private async Task GenerateDraftAsync()
     {
-        var sizes = _draftSizes.Where(s => s.Checked).Select(s => s.Label).ToList();
-        if (sizes.Count == 0)
+        var exportSizes = _draftSizes.Where(s => s.Checked).Select(s => s.Label).ToList();
+        if (exportSizes.Count == 0)
         {
             _draftMsg = "Select at least one size.";
             _status = null;
             return;
         }
+
+        var canvasSize = exportSizes[0];
+        var skippedSizes = exportSizes.Count > 1 ? exportSizes.Count - 1 : 0;
 
         _generating = true;
         _draftMsg = "Generating…";
@@ -1353,16 +1434,9 @@
 
         try
         {
-            List<CoreModel.PieceDefinition> pieces;
-            if (sizes.Count == 1)
-            {
-                pieces = DraftingService.DraftProductionPieces(_styleKey, sizes[0], _patternId > 0 ? _patternId : null).ToList();
-            }
-            else
-            {
-                var graded = DraftingService.DraftGradedSet(_styleKey, sizes, _patternId > 0 ? _patternId : null);
-                pieces = graded.Values.SelectMany(v => v).ToList();
-            }
+            var pieces = DraftingService
+                .DraftProductionPieces(_styleKey, canvasSize, _patternId > 0 ? _patternId : null)
+                .ToList();
 
             if (_patternId > 0)
             {
@@ -1378,7 +1452,9 @@
             _selectedIndex = _pieces.Count > 0 ? 0 : null;
             _selectedIndices = _pieces.Count > 0 ? new HashSet<int> { 0 } : [];
             _dirty = true;
-            _draftMsg = $"Generated {_pieces.Count} pieces ({string.Join(", ", sizes)}).";
+            _draftMsg = skippedSizes > 0
+                ? $"Generated {_pieces.Count} pieces for size {canvasSize}. ({skippedSizes} other checked size(s) are for Export only — use Clear if an old multi-size stack is still on the canvas.)"
+                : $"Generated {_pieces.Count} pieces (size {canvasSize}).";
 
             SyncHost();
             if (_slot is not null)

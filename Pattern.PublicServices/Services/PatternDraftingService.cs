@@ -413,6 +413,20 @@ public class PatternDraftingService : IPatternDraftingService
 
     // ── Piece drafters ─────────────────────────────────────────────────────
 
+    private static List<int[]> WaistCurvePoints(int startX, int widthPx)
+    {
+        var dip   = Math.Max(1, Px(0.25m));
+        var dipCf = Math.Max(dip + 1, Px(0.35m));
+        return
+        [
+            [startX,              0     ],  // CF / attach start
+            [startX + widthPx / 4, dip  ],
+            [startX + widthPx / 2, dipCf],  // center contour
+            [startX + 3 * widthPx / 4, dip],
+            [startX + widthPx,    0     ],  // side seam
+        ];
+    }
+
     private static PieceDefinition DraftFrontLeg(
         decimal cef, decimal wQ, decimal hQ, decimal thQ, decimal knQ, decimal anQ,
         int hipY, int crotchY, int kneeY, int hemY)
@@ -421,11 +435,12 @@ public class PatternDraftingService : IPatternDraftingService
         int wPx  = Px(wQ),  hPx  = Px(hQ),  thPx = Px(thQ);
         int knPx = Px(knQ), anPx = Px(anQ);
         int cfX  = cx + wPx / 2;
+        var waist = WaistCurvePoints(cx, wPx);
+        var dipCf = waist[2][1];
 
         List<int[]> pts =
         [
-            [cx,                            0       ],  // waist inseam
-            [cx + wPx,                      0       ],  // waist side
+            .. waist,
             [cx + hPx,                      hipY    ],  // hip side
             [cx + thPx,                     crotchY ],  // thigh side
             [cx + knPx,                     kneeY   ],  // knee side
@@ -446,7 +461,7 @@ public class PatternDraftingService : IPatternDraftingService
             Points    = pts,
             Grain     = [[cfX, 15], [cfX, hemY - 15]],
             Cf        = [[cx, 0],   [cx, hemY]],
-            Notches   = [[cx - 1, 0], [cx + 1, 0], [cx - knPx, kneeY]],
+            Notches   = [[cfX, dipCf], [cx + wPx, 0], [cx - knPx, kneeY]],
         };
     }
 
@@ -461,11 +476,12 @@ public class PatternDraftingService : IPatternDraftingService
         int bwPx  = Px(bwQ), hPx = Px(hQ), bthPx = Px(bthQ);
         int knPx  = Px(knQ), anPx = Px(anQ);
         int cfX   = cx + bwPx / 2;
+        var waist = WaistCurvePoints(cx, bwPx);
+        var dipCf = waist[2][1];
 
         List<int[]> pts =
         [
-            [cx,                              0       ],
-            [cx + bwPx,                       0       ],
+            .. waist,
             [cx + hPx,                        hipY    ],
             [cx + bthPx,                      crotchY ],
             [cx + knPx,                       kneeY   ],
@@ -486,15 +502,29 @@ public class PatternDraftingService : IPatternDraftingService
             Points    = pts,
             Grain     = [[cfX, 15], [cfX, hemY - 15]],
             Cf        = [[cx, 0],   [cx, hemY]],
-            Notches   = [[cx - 1, 0], [cx + 1, 0], [cx - knPx, kneeY]],
+            Notches   = [[cfX, dipCf], [cx + bwPx, 0], [cx - knPx, kneeY]],
         };
     }
 
     private static PieceDefinition DraftWaistband(decimal adjWaist)
     {
-        int w   = Px(adjWaist / 2 + 2m);
-        int h   = Px(3.5m);
-        int cfX = Px(adjWaist / 4 + 1m);
+        int w      = Px(adjWaist / 2 + 2m);
+        int h      = Px(3.5m);
+        int cfX    = w / 2;
+        // Symmetric body contour on attach edge (arc dips at center — standard waistband).
+        int dip    = Math.Max(1, Px(0.3m));
+        int dipCf  = Math.Max(dip + 1, Px(0.45m));
+
+        List<int[]> pts =
+        [
+            [0,         0     ],  // left attach
+            [w / 4,     dip   ],
+            [cfX,       dipCf ],  // center front
+            [3 * w / 4, dip   ],
+            [w,         0     ],  // right attach
+            [w,         h     ],  // bottom right
+            [0,         h     ],  // bottom left
+        ];
 
         return new PieceDefinition
         {
@@ -503,10 +533,10 @@ public class PatternDraftingService : IPatternDraftingService
             Cut       = "Cut 1",
             Color     = "#2626a0",
             GrainLine = "Straight",
-            Points    = [[0, 0], [w, 0], [w, h], [0, h]],
+            Points    = pts,
             Grain     = [[w / 2, 3], [w / 2, h - 3]],
             Cf        = [[cfX, 0], [cfX, h]],
-            Notches   = [[cfX - 1, 0], [cfX + 1, 0]],
+            Notches   = [[cfX, dipCf], [0, 0], [w, 0]],
         };
     }
 

@@ -18,6 +18,8 @@ public partial class MainPage : ContentPage
             InputTransparent = false,
         };
 
+        blazorWebView.ZIndex = 0;
+        _nativeCanvas.ZIndex = 1;
         RootGrid.Children.Add(_nativeCanvas);
         canvasHost.Attach(_nativeCanvas);
     }

@@ -60,8 +60,6 @@ public class PieceService : IPieceService, IReloadableAppData
             PatternGeometry = _defsPerPattern,
         });
 
-    private void EnsureFresh() => ReloadFromStoreIfAvailable();
-
     public void ReloadFromStore() => ReloadFromStoreIfAvailable();
 
     private void ReloadFromStoreIfAvailable()
@@ -103,7 +101,6 @@ public class PieceService : IPieceService, IReloadableAppData
 
     public IReadOnlyList<PieceDefinition> GetPieceDefinitions(string styleKey)
     {
-        EnsureFresh();
         if (_defsPerStyle.TryGetValue(styleKey, out var list))
             return list.AsReadOnly();
 
@@ -197,7 +194,6 @@ public class PieceService : IPieceService, IReloadableAppData
 
     public IReadOnlyList<PieceDefinition> GetPieceDefinitions(int patternId, string styleKey)
     {
-        EnsureFresh();
         if (_defsPerPattern.TryGetValue(patternId, out var list))
             return list.AsReadOnly();
 
@@ -385,10 +381,15 @@ public class PieceService : IPieceService, IReloadableAppData
         Persist();
     }
 
-    public IReadOnlySet<int> GetSavedPatternIds()
+    public IReadOnlySet<int> GetSavedPatternIds() =>
+        _defsPerPattern.Keys.ToHashSet();
+
+    public IReadOnlyDictionary<int, int> GetSavedPatternPieceCounts()
     {
-        EnsureFresh();
-        return _defsPerPattern.Keys.ToHashSet();
+        var result = new Dictionary<int, int>(_defsPerPattern.Count);
+        foreach (var (patternId, list) in _defsPerPattern)
+            result[patternId] = list.Count;
+        return result;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────

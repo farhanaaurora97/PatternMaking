@@ -54,6 +54,47 @@ public class PatternAutoRefineServiceTests
             p => Assert.True(p.SeamAllowance > 0));
     }
 
+    [Fact]
+    public void DraftProductionPieces_Waistband_HasCurvedAttachEdge()
+    {
+        var drafting = new PatternDraftingService(new FakeSizeChartService(), new FakeBlockGenerator());
+        var wb = drafting.DraftProductionPieces("slim", "M").First(p => p.Name == "Waistband");
+
+        Assert.True(wb.Points.Count >= 7, "Waistband should have a multi-point curved attach edge.");
+        Assert.True(wb.Points[2][1] > wb.Points[0][1], "Center attach point should dip below side corners.");
+        Assert.Equal(wb.Points[4][0], wb.Points[5][0]);
+        Assert.Equal(wb.Points[0][0], wb.Points[6][0]);
+    }
+
+    [Fact]
+    public void DraftProductionPieces_FrontLeg_HasCurvedWaistEdge()
+    {
+        var drafting = new PatternDraftingService(new FakeSizeChartService(), new FakeBlockGenerator());
+        var front = drafting.DraftProductionPieces("slim", "M").First(p => p.Name == "Front Leg");
+
+        Assert.True(front.Points.Count >= 13, "Front leg should include multi-point curved waist.");
+        Assert.True(front.Points[2][1] > front.Points[0][1], "Waist center should dip below side corners.");
+        Assert.Single(front.Notches!.Where(n => n[1] == front.Points[2][1] && n[0] == front.Points[2][0]));
+    }
+
+    [Fact]
+    public void BalanceWaistbandToLegs_KeepsRightEdgeVerticalOnCurvedBand()
+    {
+        var front = TestPieceFactory.Rect("Front Leg", 120);
+        var back = TestPieceFactory.Rect("Back Leg", 120);
+        var wb = new PieceDefinition
+        {
+            Name = "Waistband",
+            Points =
+            [
+                [0, 0], [30, 2], [60, 3], [90, 2], [120, 0], [120, 20], [0, 20],
+            ],
+        };
+        PatternAutoRefineService.BalanceWaistbandToLegs([front, back, wb]);
+
+        Assert.Equal(wb.Points[4][0], wb.Points[5][0]);
+    }
+
     private sealed class FakeBlockGenerator : IBlockGeneratorService
     {
         public BlockDefinition GetDefinition(string styleKey) => new();

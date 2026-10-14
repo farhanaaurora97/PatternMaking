@@ -131,11 +131,8 @@ public class PatternService : IPatternService, IReloadableAppData
     /// <summary>Reload from PostgreSQL/JSON before reads or writes so singleton cache cannot overwrite the store.</summary>
     private void EnsureFresh() => ReloadFromStoreIfAvailable();
 
-    public IReadOnlyList<Pattern.Core.Model.Pattern> GetAll()
-    {
-        EnsureFresh();
-        return _patterns.AsReadOnly();
-    }
+    public IReadOnlyList<Pattern.Core.Model.Pattern> GetAll() =>
+        _patterns.AsReadOnly();
 
     public StyleDefinition GetStyleDefinition(string styleKey) =>
         GetStyleDefinition(styleKey, null);

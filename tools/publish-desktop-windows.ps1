@@ -149,10 +149,6 @@ function Write-TeamAppSettings {
         ConnectionStrings = @{
             Postgres = $conn
         }
-        Auth = @{
-            SeedAdminUserName = "admin"
-            SeedAdminPassword = "Admin@123"
-        }
     }
     $json = $settings | ConvertTo-Json -Depth 5
     Set-Content -Path (Join-Path $Dir "appsettings.json") -Value $json -Encoding UTF8
@@ -163,11 +159,28 @@ function Write-TeamAppSettings {
         $path = Join-Path $Dir $file
         if (Test-Path $path) { Remove-Item -Force $path }
     }
+
+    # Never ship dev-style appsettings.json from build output (may contain local secrets).
+    $rootAppsettings = Join-Path $Dir "appsettings.json"
+    if (Test-Path $rootAppsettings) { Remove-Item -Force $rootAppsettings }
+    Set-Content -Path $rootAppsettings -Value $json -Encoding UTF8
 }
 
 if ($isTeamPackage) {
     Write-Host "Team package: server $TeamServerHost`:$PostgresPort (no setup needed on other PCs)" -ForegroundColor Yellow
     Write-TeamAppSettings -Dir $outDir
+    $handoverMd = Join-Path $repoRoot "docs/DELIVERY_HANDOVER.md"
+    $multiPc = Join-Path $repoRoot "docs/MULTI_PC_SETUP.md"
+    if (Test-Path $handoverMd) {
+        Copy-Item $handoverMd (Join-Path $outDir "DELIVERY_HANDOVER.md") -Force
+    }
+    if (Test-Path $multiPc) {
+        Copy-Item $multiPc (Join-Path $outDir "MULTI_PC_SETUP.md") -Force
+    }
+    $handoverTxt = Join-Path $repoRoot "dist/HANDOVER_SEND_WITH_ZIP.txt"
+    if (Test-Path $handoverTxt) {
+        Copy-Item $handoverTxt (Join-Path $outDir "HANDOVER_SEND_WITH_ZIP.txt") -Force
+    }
 }
 else {
     Copy-Item (Join-Path $repoRoot "PatternPro.Desktop/appsettings.Development.example.json") (Join-Path $outDir "appsettings.Development.example.json") -Force
@@ -215,7 +228,7 @@ $readme = if ($isTeamPackage) {
         "INSTALL (other PC - nothing else to do):"
         "  1. Extract this ZIP to any folder"
         "  2. Double-click START-PatternPro.bat  (or PatternPro.Desktop.exe)"
-        "  3. Login: admin / Admin@123"
+        "  3. Login with the username/password from your administrator"
         ""
         "You will see the same patterns as the main PC ($TeamServerHost)."
         "No config files to edit. No App_Data to delete."
@@ -242,7 +255,7 @@ $readme = if ($isTeamPackage) {
         "  2. Right-click ZIP -> Extract All"
         "  3. Open folder PatternPro-Desktop-win-x64"
         "  4. Double-click START-PatternPro.bat  (or PatternPro.Desktop.exe)"
-        "  5. Login: admin / Admin@123"
+        "  5. Login with credentials from your administrator"
         ""
         "Requirements:"
         "  - Windows 10/11 64-bit"
@@ -267,6 +280,57 @@ $readme = if ($isTeamPackage) {
     )
 }
 $readme | Set-Content -Path (Join-Path $outDir "README.txt") -Encoding UTF8
+
+if ($isTeamPackage) {
+    $versionText = "PatternPro-Desktop-1.0`nPackage: PatternPro-Desktop-1.0-win-x64.zip`nBuilt: $(Get-Date -Format o)"
+    Set-Content -Path (Join-Path $outDir "VERSION.txt") -Value $versionText -Encoding UTF8
+
+    $multiPc = Join-Path $repoRoot "docs/MULTI_PC_SETUP.md"
+    if (Test-Path $multiPc) {
+        Copy-Item $multiPc (Join-Path $outDir "MULTI_PC_SETUP.md") -Force
+    }
+
+    $handover = @(
+        "PatternPro Desktop - HANDOVER (team package)"
+        "============================================="
+        ""
+        "Package: PatternPro-Desktop-1.0-win-x64.zip"
+        "Built: $(Get-Date -Format 'yyyy-MM-dd HH:mm') local time"
+        ""
+        "DATABASE SERVER (PC 1 - must stay on for team sync)"
+        "  Host: $TeamServerHost"
+        "  Port: $PostgresPort"
+        "  Database: $PostgresDatabase"
+        ""
+        "INSTALL (designer PCs)"
+        "  1. Extract the full ZIP to any folder"
+        "  2. Run START-PatternPro.bat or PatternPro.Desktop.exe"
+        "  3. Sign in with YOUR username/password (from admin - not shared)"
+        ""
+        "REQUIREMENTS"
+        "  - Windows 10/11 64-bit"
+        "  - Microsoft Edge WebView2 Runtime (usually preinstalled)"
+        "  - Same office Wi-Fi or VPN as the database server"
+        ""
+        "SUPPORT"
+        "  - Forgot password: contact an Administrator (Admin panel -> Edit user)"
+        "  - Data not updating: use Refresh in the app; confirm server PC is on"
+        "  - Server IP changed: admin must send a new ZIP (see docs/AFTER_DELIVERY.md in repo)"
+        ""
+        "ADMIN CONTACT"
+        "  Primary administrator: (fill in name / phone / email before sending)"
+        ""
+        "CREDENTIALS"
+        "  Do not share one admin login. Admin distributes per-user passwords separately."
+        "  (Keep delivery-credentials-*.txt confidential - not inside this ZIP.)"
+        ""
+        "TRAINING SCREENSHOTS (optional)"
+        "  See README in repo: docs/screenshots/ - dashboard.png, canvas.png, export.png, size-chart.png"
+        ""
+        "More detail: MULTI_PC_SETUP.md (included in this folder)."
+    )
+    Set-Content -Path (Join-Path $outDir "HANDOVER.txt") -Value $handover -Encoding UTF8
+}
 
 if (-not $SkipLaunchTest) {
     Write-Host ""

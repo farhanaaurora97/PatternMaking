@@ -56,6 +56,9 @@ public interface IPieceService
     /// <summary>Returns IDs of all patterns that have canvas geometry saved.</summary>
     IReadOnlySet<int> GetSavedPatternIds();
 
+    /// <summary>Pattern IDs with saved canvas data → piece count (in-memory; no per-pattern store reload).</summary>
+    IReadOnlyDictionary<int, int> GetSavedPatternPieceCounts();
+
     /// <summary>Sets default seam allowance (cm) on cut pieces that have none; returns count updated.</summary>
     int ApplyDefaultSeamAllowances(int patternId, string styleKey, double seamAllowanceCm = 1.0);
 

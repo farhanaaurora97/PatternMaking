@@ -7,6 +7,9 @@ internal static class SeamGeometry
     /// <summary>Matches <see cref="PatternDraftingService"/> canvas scale.</summary>
     public const double PixelsPerCm = 3.0;
 
+    /// <summary>Curved leg waist = 4 edges between 5 attach points (matches waistband contour).</summary>
+    public const int LegWaistEdgeCount = 4;
+
     public static double EdgeLengthPx(PieceDefinition piece, int edgeIndex)
     {
         if (piece.Points.Count < 2) return 0;
@@ -24,6 +27,32 @@ internal static class SeamGeometry
 
     public static double PerimeterPx(PieceDefinition piece) =>
         Enumerable.Range(0, piece.Points.Count).Sum(i => EdgeLengthPx(piece, i));
+
+    public static double LegWaistLengthPx(PieceDefinition piece)
+    {
+        if (piece.Points.Count < LegWaistEdgeCount + 1)
+            return EdgeLengthPx(piece, 0);
+
+        var sum = 0.0;
+        for (var e = 0; e < LegWaistEdgeCount; e++)
+            sum += EdgeLengthPx(piece, e);
+        return sum;
+    }
+
+    public static double WaistbandAttachLengthPx(PieceDefinition wb)
+    {
+        if (wb.Points.Count >= 7
+            && wb.Name.Equals("Waistband", StringComparison.OrdinalIgnoreCase))
+        {
+            var segments = wb.Points.Count - 3;
+            var sum = 0.0;
+            for (var e = 0; e < segments; e++)
+                sum += EdgeLengthPx(wb, e);
+            return sum;
+        }
+
+        return EdgeLengthPx(wb, 0);
+    }
 
     public static double ToCm(double pixels) => pixels / PixelsPerCm;
 

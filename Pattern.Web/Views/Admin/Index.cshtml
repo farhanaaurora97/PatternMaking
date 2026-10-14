@@ -7,7 +7,7 @@
     <div class="page-title">Admin panel</div>
     <div class="page-sub">Manage employees, roles, and account approval.</div>
   </div>
-  <a class="btn btn-gold btn-sm" asp-action="Create">+ New user</a>
+  <button type="button" class="btn btn-gold btn-sm" id="btn-new-user">+ New user</button>
 </div>
 
 @if (TempData["AdminMessage"] is string msg)
@@ -78,3 +78,25 @@
     <li><strong>Disabled</strong> — cannot sign in</li>
   </ul>
 </div>
+
+@{
+  ViewData["ShowNewUserModal"] = Model.ShowNewUserModal;
+}
+<partial name="_NewUserModal" model="Model.NewUser" />
+
+@section Scripts {
+  <partial name="_ValidationScriptsPartial" />
+  <script>
+    (function () {
+      var modal = document.getElementById('new-user-modal');
+      var openBtn = document.getElementById('btn-new-user');
+      if (!modal || !openBtn) return;
+      function open() { modal.classList.add('open'); }
+      function close() { modal.classList.remove('open'); }
+      openBtn.addEventListener('click', open);
+      modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+      modal.querySelectorAll('[data-new-user-close]').forEach(function (b) { b.addEventListener('click', close); });
+      if (modal.classList.contains('open')) open();
+    })();
+  </script>
+}

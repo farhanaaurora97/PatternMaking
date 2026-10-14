@@ -84,6 +84,8 @@ public class ChangePasswordViewModel
 public class AdminUsersViewModel
 {
     public IReadOnlyList<AdminUserRowViewModel> Users { get; set; } = [];
+    public AdminUserFormViewModel NewUser { get; set; } = new();
+    public bool ShowNewUserModal { get; set; }
 }
 
 public class AdminUserRowViewModel

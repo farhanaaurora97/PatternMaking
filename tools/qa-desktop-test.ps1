@@ -54,8 +54,11 @@ if (-not $LaunchOnly) {
     Try-Test "DT1 Reset admin password" {
         Push-Location $repoRoot
         $out = dotnet run --project tools/PatternPro.DbTool -- reset-admin-password 2>&1
+        $code = $LASTEXITCODE
         Pop-Location
-        if ($out -notmatch "Reset password for 'admin'") { throw "reset-admin-password failed: $out" }
+        $outText = ($out | ForEach-Object { "$_" }) -join [Environment]::NewLine
+        if ($code -ne 0) { throw "reset-admin-password exit $code`: $outText" }
+        if ($outText -notmatch "Reset password for 'admin'") { throw "reset-admin-password failed: $outText" }
         Pass "DT1 Admin password" "admin / Admin@123"
     }
 

@@ -59,16 +59,12 @@ public static class StyleAssemblyCatalog
     /// <summary>Shared defaults for skinny/slim/straight (same piece names and edge topology as seeds).</summary>
     private static List<NotchRuleDefinition> BottomWearNotchRulesDefault() =>
     [
-        // Front Leg — waist edge 0, side seam / inseam markers (seed has 9 vertices)
-        new() { PieceName = "Front Leg", EdgeIndex = 0, T = 0.12, PairId = "waist_cc_l" },
-        new() { PieceName = "Front Leg", EdgeIndex = 0, T = 0.88, PairId = "waist_cc_r" },
-        new() { PieceName = "Front Leg", EdgeIndex = 3, T = 0.45, PairId = "hip_front" },
-        new() { PieceName = "Front Leg", EdgeIndex = 6, T = 0.5, PairId = "knee_front" },
+        // Front Leg — curved waist edges 0–3 (+3 on body edges vs flat waist seed)
+        new() { PieceName = "Front Leg", EdgeIndex = 6, T = 0.45, PairId = "hip_front" },
+        new() { PieceName = "Front Leg", EdgeIndex = 9, T = 0.5, PairId = "knee_front" },
         // Back Leg
-        new() { PieceName = "Back Leg", EdgeIndex = 0, T = 0.12, PairId = "waist_cc_l" },
-        new() { PieceName = "Back Leg", EdgeIndex = 0, T = 0.88, PairId = "waist_cc_r" },
-        new() { PieceName = "Back Leg", EdgeIndex = 4, T = 0.45, PairId = "hip_back" },
-        new() { PieceName = "Back Leg", EdgeIndex = 7, T = 0.5, PairId = "knee_back" },
+        new() { PieceName = "Back Leg", EdgeIndex = 7, T = 0.45, PairId = "hip_back" },
+        new() { PieceName = "Back Leg", EdgeIndex = 10, T = 0.5, PairId = "knee_back" },
         // Waistband — CF + sides
         new() { PieceName = "Waistband", EdgeIndex = 0, T = 0.5, PairId = "wb_cf" },
         new() { PieceName = "Waistband", EdgeIndex = 1, T = 0.5 },
@@ -90,8 +86,8 @@ public static class StyleAssemblyCatalog
     private static List<SeamPairDefinition> DefaultSeamPairs() =>
     [
         new() { PieceA = "Front Leg", EdgeIndexA = 0, PieceB = "Back Leg", EdgeIndexB = 0, Label = "Waist seam (partial)" },
-        new() { PieceA = "Front Leg", EdgeIndexA = 2, PieceB = "Back Leg", EdgeIndexB = 5, Label = "Side / hip (pattern-dependent)" },
-        new() { PieceA = "Front Leg", EdgeIndexA = 6, PieceB = "Back Leg", EdgeIndexB = 7, Label = "Inseam region (pattern-dependent)" },
+        new() { PieceA = "Front Leg", EdgeIndexA = 5, PieceB = "Back Leg", EdgeIndexB = 8, Label = "Side / hip (pattern-dependent)" },
+        new() { PieceA = "Front Leg", EdgeIndexA = 9, PieceB = "Back Leg", EdgeIndexB = 10, Label = "Inseam region (pattern-dependent)" },
         new() { PieceA = "Waistband", EdgeIndexA = 0, PieceB = "Front Leg", EdgeIndexB = 0, Label = "Waist attach (reference)" },
     ];
 }

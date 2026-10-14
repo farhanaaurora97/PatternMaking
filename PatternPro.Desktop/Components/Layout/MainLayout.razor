@@ -1,22 +1,48 @@
 @inherits LayoutComponentBase
 @implements IDisposable
+@using PatternPro.Desktop.Helpers
 @inject NavigationManager Navigation
 @inject DesktopCanvasHost CanvasHost
+@inject IJSRuntime JS
 
-<div class="pp-accent"></div>
-<div class="pp-app">
-    <aside class="pp-sidebar">
+<div class="brand-accent" aria-hidden="true"></div>
+
+<div class="app">
+    <div class="sidebar">
         <NavMenu />
-    </aside>
-    <main class="pp-main">
-        @Body
-    </main>
+    </div>
+
+    <div class="main">
+        <AppTopBar />
+        <div class="content @(_canvasMode ? "content--canvas" : "")">
+            @Body
+        </div>
+    </div>
 </div>
+
 <ToastHost />
 
 @code {
-    protected override void OnInitialized() =>
+    private bool _canvasMode;
+
+    protected override void OnInitialized()
+    {
         Navigation.LocationChanged += OnLocationChanged;
+        _canvasMode = DesktopShellNavigation.IsCanvasRoute(Navigation);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            await JS.InvokeVoidAsync("patternPro.initBlazorErrorUi");
+        }
+        catch
+        {
+            // WebView bootstrapping.
+        }
+    }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
@@ -26,6 +52,23 @@
         {
             CanvasHost.HideOverlayForNavigation();
         }
+
+        var canvasMode = DesktopShellNavigation.IsCanvasRoute(Navigation);
+        var layoutChanged = canvasMode != _canvasMode;
+        _canvasMode = canvasMode;
+        _ = InvokeAsync(async () =>
+        {
+            if (layoutChanged)
+                StateHasChanged();
+            try
+            {
+                await JS.InvokeVoidAsync("patternPro.dismissBlazorError");
+            }
+            catch
+            {
+                // WebView not ready.
+            }
+        });
     }
 
     public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
